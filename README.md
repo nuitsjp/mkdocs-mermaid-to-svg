@@ -20,8 +20,8 @@
 
 ```bash
 # 新しいリポジトリをクローン
-git clone https://github.com/yourusername/project-name.git
-cd project-name
+git clone https://github.com/yourusername/mkdocs-mermaid-to-image.git
+cd mkdocs-mermaid-to-image
 
 # セットアップ
 make setup
@@ -33,7 +33,7 @@ claude  # /initialize-projectを実行
 ```
 
 セットアップスクリプトは、以下の処理を自動的に実行します。
-- プロジェクト内のすべての `project_name` を、指定したプロジェクト名に置換
+- プロジェクト内のすべての `mkdocs_mermaid_to_image` を、指定したプロジェクト名に置換
 - `uv` を使用してPythonの仮想環境を構築
 - Claude Codeをインストール
 - Gemini CLIをインストール
@@ -394,7 +394,7 @@ project-root/
 │   ├── ISSUE_TEMPLATE/          # Issueテンプレート
 │   └── PULL_REQUEST_TEMPLATE.md # Pull Requestテンプレート
 ├── src/
-│   └── project_name/            # メインパッケージ（`uv sync` でインストール可能）
+│   └── mkdocs_mermaid_to_image/            # メインパッケージ（`uv sync` でインストール可能）
 │       ├── __init__.py
 │       ├── py.typed             # PEP 561に準拠した型情報マーカー
 │       ├── types.py             # プロジェクト共通の型定義
@@ -471,7 +471,7 @@ warn_unused_configs = true
 
 # 段階的により厳格な設定を有効化
 [[tool.mypy.overrides]]
-module = ["project_name.core.*"]
+module = ["mkdocs_mermaid_to_image.core.*"]
 strict = true  # まずはコアモジュールに `strict` モードを適用します
 ```
 

@@ -1,5 +1,5 @@
 [project]
-name = "project-name"
+name = "mkdocs-mermaid-to-image"
 version = "0.1.0"
 description = "A modern Python project template optimized for Claude Code with strict guardrails"
 readme = "README.md"
@@ -34,7 +34,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/project_name"]
+packages = ["src/mkdocs_mermaid_to_image"]
 
 [tool.ruff]
 line-length = 88

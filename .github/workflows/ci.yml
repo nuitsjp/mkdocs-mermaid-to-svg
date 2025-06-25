@@ -98,7 +98,7 @@ jobs:
     - name: Run tests
       run: |
         uv run pytest tests/ \
-          --cov=src/project_name \
+          --cov=src/mkdocs_mermaid_to_image \
           --cov-report=xml \
           --cov-report=term-missing \
           --cov-report=html \
