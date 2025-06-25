@@ -1,0 +1,3 @@
+[submodule "old"]
+	path = old
+	url = https://github.com/nuitsjp/mkdocs-mermaid-to-image-old.git
