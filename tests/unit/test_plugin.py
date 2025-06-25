@@ -226,7 +226,7 @@ class TestMermaidToImagePlugin:
         plugin.logger.info.assert_called_with("Generated 2 Mermaid images total")
 
     @patch("shutil.rmtree")
-    @patch("os.path.exists")
+    @patch("pathlib.Path.exists")
     def test_on_post_build_cache_cleanup(self, mock_exists, mock_rmtree, plugin):
         """キャッシュ無効時にキャッシュディレクトリが削除されるかテスト"""
         plugin.config = {
@@ -259,7 +259,7 @@ class TestMermaidToImagePlugin:
         }
         server = Mock()
 
-        with patch("os.path.exists", return_value=True):
+        with patch("pathlib.Path.exists", return_value=True):
             result = plugin.on_serve(server, {}, None)
             assert result == server
             server.watch.assert_called_once_with(".mermaid_cache")

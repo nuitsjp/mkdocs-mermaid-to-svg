@@ -263,6 +263,12 @@ class TestMermaidImageGenerator:
         """
         Mermaidコードから画像を生成し、類似度比較を行う
         """
+        # Mermaid CLIが利用できるかチェック
+        from mkdocs_mermaid_to_image.utils import is_command_available
+
+        if not is_command_available(basic_config["mmdc_path"]):
+            pytest.skip("Mermaid CLI not available in test environment")
+
         fixtures_dir = Path(__file__).parent.parent / "fixtures"
         mmd_path = fixtures_dir / mmd_file
         expected_path = fixtures_dir / expected_png
@@ -307,13 +313,16 @@ class TestMermaidImageGenerator:
                 actual_path
             ) as actual_img:
                 # 基本的な妥当性チェック
-                if not os.path.exists(expected_path):
+                expected_file = Path(expected_path)
+                actual_file = Path(actual_path)
+
+                if not expected_file.exists():
                     return False, f"Expected file does not exist: {expected_path}"
-                if not os.path.exists(actual_path):
+                if not actual_file.exists():
                     return False, f"Actual file does not exist: {actual_path}"
 
-                expected_size = os.path.getsize(expected_path)
-                actual_size = os.path.getsize(actual_path)
+                expected_size = expected_file.stat().st_size
+                actual_size = actual_file.stat().st_size
 
                 if expected_size == 0:
                     return False, f"Expected file is empty: {expected_path}"
