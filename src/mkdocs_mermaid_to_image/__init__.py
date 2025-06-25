@@ -1,13 +1,23 @@
-from .core.example import ExampleClass, ExampleConfig, process_data
-from .utils.logging_config import get_logger, set_log_level, setup_logging
+"""
+MkDocs Mermaid to Image Plugin - パッケージ初期化ファイル
 
-__all__ = [
-    "ExampleClass",
-    "ExampleConfig",
-    "get_logger",
-    "process_data",
-    "set_log_level",
-    "setup_logging",
-]
+このファイルは、MkDocs用のMermaid図画像変換プラグインのパッケージを初期化します。
+主な機能：
+- Markdownファイル内のMermaid図をCLIツールを使用して静的画像に変換
+- 生成された画像でMermaidコードブロックを置換
+- MkDocsのビルド処理に統合されたプリプロセッサとして動作
 
-__version__ = "0.1.0"
+Python学習者へのヒント：
+- __init__.pyファイルはPythonパッケージを定義するための特別なファイルです
+- このファイルがあることで、ディレクトリがPythonパッケージとして認識されます
+- __version__、__author__などの変数はパッケージのメタデータを定義する慣例です
+"""
+
+# パッケージのバージョン情報（セマンティックバージョニング形式）
+__version__ = "1.0.0"
+
+# パッケージの作成者情報
+__author__ = "Claude Code Assistant"
+
+# パッケージの簡単な説明
+__description__ = "MkDocs plugin to preprocess Mermaid diagrams"

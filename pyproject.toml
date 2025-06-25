@@ -1,12 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "mkdocs-mermaid-to-image"
-version = "0.1.0"
-description = "A modern Python project template optimized for Claude Code with strict guardrails"
+version = "1.0.0"
+description = "MkDocs plugin to preprocess Mermaid diagrams into static images"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "nuitsjp"},
+]
+keywords = ["mkdocs", "mermaid", "diagram", "preprocessing", "static-generation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Documentation",
+    "Topic :: Text Processing :: Markup",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
-    "structlog>=25.4.0",
-    "rich>=13.7.0",  # for structlog
+    "mkdocs>=1.4.0",
+    "mkdocs-material>=8.0.0",
+    "Pillow>=8.0.0",
+    "numpy>=1.20.0",
 ]
 
 [project.optional-dependencies]
@@ -29,9 +53,13 @@ docs = [
     "myst-parser>=2.0.0",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[project.urls]
+Homepage = "https://github.com/nuitsjp/mkdocs-mermaid-to-image"
+"Bug Reports" = "https://github.com/nuitsjp/mkdocs-mermaid-to-image/issues"
+Source = "https://github.com/nuitsjp/mkdocs-mermaid-to-image"
+
+[project.entry-points."mkdocs.plugins"]
+mermaid-to-image = "mkdocs_mermaid_to_image.plugin:MermaidToImagePlugin"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mkdocs_mermaid_to_image"]
@@ -39,7 +67,7 @@ packages = ["src/mkdocs_mermaid_to_image"]
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py312"
+target-version = "py38"
 
 [tool.ruff.lint]
 exclude = [".venv"]
@@ -73,10 +101,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLR2004", "PLR0913"]  # テストでは magic number とパラメータ数を許可
+"tests/*" = ["PLR2004", "PLR0913", "S101"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.8"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -107,15 +135,11 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov-branch",
+    "--cov=src/mkdocs_mermaid_to_image",
+    "--cov-report=term-missing",
+    "--cov-report=html",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
-]
-
-[dependency-groups]
-dev = [
-    "pytest-benchmark>=5.1.0",
-    "urllib3>=2.5.0",
 ]
