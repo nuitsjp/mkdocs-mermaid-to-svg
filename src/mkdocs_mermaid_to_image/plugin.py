@@ -124,13 +124,13 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
         # 設定を返す（他のプラグインや処理で使用されるため）
         return config
 
-    def on_files(self, files: Any, _config: Any) -> Any:
+    def on_files(self, files: Any, *, config: Any) -> Any:
         """
         ファイル発見段階で実行されるフックメソッド
 
         Args:
             files: MkDocsで発見されたファイルのコレクション
-            config (dict): MkDocsの設定辞書
+            config (dict): MkDocsの設定辞書（未使用だがインターフェース準拠のため必要）
 
         Returns:
             files: ファイルコレクション（通常は変更なし）
@@ -152,7 +152,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
         return files
 
     def on_page_markdown(
-        self, markdown: str, page: Any, config: Any, _files: Any
+        self, markdown: str, *, page: Any, config: Any, files: Any
     ) -> Optional[str]:
         """
         各ページのMarkdown処理時に実行されるフックメソッド（最重要メソッド）
@@ -220,7 +220,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
                 raise MermaidPreprocessorError(f"Unexpected error: {e!s}") from e
             return markdown  # エラーを無視して元のMarkdownを返す
 
-    def on_post_build(self, _config: Any) -> None:
+    def on_post_build(self, *, config: Any) -> None:
         """
         ビルド完了後に実行されるフックメソッド
 
@@ -252,7 +252,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
                 if self.logger:
                     self.logger.debug(f"Cleaned up cache directory: {cache_dir}")
 
-    def on_serve(self, server: Any, _config: Any, _builder: Any) -> Any:
+    def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
         """
         開発サーバー起動時に実行されるフックメソッド
 

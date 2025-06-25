@@ -127,7 +127,7 @@ class TestMermaidToImagePlugin:
         plugin.config = {"enabled": False}
         files = ["file1.md", "file2.md"]
 
-        result = plugin.on_files(files, {})
+        result = plugin.on_files(files, config={})
         assert result == files
         assert plugin.generated_images == []
 
@@ -137,7 +137,7 @@ class TestMermaidToImagePlugin:
         plugin.processor = Mock()
         files = ["file1.md", "file2.md"]
 
-        result = plugin.on_files(files, {})
+        result = plugin.on_files(files, config={})
         assert result == files
         assert plugin.generated_images == []
 
@@ -147,7 +147,7 @@ class TestMermaidToImagePlugin:
         plugin.config = {"enabled": False}
         markdown = "# Test\n\nSome content"
 
-        result = plugin.on_page_markdown(markdown, mock_page, {}, [])
+        result = plugin.on_page_markdown(markdown, page=mock_page, config={}, files=[])
         assert result == markdown
 
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
@@ -173,7 +173,9 @@ class TestMermaidToImagePlugin:
 
         markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
 
-        result = plugin.on_page_markdown(markdown, mock_page, mock_config, [])
+        result = plugin.on_page_markdown(
+            markdown, page=mock_page, config=mock_config, files=[]
+        )
 
         assert result == "modified content"
         assert plugin.generated_images == ["/path/to/image.png"]
@@ -199,7 +201,9 @@ class TestMermaidToImagePlugin:
 
         markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
 
-        result = plugin.on_page_markdown(markdown, mock_page, mock_config, [])
+        result = plugin.on_page_markdown(
+            markdown, page=mock_page, config=mock_config, files=[]
+        )
 
         # error_on_fail=Falseなので元のMarkdownが返る
         assert result == markdown
@@ -208,7 +212,7 @@ class TestMermaidToImagePlugin:
     def test_on_post_build_disabled(self, plugin):
         """プラグイン無効時のon_post_buildの挙動をテスト"""
         plugin.config = {"enabled": False}
-        plugin.on_post_build({})
+        plugin.on_post_build(config={})
         # 例外が発生しなければOK
 
     def test_on_post_build_with_images(self, plugin):
@@ -221,7 +225,7 @@ class TestMermaidToImagePlugin:
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.png"]
         plugin.logger = Mock()
 
-        plugin.on_post_build({})
+        plugin.on_post_build(config={})
 
         plugin.logger.info.assert_called_with("Generated 2 Mermaid images total")
 
@@ -238,7 +242,7 @@ class TestMermaidToImagePlugin:
         plugin.logger = Mock()
         mock_exists.return_value = True
 
-        plugin.on_post_build({})
+        plugin.on_post_build(config={})
 
         mock_rmtree.assert_called_once_with(".mermaid_cache")
 
@@ -247,7 +251,7 @@ class TestMermaidToImagePlugin:
         plugin.config = {"enabled": False}
         server = Mock()
 
-        result = plugin.on_serve(server, {}, None)
+        result = plugin.on_serve(server, config={}, builder=None)
         assert result == server
 
     def test_on_serve_enabled(self, plugin):
@@ -260,6 +264,6 @@ class TestMermaidToImagePlugin:
         server = Mock()
 
         with patch("pathlib.Path.exists", return_value=True):
-            result = plugin.on_serve(server, {}, None)
+            result = plugin.on_serve(server, config={}, builder=None)
             assert result == server
             server.watch.assert_called_once_with(".mermaid_cache")
