@@ -1,0 +1,121 @@
+[project]
+name = "project-name"
+version = "0.1.0"
+description = "A modern Python project template optimized for Claude Code with strict guardrails"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "structlog>=25.4.0",
+    "rich>=13.7.0",  # for structlog
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "pytest-xdist>=3.5.0",
+    "hypothesis>=6.0.0",
+    "mypy>=1.10.0",
+    "ruff>=0.4.0",
+    "pre-commit>=3.7.0",
+    "bandit>=1.7.0",
+    "pip-audit>=2.6.0",
+]
+
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=2.0.0",
+    "myst-parser>=2.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/project_name"]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+exclude = [".venv"]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+    "RUF",    # Ruff-specific rules
+    "TCH",    # flake8-type-checking
+    "PTH",    # flake8-use-pathlib
+    "PL",     # Pylint
+]
+ignore = [
+    "G004",
+    "F821",
+    "C401",
+    "C408",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "ANN101",
+    "ANN102",
+    "PERF203",
+    "PERF401",
+    "PLR2004",
+    "PLC2401",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "PLR0913"]  # テストでは magic number とパラメータ数を許可
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+enable_incomplete_feature = ["NewGenericSyntax"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101", "B311", "B404", "B603"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov-branch",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-benchmark>=5.1.0",
+    "urllib3>=2.5.0",
+]

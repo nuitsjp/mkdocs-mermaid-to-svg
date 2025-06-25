@@ -1,0 +1,99 @@
+name: ✨ 機能要望
+description: 新しい機能やアイデアを提案してください
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        新しい機能の提案をありがとうございます！
+        あなたのアイデアがプロジェクトをより良くする助けになります。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 解決したい問題
+      description: この機能要望に関連する問題や課題を説明してください
+      placeholder: |
+        現在、〜という作業をする際に〜という問題があります。
+        これは〜なので不便です。
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 提案する解決策
+      description: どのような機能や改善を提案しますか？
+      placeholder: |
+        〜という機能があれば、〜ができるようになります。
+        具体的には〜のような実装を想定しています。
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 検討した代替案
+      description: 他に検討した解決方法があれば記載してください
+      placeholder: |
+        他の方法として〜も考えましたが、〜という理由で提案する方法が良いと考えました。
+
+  - type: textarea
+    id: api-example
+    attributes:
+      label: API の使用例
+      description: 提案する機能の使用例を示してください（該当する場合）
+      render: python
+      placeholder: |
+        from project_name import NewFeature
+
+        feature = NewFeature()
+        result = feature.do_something()
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      description: この機能の重要度をどう考えますか？
+      options:
+        - 低（あれば便利）
+        - 中（効率が大幅に向上する）
+        - 高（これがないと困る）
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 追加のコンテキスト
+      description: その他、この機能要望に関する情報があれば追加してください
+      placeholder: |
+        - 参考リンク
+        - 類似機能を持つ他のプロジェクト
+        - スクリーンショット
+        など
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: 貢献について
+      options:
+        - label: この機能の実装に協力する意思があります
+          required: false
+        - label: この機能のテストに協力する意思があります
+          required: false
+        - label: この機能のドキュメント作成に協力する意思があります
+          required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: チェックリスト
+      description: 以下の項目を確認してください
+      options:
+        - label: 同様の機能要望が既に存在しないことを確認しました
+          required: true
+        - label: この機能がプロジェクトの目的に合致することを確認しました
+          required: true

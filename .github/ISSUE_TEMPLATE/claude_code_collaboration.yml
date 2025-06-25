@@ -1,0 +1,114 @@
+name: 🤖 Claude Code協働の改善
+description: Claude Codeとの協働体験の改善提案
+title: "[Claude Code]: "
+labels: ["claude-code", "enhancement", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Claude Codeとの協働体験の改善にご協力いただきありがとうございます！
+        CLAUDE.mdや開発プロセスの改善提案をお聞かせください。
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 改善カテゴリ
+      description: どの分野の改善提案ですか？
+      options:
+        - CLAUDE.mdの内容改善
+        - 開発プロセスの改善
+        - ドキュメント構造の改善
+        - 自動化の追加
+        - その他
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-problem
+    attributes:
+      label: 現在の問題
+      description: Claude Codeとの協働で困っていることや改善したいことを説明してください
+      placeholder: |
+        - 特定の作業でClaude Codeが迷うことが多い
+        - CLAUDE.mdに足りない情報がある
+        - 繰り返し同じ説明をする必要がある
+        など
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: 提案する改善策
+      description: どのような改善を提案しますか？
+      placeholder: |
+        - CLAUDE.mdに〜の情報を追加する
+        - 〜の作業をスクリプト化する
+        - 〜のドキュメントを作成する
+        など
+    validations:
+      required: true
+
+  - type: textarea
+    id: claude-md-addition
+    attributes:
+      label: CLAUDE.mdへの追加内容（該当する場合）
+      description: CLAUDE.mdに追加したい内容があれば記載してください
+      render: markdown
+      placeholder: |
+        ```markdown
+        ## 新しいセクション
+
+        ### 説明
+        このセクションでは〜について説明します。
+
+        ### 例
+        ```python
+        # 例のコード
+        ```
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 期待される効果
+      description: この改善により、どのような効果を期待しますか？
+      placeholder: |
+        - Claude Codeとのやり取りが〜％効率化される
+        - 新メンバーのオンボーディング時間が短縮される
+        - 繰り返し作業が自動化される
+        など
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: 具体例・参考資料
+      description: 具体的な例や参考になる資料があれば記載してください
+      placeholder: |
+        - 他のプロジェクトでの類似例
+        - 参考文献のリンク
+        - スクリーンショット
+        など
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: 貢献について
+      options:
+        - label: この改善の実装に協力する意思があります
+          required: false
+        - label: ドキュメントの作成に協力する意思があります
+          required: false
+        - label: テスト・検証に協力する意思があります
+          required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: チェックリスト
+      description: 以下の項目を確認してください
+      options:
+        - label: 同様の提案が既に存在しないことを確認しました
+          required: true
+        - label: この提案がプロジェクトの目的に合致することを確認しました
+          required: true

@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.python-version
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+test-results.xml
+coverage.xml
+.tox/
+.hypothesis/
+
+# Local
+.env
+.env.local
+*.log
+
+# Documentation
+.sphinx/
+
+# Project specific
+.secrets.baseline
+
+# template package
+template/
+!template/src/template_package/*
+!template/tests/*

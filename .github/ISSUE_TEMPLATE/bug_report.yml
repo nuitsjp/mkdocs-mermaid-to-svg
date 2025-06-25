@@ -1,0 +1,102 @@
+name: 🐛 バグレポート
+description: バグを報告して改善に協力してください
+title: "[Bug]: "
+labels: ["bug", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグレポートを提出していただきありがとうございます！
+        できるだけ詳細な情報を提供していただけると、問題の解決が早くなります。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: バグの説明
+      description: バグの内容を明確かつ簡潔に説明してください
+      placeholder: |
+        何が起こったのか、何を期待していたのかを説明してください
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: バグを再現するための手順を記載してください
+      placeholder: |
+        1. '...'を実行する
+        2. '...'をクリックする
+        3. '...'が表示される
+        4. エラーが発生する
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作
+      description: 本来どのような動作を期待していたか説明してください
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+      description: 実際にどのような動作が起こったか説明してください
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: エラーログ
+      description: 関連するエラーメッセージやスタックトレースがあれば貼り付けてください
+      render: shell
+
+  - type: dropdown
+    id: python-version
+    attributes:
+      label: Python バージョン
+      description: 使用している Python のバージョンを選択してください
+      options:
+        - Python 3.12
+        - Python 3.13
+        - その他
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      description: 使用している OS を記載してください
+      placeholder: 例, Ubuntu 22.04, macOS 14.0, Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 追加情報
+      description: その他、問題の解決に役立つ情報があれば記載してください
+      placeholder: |
+        - 依存関係のバージョン
+        - 環境変数
+        - 設定ファイル
+        など
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: チェックリスト
+      description: 以下の項目を確認してください
+      options:
+        - label: 同様の Issue が既に存在しないことを確認しました
+          required: true
+        - label: 最新バージョンで問題が発生することを確認しました
+          required: true
+        - label: 再現可能な最小限のコード例を提供できます
+          required: false
