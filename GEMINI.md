@@ -1,11 +1,11 @@
 ---
-title: CLAUDE.md
-created_at: 2025-06-14
-updated_at: 2025-06-20
-# このプロパティは、Claude Codeが関連するドキュメントの更新を検知するために必要です。消去しないでください。
+title: GEMINI.md
+created_at: 2025-06-27
+updated_at: 2025-06-27
+# このプロパティは、Gemini Codeが関連するドキュメントの更新を検知するために必要です。消去しないでください。
 ---
 
-このファイルは、[Claude Code](https://www.anthropic.com/claude-code) がこのリポジトリのコードを扱う際のガイダンスを提供します。
+このファイルは、[Gemini Code](https://deepmind.google/technologies/gemini/) がこのリポジトリのコードを扱う際のガイダンスを提供します。
 
 ## プロジェクト概要
 
