@@ -8,7 +8,7 @@ import contextlib
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from .utils import generate_image_filename, get_relative_path
+from .utils import generate_image_filename
 
 
 class MermaidBlock:
@@ -93,9 +93,29 @@ class MermaidBlock:
         Returns:
             str: 画像のMarkdown記法
         """
+        # MkDocsでは画像は site/assets/images にコピーされるため、
+        # サイトルートからの相対パスを計算する
+        image_path_obj = Path(image_path)
+
+        # docs/assets/images/filename.png → assets/images/filename.png
+        if "docs" in image_path_obj.parts:
+            # docs ディレクトリ以降の部分を取得
+            docs_index = image_path_obj.parts.index("docs")
+            relative_parts = image_path_obj.parts[docs_index + 1 :]
+            image_site_path = str(Path(*relative_parts))
+        else:
+            # フォールバック: ファイル名のみ使用
+            image_site_path = f"assets/images/{image_path_obj.name}"
+
         # ページファイルからの相対パスを計算
-        page_dir = str(Path(page_file).parent)
-        relative_image_path = get_relative_path(image_path, page_dir)
+        page_path = Path(page_file)
+        page_depth = len(page_path.parent.parts) if page_path.parent != Path() else 0
+
+        # サブディレクトリにいる場合は上位ディレクトリへの相対パスを追加
+        if page_depth > 0:
+            relative_image_path = "../" * page_depth + image_site_path
+        else:
+            relative_image_path = image_site_path
 
         # 画像のMarkdown記法を作成
         image_markdown = f"![Mermaid Diagram]({relative_image_path})"

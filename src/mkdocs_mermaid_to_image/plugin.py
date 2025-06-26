@@ -19,17 +19,19 @@ Python学習者へのヒント：
 from pathlib import Path
 from typing import Any, List, Optional
 
+from mkdocs.config import config_options  # 設定オプション
+
 # MkDocsプラグインシステムの基盤となるクラスとモジュール
 from mkdocs.plugins import BasePlugin  # プラグインの基底クラス
 
 # 同じパッケージ内のモジュールをインポート（相対インポート）
-from .config import ConfigManager, MermaidPluginConfig  # 設定管理クラス
+from .config import ConfigManager  # 設定管理クラス
 from .exceptions import MermaidConfigError, MermaidPreprocessorError  # カスタム例外
 from .processor import MermaidProcessor  # リファクタリング後のメイン処理クラス
 from .utils import ensure_directory, setup_logger  # ユーティリティ関数
 
 
-class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[misc]
+class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
     """
     MkDocs用のMermaid図画像変換プラグインのメインクラス
 
@@ -55,6 +57,37 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[mis
     4. on_post_build - ビルド完了後
     5. on_serve - 開発サーバー起動時（開発時のみ）
     """
+
+    config_scheme = (
+        ("enabled", config_options.Type(bool, default=True)),
+        ("output_dir", config_options.Type(str, default="assets/images")),
+        ("image_format", config_options.Choice(["png", "svg"], default="png")),
+        ("mermaid_config_file", config_options.Optional(config_options.Type(str))),
+        ("mmdc_path", config_options.Type(str, default="mmdc")),
+        (
+            "theme",
+            config_options.Choice(
+                ["default", "dark", "forest", "neutral"], default="default"
+            ),
+        ),
+        ("background_color", config_options.Type(str, default="white")),
+        ("width", config_options.Type(int, default=800)),
+        ("height", config_options.Type(int, default=600)),
+        ("scale", config_options.Type(float, default=1.0)),
+        ("css_file", config_options.Type(str, default="")),
+        ("puppeteer_config", config_options.Type(str, default="")),
+        ("temp_dir", config_options.Type(str, default="")),
+        ("cache_enabled", config_options.Type(bool, default=True)),
+        ("cache_dir", config_options.Type(str, default=".mermaid_cache")),
+        ("preserve_original", config_options.Type(bool, default=False)),
+        ("error_on_fail", config_options.Type(bool, default=False)),
+        (
+            "log_level",
+            config_options.Choice(
+                ["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO"
+            ),
+        ),
+    )
 
     def __init__(self) -> None:
         """

@@ -11,6 +11,12 @@ extra_javascript:
 
 plugins:
   - search
+  - mermaid-to-image:
+      enabled: true
+      output_dir: assets/images
+      cache_enabled: true
+      theme: default
+      log_level: INFO
 
 markdown_extensions:
   - admonition

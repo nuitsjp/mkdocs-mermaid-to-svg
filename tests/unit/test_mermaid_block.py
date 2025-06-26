@@ -93,54 +93,50 @@ class TestMermaidBlock:
         """画像Markdown生成の基本テスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
 
-        with patch(
-            "mkdocs_mermaid_to_image.mermaid_block.get_relative_path"
-        ) as mock_rel_path:
-            mock_rel_path.return_value = "assets/images/test.png"
+        # ルートレベルのページの場合
+        result = block.get_image_markdown(
+            "/home/user/docs/assets/images/test.png", "index.md"
+        )
 
-            result = block.get_image_markdown(
-                "/full/path/to/test.png", "/path/to/page.md"
-            )
-
-            assert result == "![Mermaid Diagram](assets/images/test.png)"
-            mock_rel_path.assert_called_once_with("/full/path/to/test.png", "/path/to")
+        assert result == "![Mermaid Diagram](assets/images/test.png)"
 
     def test_get_image_markdown_preserve_original(self):
         """元のMermaidコードも残す場合のMarkdown生成テスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
 
-        with patch(
-            "mkdocs_mermaid_to_image.mermaid_block.get_relative_path"
-        ) as mock_rel_path:
-            mock_rel_path.return_value = "assets/images/test.png"
+        result = block.get_image_markdown(
+            "/home/user/docs/assets/images/test.png", "index.md", preserve_original=True
+        )
 
-            result = block.get_image_markdown(
-                "/full/path/to/test.png", "/path/to/page.md", preserve_original=True
-            )
-
-            expected = (
-                "![Mermaid Diagram](assets/images/test.png)\n\n"
-                "```mermaid\ngraph TD\n A --> B\n```"
-            )
-            assert result == expected
+        expected = (
+            "![Mermaid Diagram](assets/images/test.png)\n\n"
+            "```mermaid\ngraph TD\n A --> B\n```"
+        )
+        assert result == expected
 
     def test_get_image_markdown_preserve_original_with_attributes(self):
         """属性付きで元のコードも残す場合のMarkdown生成テスト"""
         attributes = {"theme": "dark", "background": "black"}
         block = MermaidBlock("graph TD\n A --> B", 0, 20, attributes)
 
-        with patch(
-            "mkdocs_mermaid_to_image.mermaid_block.get_relative_path"
-        ) as mock_rel_path:
-            mock_rel_path.return_value = "assets/images/test.png"
+        result = block.get_image_markdown(
+            "/home/user/docs/assets/images/test.png", "index.md", preserve_original=True
+        )
 
-            result = block.get_image_markdown(
-                "/full/path/to/test.png", "/path/to/page.md", preserve_original=True
-            )
+        assert "![Mermaid Diagram](assets/images/test.png)" in result
+        assert "```mermaid {theme: dark, background: black}" in result
+        assert "graph TD\n A --> B" in result
 
-            assert "![Mermaid Diagram](assets/images/test.png)" in result
-            assert "```mermaid {theme: dark, background: black}" in result
-            assert "graph TD\n A --> B" in result
+    def test_get_image_markdown_subdirectory(self):
+        """サブディレクトリのページでの画像Markdown生成テスト"""
+        block = MermaidBlock("graph TD\n A --> B", 0, 20)
+
+        # development/page.md のようなサブディレクトリのページの場合
+        result = block.get_image_markdown(
+            "/home/user/docs/assets/images/test.png", "development/page.md"
+        )
+
+        assert result == "![Mermaid Diagram](../assets/images/test.png)"
 
     def test_get_filename(self):
         """ファイル名生成のテスト"""

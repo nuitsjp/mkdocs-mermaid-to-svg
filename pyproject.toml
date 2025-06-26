@@ -141,3 +141,11 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
 ]
+
+[tool.uv.sources]
+mkdocs-mermaid-to-image = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "mkdocs-mermaid-to-image",
+]
