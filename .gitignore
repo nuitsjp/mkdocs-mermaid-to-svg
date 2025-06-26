@@ -199,6 +199,10 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# MkDocs Mermaid to Image Plugin generated files
+docs/assets/images/
+.mermaid_cache/
+
 # mypy
 .mypy_cache/
 .dmypy.json
