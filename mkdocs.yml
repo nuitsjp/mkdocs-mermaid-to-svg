@@ -1,102 +1,24 @@
 site_name: MkDocs Mermaid to Image Plugin
 site_url: https://nuitsjp.github.io/mkdocs-mermaid-to-image/
-site_author: nuitsjp
-site_description: MkDocs環境でMermaidダイアグラムを静的画像として事前レンダリングし、PDF出力に対応させるプラグイン
-
-repo_name: nuitsjp/mkdocs-mermaid-to-image
 repo_url: https://github.com/nuitsjp/mkdocs-mermaid-to-image
-edit_uri: edit/main/docs/
 
 theme:
   name: material
   language: ja
-  palette:
-    - scheme: default
-      primary: blue
-      accent: blue
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: blue
-      accent: blue
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-  features:
-    - navigation.tracking
-    - navigation.tabs
-    - navigation.sections
-    - navigation.expand
-    - navigation.top
-    - search.highlight
-    - search.share
-    - toc.follow
-    - content.code.copy
-    - content.action.edit
 
-# nav設定は.pagesファイルで管理
-# nav:
-#   - Home: index.md
-#   - インストール: installation.md
-#   - 設定オプション: configuration.md
-#   - 使用方法: usage.md
-#   - トラブルシューティング: troubleshooting.md
-#   - コントリビューション: contributing.md
+extra_javascript:
+  - https://unpkg.com/mermaid/dist/mermaid.min.js
 
 plugins:
-  - search:
-      lang: ja
-  - awesome-pages
-  - git-revision-date-localized:
-      enable_creation_date: true
-      type: datetime
+  - search
 
 markdown_extensions:
-  - abbr
   - admonition
-  - attr_list
-  - def_list
-  - footnotes
-  - md_in_html
-  - toc:
-      permalink: true
-  - pymdownx.arithmatex:
-      generic: true
-  - pymdownx.betterem:
-      smart_enable: all
-  - pymdownx.caret
   - pymdownx.details
-  - pymdownx.emoji:
-      emoji_generator: materialx.emoji.to_svg
-      emoji_index: materialx.emoji.twemoji
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.inlinehilite
-  - pymdownx.keys
-  - pymdownx.magiclink:
-      repo_url_shorthand: true
-      user: nuitsjp
-      repo: mkdocs-mermaid-to-image
-  - pymdownx.mark
-  - pymdownx.smartsymbols
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
-  - pymdownx.tabbed:
-      alternate_style: true
-  - pymdownx.tasklist:
-      custom_checkbox: true
-  - pymdownx.tilde
-
-extra:
-  social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/nuitsjp
-    - icon: fontawesome/brands/twitter
-      link: https://twitter.com/nuits_jp
-
-copyright: Copyright &copy; 2024 nuitsjp
+  - pymdownx.highlight
+  - toc:
+      permalink: true

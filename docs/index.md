@@ -41,6 +41,12 @@ graph TD
 ```
 ````
 
+```mermaid
+graph TD
+    A[Start] --> B[Process]
+    B --> C[End]
+```
+
 HTML出力: `<img alt="Mermaid Diagram" src="assets/images/page_mermaid_0_hash.png" />`
 PDF出力: 画像として正常に表示
 
