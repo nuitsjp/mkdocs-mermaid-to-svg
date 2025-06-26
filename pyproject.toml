@@ -1,10 +1,9 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "mkdocs-mermaid-to-image"
-version = "1.0.0"
 description = "MkDocs plugin to preprocess Mermaid diagrams into static images"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -20,12 +19,12 @@ classifiers = [
     "Topic :: Text Processing :: Markup",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
+dynamic = ["version"]
 dependencies = [
     "mkdocs>=1.4.0",
     "mkdocs-material>=8.0.0",
@@ -64,10 +63,16 @@ mermaid-to-image = "mkdocs_mermaid_to_image.plugin:MermaidToImagePlugin"
 [tool.hatch.build.targets.wheel]
 packages = ["src/mkdocs_mermaid_to_image"]
 
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/mkdocs_mermaid_to_image/_version.py"
+
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.lint]
 exclude = [".venv"]
@@ -102,7 +107,7 @@ ignore = [
 "tests/*" = ["PLR2004", "PLR0913", "S101"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 strict = true
 warn_return_any = true
 warn_unused_configs = true

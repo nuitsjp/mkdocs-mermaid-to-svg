@@ -1,5 +1,6 @@
 # MkDocs Mermaid to Image Plugin
 
+[![PyPI version](https://badge.fury.io/py/mkdocs-mermaid-to-image.svg)](https://badge.fury.io/py/mkdocs-mermaid-to-image)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org/downloads/)
 [![MkDocs](https://img.shields.io/badge/mkdocs-1.4+-green.svg)](https://mkdocs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nuitsjp/mkdocs-mermaid-to-image/blob/main/LICENSE)
