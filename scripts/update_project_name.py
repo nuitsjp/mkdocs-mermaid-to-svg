@@ -1,6 +1,8 @@
 """Update project name throughout the template."""
 
 import argparse
+import builtins
+import keyword
 import re
 import sys
 from pathlib import Path
@@ -12,9 +14,6 @@ def validate_project_name(name: str) -> bool:
         return False
 
     # Check it's not a Python keyword or builtin
-    import builtins
-    import keyword
-
     if keyword.iskeyword(name):
         return False
 
