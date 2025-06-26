@@ -163,7 +163,7 @@ class TestUtilityFunctions:
         # Linux環境では相対パス計算を試みるので、ファイル名が含まれていればOK
         assert "image.png" in relative
 
-    @patch("shutil.which")
+    @patch("mkdocs_mermaid_to_image.utils.which")
     def test_is_command_available_true(self, mock_which):
         """コマンドが存在する場合Trueを返すかテスト"""
         mock_which.return_value = "/usr/bin/mmdc"
@@ -172,7 +172,7 @@ class TestUtilityFunctions:
         assert result is True
         mock_which.assert_called_once_with("mmdc")
 
-    @patch("shutil.which")
+    @patch("mkdocs_mermaid_to_image.utils.which")
     def test_is_command_available_false(self, mock_which):
         """コマンドが存在しない場合Falseを返すかテスト"""
         mock_which.return_value = None

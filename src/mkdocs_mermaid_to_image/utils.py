@@ -21,6 +21,7 @@ import logging  # ログ出力のための標準ライブラリ
 import os  # ファイル・ディレクトリ操作のための標準ライブラリ
 import tempfile  # 一時ファイル作成のための標準ライブラリ
 from pathlib import Path  # より便利なパス操作のための標準ライブラリ
+from shutil import which  # whichコマンド相当の機能
 
 
 def setup_logger(name: str, log_level: str = "INFO") -> logging.Logger:
@@ -232,7 +233,7 @@ def is_command_available(command: str) -> bool:
     - shutil.which()は、コマンドの実行可能ファイルのパスを検索します
     - コマンドが見つからない場合はNoneを返します
     - 「is not None」で、Noneでない（つまりコマンドが見つかった）かを判定します
-    - 関数内でのimportは、必要な時にのみモジュールを読み込む手法です
+    - ファイルのトップレベルでimportしてローカルでも使用する手法です
 
     使用例:
         if is_command_available('mmdc'):
@@ -240,6 +241,4 @@ def is_command_available(command: str) -> bool:
         else:
             print("Mermaid CLIがインストールされていません")
     """
-    from shutil import which  # whichコマンド相当の機能をインポート
-
     return which(command) is not None  # コマンドが見つかればTrue、見つからなければFalse

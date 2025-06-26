@@ -16,6 +16,7 @@ Python学習者へのヒント：
 - MkDocsプラグインは、ドキュメント生成の各段階で特定のメソッドが自動実行されます
 """
 
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Optional
@@ -290,8 +291,6 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
         if not self.config["cache_enabled"]:
             cache_dir = self.config["cache_dir"]
             if Path(cache_dir).exists():
-                import shutil  # ディレクトリ削除用のモジュール
-
                 shutil.rmtree(cache_dir)  # ディレクトリを再帰的に削除
                 if self.logger:
                     self.logger.debug(f"Cleaned up cache directory: {cache_dir}")

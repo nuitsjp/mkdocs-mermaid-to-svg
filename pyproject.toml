@@ -104,7 +104,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLR2004", "PLR0913", "S101"]
+"tests/*" = ["PLR2004", "PLR0913", "S101", "PLC0415"]
+"src/mkdocs_mermaid_to_image/_version.py" = ["UP006", "UP035", "I001"]
 
 [tool.mypy]
 python_version = "3.9"

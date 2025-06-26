@@ -8,6 +8,7 @@ Python未経験者へのヒント：
 - assert文で「期待する結果」かどうかを検証します。
 """
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -25,6 +26,7 @@ except ImportError:
 
 from mkdocs_mermaid_to_image.exceptions import MermaidCLIError
 from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
+from mkdocs_mermaid_to_image.utils import is_command_available
 
 
 class TestMermaidImageGenerator:
@@ -33,8 +35,6 @@ class TestMermaidImageGenerator:
     @pytest.fixture
     def basic_config(self):
         """テスト用の基本設定を返すfixture"""
-        import os
-
         # CI環境でのみPuppeteer設定を使用
         puppeteer_config = None
         if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
@@ -314,8 +314,6 @@ class TestMermaidImageGenerator:
         Mermaidコードから画像を生成し、類似度比較を行う
         """
         # Mermaid CLIが利用できるかチェック
-        from mkdocs_mermaid_to_image.utils import is_command_available
-
         if not is_command_available(basic_config["mmdc_path"]):
             pytest.skip("Mermaid CLI not available in test environment")
 
