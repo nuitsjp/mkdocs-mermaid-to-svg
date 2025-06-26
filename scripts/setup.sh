@@ -123,58 +123,16 @@ check_gemini_cli() {
     print_success "Gemini CLI checked"
 }
 
-# Get project name from user
-get_project_name() {
-    echo "Current directory: $(pwd)"
-    echo -n "Enter your project name (default: $DEFAULT_PROJECT_NAME): "
-    read -r PROJECT_NAME
-
-    if [ -z "$PROJECT_NAME" ]; then
-        PROJECT_NAME=$DEFAULT_PROJECT_NAME
-    fi
-
-    # Validate project name (Python package naming rules)
-    if ! echo "$PROJECT_NAME" | grep -qE '^[a-z][a-z0-9_]*$'; then
-        print_error "Invalid project name. Use lowercase letters, numbers, and underscores only."
-        print_error "Must start with a letter."
-        exit 1
-    fi
-
-    echo "Project name: $PROJECT_NAME"
-}
-
-# Update project name in all files
-update_project_name() {
-    print_step "Updating project name to '$PROJECT_NAME'..."
-
-    # Use the Python script if it exists
-    if [ -f "scripts/update_project_name.py" ]; then
-        python scripts/update_project_name.py "$PROJECT_NAME"
+check_mermaid_cli() {
+    print_step "Installing Mermaid CLI..."
+    if ! command -v mmdc &> /dev/null; then
+        npm install -g @mermaid-js/mermaid-cli
+        print_success "Mermaid CLI installed"
     else
-        # Fallback to manual replacement
-        # Update in specific files
-        for file in pyproject.toml README.md; do
-            if [ -f "$file" ]; then
-                if [[ "$OSTYPE" == "darwin"* ]]; then
-                    # macOS
-                    sed -i '' "s/project_name/$PROJECT_NAME/g" "$file"
-                    sed -i '' "s/project-name/${PROJECT_NAME//_/-}/g" "$file"
-                else
-                    # Linux
-                    sed -i "s/project_name/$PROJECT_NAME/g" "$file"
-                    sed -i "s/project-name/${PROJECT_NAME//_/-}/g" "$file"
-                fi
-            fi
-        done
-
-        # Rename directory
-        if [ -d "src/project_name" ]; then
-            mv "src/project_name" "src/$PROJECT_NAME"
-        fi
+        print_success "Mermaid CLI already installed ($(mmdc --version))"
     fi
-
-    print_success "Project name updated"
 }
+
 
 # Setup Python environment
 setup_python() {
@@ -184,8 +142,12 @@ setup_python() {
     uv python pin $PYTHON_VERSION
     print_success "Python $PYTHON_VERSION pinned"
 
-    # Install dependencies
+    # Install dependencies with dev mode
     print_step "Installing dependencies..."
+    uv add --dev --editable .
+    print_success "Plugin installed in development mode"
+
+    # Sync additional dependencies
     uv sync --all-extras
     print_success "Dependencies installed"
 }
@@ -224,14 +186,44 @@ run_tests() {
     if uv run pytest tests/ -v; then
         print_success "All tests passed!"
     else
-        print_warning "Some tests failed. This is expected for a new project."
+        print_warning "Some tests failed. Check test implementation."
+    fi
+}
+
+# Test plugin installation
+test_plugin() {
+    print_step "Testing plugin installation..."
+
+    if uv run python -c "from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin; print('Plugin import successful')"; then
+        print_success "Plugin can be imported"
+    else
+        print_error "Plugin import failed"
+        exit 1
+    fi
+
+    # Test MkDocs plugin recognition
+    if uv run python -c "from importlib.metadata import entry_points; eps = entry_points(); found = [ep.name for ep in eps.select(group='mkdocs.plugins') if 'mermaid' in ep.name]; print(f'Found plugins: {found}')"; then
+        print_success "Plugin entry point registered"
+    else
+        print_warning "Plugin entry point registration issue"
+    fi
+}
+
+# Test MkDocs build
+test_mkdocs() {
+    print_step "Testing MkDocs build..."
+
+    if uv run mkdocs build --verbose; then
+        print_success "MkDocs build successful"
+    else
+        print_warning "MkDocs build failed, check configuration"
     fi
 }
 
 # Main setup flow
 main() {
-    echo "🚀 Python Claude Template Setup"
-    echo "==============================="
+    echo "🚀 MkDocs Mermaid to Image Plugin Setup"
+    echo "======================================="
     echo
 
     # Check prerequisites
@@ -239,39 +231,43 @@ main() {
     check_npm
     check_claude_code
     check_gemini_cli
+    check_mermaid_cli
     check_github_cli
-
-    # Rename project if needed
-    if [ -d "src/project_name" ]; then
-        get_project_name
-        echo
-        update_project_name
-    fi
 
     # Perform setup
     setup_python
     setup_precommit
     init_git
+    test_plugin
     run_tests
+    test_mkdocs
 
     echo
     echo "✨ Setup complete!"
     echo
     echo "Next steps:"
     echo "1. Authorize Claude Code and Gemini CLI"
-    echo "2. Initialize project via `/initialize-project` via Claude Code"
+    echo "2. Initialize project via \`/initialize-project\` via Claude Code"
     echo "3. Set up branch protection (optional):"
     echo "   gh repo view --web  # Open in browser to configure"
-    echo "4. Start coding! 🎉"
+    echo "4. Start developing! 🎉"
     echo
-    echo "Useful commands:"
+    echo "Development commands:"
+    echo "  uv run mkdocs serve    # Start development server"
+    echo "  uv run mkdocs build    # Build documentation"
+    echo "  uv run pytest         # Run tests"
+    echo "  uv run pre-commit run --all-files  # Run quality checks"
+    echo
+    echo "Quality assurance:"
     echo "  make test              # Run tests"
     echo "  make format            # Format code"
     echo "  make lint              # Lint code"
     echo "  make typecheck         # Type check"
     echo "  make check             # Run all checks"
     echo "  make help              # Show all available commands"
-    echo "  uv add <package>       # Add a dependency"
+    echo
+    echo "Plugin development:"
+    echo "  uv add <package>       # Add dependency"
     echo "  make pr                # Create pull request"
     echo "  make issue-bug         # Create bug report"
     echo "  make issue-feature     # Create feature request"
