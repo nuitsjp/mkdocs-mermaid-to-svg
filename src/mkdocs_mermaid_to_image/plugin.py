@@ -23,13 +23,13 @@ from typing import Any, List, Optional
 from mkdocs.plugins import BasePlugin  # プラグインの基底クラス
 
 # 同じパッケージ内のモジュールをインポート（相対インポート）
-from .config import ConfigManager  # 設定管理クラス
+from .config import ConfigManager, MermaidPluginConfig  # 設定管理クラス
 from .exceptions import MermaidConfigError, MermaidPreprocessorError  # カスタム例外
 from .processor import MermaidProcessor  # リファクタリング後のメイン処理クラス
 from .utils import ensure_directory, setup_logger  # ユーティリティ関数
 
 
-class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
+class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[misc]
     """
     MkDocs用のMermaid図画像変換プラグインのメインクラス
 
@@ -55,9 +55,6 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
     4. on_post_build - ビルド完了後
     5. on_serve - 開発サーバー起動時（開発時のみ）
     """
-
-    # プラグインの設定スキーマを定義（ConfigManagerから取得）
-    config_scheme = ConfigManager.get_config_scheme()
 
     def __init__(self) -> None:
         """
@@ -96,7 +93,8 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
         """
         try:
             # プラグイン設定の妥当性を検証
-            ConfigManager.validate_config(self.config)
+            config_dict = dict(self.config)  # MermaidPluginConfig を辞書に変換
+            ConfigManager.validate_config(config_dict)
 
             # ロガーを設定（プラグイン名とログレベルを指定）
             self.logger = setup_logger(__name__, self.config["log_level"])
@@ -107,7 +105,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
                 return config
 
             # Mermaid処理エンジンを初期化
-            self.processor = MermaidProcessor(self.config)
+            self.processor = MermaidProcessor(config_dict)
 
             # 画像出力ディレクトリが存在することを保証
             # MkDocsのdocs_dirとプラグインのoutput_dirを結合
