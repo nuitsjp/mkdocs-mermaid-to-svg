@@ -8,6 +8,7 @@ Python未経験者へのヒント：
 - assert文で「期待する結果」かどうかを検証します。
 """
 
+import sys
 from unittest.mock import Mock, patch
 
 import pytest
@@ -142,7 +143,7 @@ class TestMermaidToImagePlugin:
         assert plugin.generated_images == []
 
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
-    def test_on_page_markdown_disabled(self, mock_processor_class, plugin, mock_page):
+    def test_on_page_markdown_disabled(self, _mock_processor_class, plugin, mock_page):
         """プラグイン無効時は元のMarkdownが返るかテスト"""
         plugin.config = {"enabled": False}
         markdown = "# Test\n\nSome content"
@@ -152,7 +153,7 @@ class TestMermaidToImagePlugin:
 
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
     def test_on_page_markdown_success(
-        self, mock_processor_class, plugin, mock_page, mock_config
+        self, _mock_processor_class, plugin, mock_page, mock_config
     ):
         """ページ内にMermaidブロックがある場合の処理をテスト"""
         plugin.config = {
@@ -183,7 +184,7 @@ class TestMermaidToImagePlugin:
 
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
     def test_on_page_markdown_error_handling(
-        self, mock_processor_class, plugin, mock_page, mock_config
+        self, _mock_processor_class, plugin, mock_page, mock_config
     ):
         """画像生成時に例外が発生した場合のエラーハンドリングをテスト"""
         plugin.config = {
@@ -267,3 +268,142 @@ class TestMermaidToImagePlugin:
             result = plugin.on_serve(server, config={}, builder=None)
             assert result == server
             server.watch.assert_called_once_with(".mermaid_cache")
+
+
+class TestMermaidToImagePluginServeMode:
+    """serve モード検出機能のテストクラス"""
+
+    def test_正常系_ビルドモード検出(self):
+        """ビルドモード時にis_serve_modeがFalseになることを確認"""
+        with patch.object(sys, "argv", ["mkdocs", "build"]):
+            plugin = MermaidToImagePlugin()
+            assert not plugin.is_serve_mode
+
+    def test_正常系_serveモード検出(self):
+        """serveモード時にis_serve_modeがTrueになることを確認"""
+        with patch.object(sys, "argv", ["mkdocs", "serve"]):
+            plugin = MermaidToImagePlugin()
+            assert plugin.is_serve_mode
+
+    def test_正常系_serveモード_オプション付き(self):
+        """serveモード（オプション付き）の検出を確認"""
+        with patch.object(
+            sys, "argv", ["mkdocs", "serve", "--dev-addr", "0.0.0.0:8000"]
+        ):
+            plugin = MermaidToImagePlugin()
+            assert plugin.is_serve_mode
+
+    def test_正常系_他のコマンド(self):
+        """他のコマンド（gh-deploy）でis_serve_modeがFalseになることを確認"""
+        with patch.object(sys, "argv", ["mkdocs", "gh-deploy"]):
+            plugin = MermaidToImagePlugin()
+            assert not plugin.is_serve_mode
+
+    def test_正常系_空のargv(self):
+        """空のargvでis_serve_modeがFalseになることを確認"""
+        with patch.object(sys, "argv", []):
+            plugin = MermaidToImagePlugin()
+            assert not plugin.is_serve_mode
+
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_正常系_serveモード時のMarkdown処理スキップ(self, _mock_processor_class):
+        """serveモード時にMermaid処理がスキップされることを確認"""
+        with patch.object(sys, "argv", ["mkdocs", "serve"]):
+            plugin = MermaidToImagePlugin()
+            plugin.config = {"enabled": True}
+            plugin.processor = Mock()  # プロセッサが設定されている状態
+            plugin.logger = Mock()
+
+            # Mock page and config
+            mock_page = Mock()
+            mock_page.file.src_path = "test.md"
+            mock_config = {"docs_dir": "/tmp/docs"}
+
+            markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
+
+            result = plugin.on_page_markdown(
+                markdown, page=mock_page, config=mock_config, files=[]
+            )
+
+            # serveモード時は元のMarkdownがそのまま返される
+            assert result == markdown
+            # プロセッサの処理メソッドが呼び出されていないことを確認
+            plugin.processor.process_page.assert_not_called()
+            # デバッグログが出力されていることを確認
+            plugin.logger.debug.assert_called_once()
+
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_正常系_ビルドモード時のMarkdown処理実行(self, _mock_processor_class):
+        """ビルドモード時にMermaid処理が実行されることを確認"""
+        with patch.object(sys, "argv", ["mkdocs", "build"]):
+            plugin = MermaidToImagePlugin()
+            plugin.config = {"enabled": True, "output_dir": "assets/images"}
+
+            # プロセッサをモック
+            mock_processor = Mock()
+            mock_processor.process_page.return_value = (
+                "modified content with images",
+                ["/path/to/image.png"],
+            )
+            plugin.processor = mock_processor
+            plugin.logger = Mock()
+
+            # Mock page and config
+            mock_page = Mock()
+            mock_page.file.src_path = "test.md"
+            mock_config = {"docs_dir": "/tmp/docs"}
+
+            markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
+
+            result = plugin.on_page_markdown(
+                markdown, page=mock_page, config=mock_config, files=[]
+            )
+
+            # ビルドモード時は処理されたMarkdownが返される
+            assert result == "modified content with images"
+            # プロセッサの処理メソッドが呼び出されていることを確認
+            plugin.processor.process_page.assert_called_once()
+            # 生成された画像パスが記録されていることを確認
+            assert plugin.generated_images == ["/path/to/image.png"]
+
+    def test_正常系_serveモード時のプラグイン無効(self):
+        """serveモード時にプラグインが無効な場合の処理を確認"""
+        with patch.object(sys, "argv", ["mkdocs", "serve"]):
+            plugin = MermaidToImagePlugin()
+            plugin.config = {"enabled": False}
+            plugin.processor = None
+
+            # Mock page and config
+            mock_page = Mock()
+            mock_page.file.src_path = "test.md"
+            mock_config = {"docs_dir": "/tmp/docs"}
+
+            markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
+
+            result = plugin.on_page_markdown(
+                markdown, page=mock_page, config=mock_config, files=[]
+            )
+
+            # プラグイン無効時は元のMarkdownが返される
+            assert result == markdown
+
+    def test_正常系_serveモード時のプロセッサ未初期化(self):
+        """serveモード時にプロセッサが未初期化の場合の処理を確認"""
+        with patch.object(sys, "argv", ["mkdocs", "serve"]):
+            plugin = MermaidToImagePlugin()
+            plugin.config = {"enabled": True}
+            plugin.processor = None  # プロセッサが未初期化
+
+            # Mock page and config
+            mock_page = Mock()
+            mock_page.file.src_path = "test.md"
+            mock_config = {"docs_dir": "/tmp/docs"}
+
+            markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
+
+            result = plugin.on_page_markdown(
+                markdown, page=mock_page, config=mock_config, files=[]
+            )
+
+            # プロセッサ未初期化時は元のMarkdownが返される
+            assert result == markdown

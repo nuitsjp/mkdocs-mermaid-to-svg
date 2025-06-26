@@ -16,6 +16,7 @@ Python学習者へのヒント：
 - MkDocsプラグインは、ドキュメント生成の各段階で特定のメソッドが自動実行されます
 """
 
+import sys
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -104,6 +105,9 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
         )
         self.logger: Optional[Any] = None  # ロガーインスタンス（後で設定）
         self.generated_images: List[str] = []  # 生成された画像のパスを記録するリスト
+
+        # serve モード検出（起動時のコマンドライン引数をチェック）
+        self.is_serve_mode: bool = "serve" in sys.argv
 
     def on_config(self, config: Any) -> Any:
         """
@@ -205,6 +209,15 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
         """
         # プラグインが無効またはプロセッサが未初期化の場合は処理をスキップ
         if not self.config["enabled"] or not self.processor:
+            return markdown
+
+        # serve モード時は画像化処理をスキップして元のMarkdownを返す
+        if self.is_serve_mode:
+            if self.logger:
+                self.logger.debug(
+                    f"Skipping Mermaid image generation in serve mode for "
+                    f"{page.file.src_path}"
+                )
             return markdown
 
         try:
