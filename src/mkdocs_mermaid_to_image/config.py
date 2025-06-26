@@ -205,7 +205,7 @@ class ConfigManager:
         return True
 
 
-class MermaidPluginConfig(Config):  # type: ignore[misc]
+class MermaidPluginConfig(Config):  # type: ignore[no-untyped-call]
     """
     MkDocs Mermaid Plugin用の設定クラス
 

@@ -108,7 +108,7 @@ ignore = [
 "src/mkdocs_mermaid_to_image/_version.py" = ["UP006", "UP035", "I001"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -121,7 +121,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-enable_incomplete_feature = ["NewGenericSyntax"]
+# enable_incomplete_feature = ["NewGenericSyntax"]  # Python 3.12+ではデフォルトで有効
 
 [[tool.mypy.overrides]]
 module = "tests.*"

@@ -27,13 +27,13 @@ from mkdocs.config import config_options  # 設定オプション
 from mkdocs.plugins import BasePlugin  # プラグインの基底クラス
 
 # 同じパッケージ内のモジュールをインポート（相対インポート）
-from .config import ConfigManager  # 設定管理クラス
+from .config import ConfigManager, MermaidPluginConfig  # 設定管理クラス
 from .exceptions import MermaidConfigError, MermaidPreprocessorError  # カスタム例外
 from .processor import MermaidProcessor  # リファクタリング後のメイン処理クラス
 from .utils import ensure_directory, setup_logger  # ユーティリティ関数
 
 
-class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
+class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-untyped-call]
     """
     MkDocs用のMermaid図画像変換プラグインのメインクラス
 
