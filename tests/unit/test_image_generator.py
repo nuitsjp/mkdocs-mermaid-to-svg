@@ -11,7 +11,6 @@ Python未経験者へのヒント：
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -34,6 +33,17 @@ class TestMermaidImageGenerator:
     @pytest.fixture
     def basic_config(self):
         """テスト用の基本設定を返すfixture"""
+        import os
+
+        # CI環境でのみPuppeteer設定を使用
+        puppeteer_config = None
+        if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+            puppeteer_config = str(
+                Path(__file__).parent.parent.parent
+                / ".github"
+                / "puppeteer.config.json"
+            )
+
         return {
             "mmdc_path": "mmdc",
             "theme": "default",
@@ -42,7 +52,7 @@ class TestMermaidImageGenerator:
             "height": 600,
             "scale": 1.0,
             "css_file": None,
-            "puppeteer_config": None,
+            "puppeteer_config": puppeteer_config,
             "mermaid_config": None,
             "error_on_fail": False,
             "log_level": "INFO",
@@ -208,15 +218,24 @@ class TestMermaidImageGenerator:
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_build_mmdc_command_with_optional_files(
-        self, mock_command_available, basic_config
+        self, mock_command_available, basic_config, tmp_path
     ):
-        """CSSやpuppeteer等のファイル指定時のコマンド生成テスト"""
+        """CSSやpuppeteer等のファイル指定時のコマンド生成テスト（ファイルが存在する場合）"""
         mock_command_available.return_value = True
+
+        # 実際にファイルを作成
+        css_file = tmp_path / "custom.css"
+        css_file.write_text("/* custom css */")
+        puppeteer_file = tmp_path / "puppeteer.json"
+        puppeteer_file.write_text('{"args": ["--no-sandbox"]}')
+        mermaid_file = tmp_path / "mermaid.json"
+        mermaid_file.write_text('{"theme": "dark"}')
+
         basic_config.update(
             {
-                "css_file": "/path/to/custom.css",
-                "puppeteer_config": "/path/to/puppeteer.json",
-                "mermaid_config": "/path/to/mermaid.json",
+                "css_file": str(css_file),
+                "puppeteer_config": str(puppeteer_file),
+                "mermaid_config": str(mermaid_file),
             }
         )
         generator = MermaidImageGenerator(basic_config)
@@ -224,11 +243,40 @@ class TestMermaidImageGenerator:
         cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
 
         assert "-C" in cmd
-        assert "/path/to/custom.css" in cmd
+        assert str(css_file) in cmd
         assert "-p" in cmd
-        assert "/path/to/puppeteer.json" in cmd
+        assert str(puppeteer_file) in cmd
         assert "-c" in cmd
-        assert "/path/to/mermaid.json" in cmd
+        assert str(mermaid_file) in cmd
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_build_mmdc_command_with_missing_optional_files(
+        self, mock_command_available, basic_config
+    ):
+        """オプションファイルが存在しない場合のコマンド生成テスト"""
+        mock_command_available.return_value = True
+        basic_config.update(
+            {
+                "css_file": "/nonexistent/custom.css",
+                "puppeteer_config": "/nonexistent/puppeteer.json",
+                "mermaid_config": "/nonexistent/mermaid.json",
+            }
+        )
+        generator = MermaidImageGenerator(basic_config)
+
+        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+
+        # CSS fileは存在確認していないので含まれる
+        assert "-C" in cmd
+        assert "/nonexistent/custom.css" in cmd
+
+        # Puppeteer configは存在確認しているので含まれない
+        assert "-p" not in cmd
+        assert "/nonexistent/puppeteer.json" not in cmd
+
+        # Mermaid configは存在確認していないので含まれる
+        assert "-c" in cmd
+        assert "/nonexistent/mermaid.json" in cmd
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_generate_with_error_on_fail_true(
@@ -243,11 +291,13 @@ class TestMermaidImageGenerator:
         with patch("subprocess.run") as mock_subprocess:
             mock_subprocess.return_value = Mock(returncode=1, stderr="Error message")
 
-            with patch("builtins.open", create=True), patch(
-                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
-            ), patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"), patch(
-                "mkdocs_mermaid_to_image.image_generator.clean_temp_file"
-            ), pytest.raises(MermaidCLIError):
+            with (
+                patch("builtins.open", create=True),
+                patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path"),
+                patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+                patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+                pytest.raises(MermaidCLIError),
+            ):
                 generator.generate("invalid", "/tmp/output.png", basic_config)
 
     @pytest.mark.parametrize(
@@ -293,7 +343,7 @@ class TestMermaidImageGenerator:
 
     def _compare_images_similarity(  # noqa: PLR0911
         self, expected_path: str, actual_path: str, threshold: float = 0.95
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         画像の類似度比較（ピクセル値の比較）
 
@@ -309,9 +359,10 @@ class TestMermaidImageGenerator:
             return True, "Similarity comparison skipped (Pillow not available)"
 
         try:
-            with Image.open(expected_path) as expected_img, Image.open(
-                actual_path
-            ) as actual_img:
+            with (
+                Image.open(expected_path) as expected_img,
+                Image.open(actual_path) as actual_img,
+            ):
                 # 基本的な妥当性チェック
                 expected_file = Path(expected_path)
                 actual_file = Path(actual_path)

@@ -5,7 +5,7 @@ MkDocs Mermaid to Image Plugin - Markdown処理
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from .mermaid_block import MermaidBlock
 from .utils import setup_logger
@@ -18,7 +18,7 @@ class MarkdownProcessor:
     単一責任原則に基づき、Markdown操作のみに責任を持ちます。
     """
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """
         MarkdownProcessorのコンストラクタ
 
@@ -28,7 +28,7 @@ class MarkdownProcessor:
         self.config = config
         self.logger = setup_logger(__name__, config.get("log_level", "INFO"))
 
-    def extract_mermaid_blocks(self, markdown_content: str) -> List[MermaidBlock]:
+    def extract_mermaid_blocks(self, markdown_content: str) -> list[MermaidBlock]:
         """
         MarkdownコンテンツからすべてのMermaidコードブロックを抽出
 
@@ -83,7 +83,7 @@ class MarkdownProcessor:
         self.logger.info(f"Found {len(blocks)} Mermaid blocks")
         return blocks
 
-    def _parse_attributes(self, attr_str: str) -> Dict[str, Any]:
+    def _parse_attributes(self, attr_str: str) -> dict[str, Any]:
         """
         属性文字列を解析して辞書に変換
 
@@ -108,8 +108,8 @@ class MarkdownProcessor:
     def replace_blocks_with_images(
         self,
         markdown_content: str,
-        blocks: List[MermaidBlock],
-        image_paths: List[str],
+        blocks: list[MermaidBlock],
+        image_paths: list[str],
         page_file: str,
     ) -> str:
         """

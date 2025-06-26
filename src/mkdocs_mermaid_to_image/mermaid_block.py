@@ -6,7 +6,7 @@ MkDocs Mermaid to Image Plugin - Mermaidブロック処理
 
 import contextlib
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .utils import generate_image_filename
 
@@ -24,7 +24,7 @@ class MermaidBlock:
         code: str,
         start_pos: int,
         end_pos: int,
-        attributes: Optional[Dict[str, Any]] = None,
+        attributes: Optional[dict[str, Any]] = None,
     ):
         """
         MermaidBlockのコンストラクタ
@@ -48,7 +48,7 @@ class MermaidBlock:
         )
 
     def generate_image(
-        self, output_path: str, image_generator: Any, config: Dict[str, Any]
+        self, output_path: str, image_generator: Any, config: dict[str, Any]
     ) -> bool:
         """
         このMermaidブロックから画像を生成

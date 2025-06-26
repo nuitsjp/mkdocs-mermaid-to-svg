@@ -16,7 +16,7 @@ Python学習者へのヒント：
 """
 
 from pathlib import Path  # パス操作のための標準ライブラリ
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from mkdocs.config import config_options  # MkDocs設定システムのライブラリ
 from mkdocs.config.base import Config  # MkDocs設定基底クラス
@@ -43,7 +43,7 @@ class ConfigManager:
     """
 
     @staticmethod
-    def get_config_scheme() -> Tuple[Tuple[str, Any], ...]:
+    def get_config_scheme() -> tuple[tuple[str, Any], ...]:
         """
         プラグインの設定スキーマを定義する関数
 
@@ -155,7 +155,7 @@ class ConfigManager:
         )
 
     @staticmethod
-    def validate_config(config: Dict[str, Any]) -> bool:
+    def validate_config(config: dict[str, Any]) -> bool:
         """
         プラグイン設定の妥当性を検証する関数
 

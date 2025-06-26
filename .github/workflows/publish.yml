@@ -33,6 +33,12 @@ jobs:
           pip install uv
           uv pip install --system '.[dev]'
 
+      - name: Verify CI configuration
+        run: |
+          echo "Checking Puppeteer config for CI environment..."
+          ls -la .github/puppeteer.config.json
+          cat .github/puppeteer.config.json
+
       - name: Run tests and quality checks
         run: |
           uv run pytest

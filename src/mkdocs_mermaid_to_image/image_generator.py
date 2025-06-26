@@ -6,7 +6,7 @@ MkDocs Mermaid to Image Plugin - 画像生成エンジン
 
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from .exceptions import MermaidCLIError
 from .utils import (
@@ -25,7 +25,7 @@ class MermaidImageGenerator:
     単一責任原則に基づき、CLI実行と画像生成のみに責任を持ちます。
     """
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """
         MermaidImageGeneratorのコンストラクタ
 
@@ -50,7 +50,7 @@ class MermaidImageGenerator:
             )
 
     def generate(
-        self, mermaid_code: str, output_path: str, config: Dict[str, Any]
+        self, mermaid_code: str, output_path: str, config: dict[str, Any]
     ) -> bool:
         """
         MermaidコードからMermaid CLIを使用して画像を生成
@@ -127,8 +127,8 @@ class MermaidImageGenerator:
                 clean_temp_file(temp_file)
 
     def _build_mmdc_command(
-        self, input_file: str, output_file: str, config: Dict[str, Any]
-    ) -> List[str]:
+        self, input_file: str, output_file: str, config: dict[str, Any]
+    ) -> list[str]:
         """
         設定オプションを含むmmdcコマンドを構築
 
@@ -164,7 +164,14 @@ class MermaidImageGenerator:
             cmd.extend(["-C", self.config["css_file"]])
 
         if self.config.get("puppeteer_config"):
-            cmd.extend(["-p", self.config["puppeteer_config"]])
+            puppeteer_config_path = Path(self.config["puppeteer_config"])
+            if puppeteer_config_path.exists():
+                cmd.extend(["-p", self.config["puppeteer_config"]])
+            else:
+                self.logger.warning(
+                    f"Puppeteer config file not found: "
+                    f"{self.config['puppeteer_config']}"
+                )
 
         if self.config.get("mermaid_config"):
             cmd.extend(["-c", self.config["mermaid_config"]])

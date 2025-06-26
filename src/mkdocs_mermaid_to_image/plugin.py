@@ -18,7 +18,7 @@ Python学習者へのヒント：
 
 import sys
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from mkdocs.config import config_options  # 設定オプション
 
@@ -104,7 +104,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[misc]
             None  # MermaidProcessorインスタンス（後で設定）
         )
         self.logger: Optional[Any] = None  # ロガーインスタンス（後で設定）
-        self.generated_images: List[str] = []  # 生成された画像のパスを記録するリスト
+        self.generated_images: list[str] = []  # 生成された画像のパスを記録するリスト
 
         # serve モード検出（起動時のコマンドライン引数をチェック）
         self.is_serve_mode: bool = "serve" in sys.argv

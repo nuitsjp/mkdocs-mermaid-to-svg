@@ -6,7 +6,7 @@ MkDocs Mermaid to Image Plugin - メインプロセッサー
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from .image_generator import MermaidImageGenerator
 from .markdown_processor import MarkdownProcessor
@@ -21,7 +21,7 @@ class MermaidProcessor:
     ページ全体の処理フローを管理する責任のみを持ちます。
     """
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """
         MermaidProcessorのコンストラクタ
 
@@ -37,7 +37,7 @@ class MermaidProcessor:
 
     def process_page(
         self, page_file: str, markdown_content: str, output_dir: str
-    ) -> Tuple[str, List[str]]:
+    ) -> tuple[str, list[str]]:
         """
         単一ページを処理し、変更されたコンテンツと生成された画像パスを返す
 

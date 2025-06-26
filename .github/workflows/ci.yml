@@ -92,8 +92,22 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python pin ${{ matrix.python-version }}
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Mermaid CLI
+      run: npm install -g @mermaid-js/mermaid-cli
+
     - name: Install dependencies
       run: uv sync --all-extras
+
+    - name: Verify CI configuration
+      run: |
+        echo "Checking Puppeteer config for CI environment..."
+        ls -la .github/puppeteer.config.json
+        cat .github/puppeteer.config.json
 
     - name: Run tests
       run: |
