@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install uv
-          uv pip install '.[dev]'
+          uv pip install --system '.[dev]'
 
       - name: Run tests and quality checks
         run: |
