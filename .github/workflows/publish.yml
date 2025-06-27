@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -43,7 +43,7 @@ jobs:
         run: |
           uv run pytest
           uv run ruff check .
-          uv run mypy src
+          uv run mypy src/ --strict
 
       - name: Build package
         run: |
