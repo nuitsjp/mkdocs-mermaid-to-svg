@@ -85,6 +85,7 @@ jobs:
 
       - name: Validate package
         run: |
+          uv add --dev twine
           uv run python -m twine check dist/*
           echo "Package validation completed"
 
