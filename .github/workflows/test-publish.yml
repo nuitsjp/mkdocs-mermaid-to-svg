@@ -43,51 +43,55 @@ jobs:
           uv run ruff check .
           uv run mypy src/ --strict
 
-      - name: Debug package metadata
+      - name: Create clean version for TestPyPI
         run: |
-          echo "=== Package metadata debug ==="
-          if [ -f "pyproject.toml" ]; then
-            echo "pyproject.toml contents:"
-            cat pyproject.toml
-          fi
-          if [ -f "setup.py" ]; then
-            echo "setup.py contents:"
-            cat setup.py
-          fi
-          echo "=== Git describe ==="
-          git describe --tags --dirty --always
-          echo "=== setuptools_scm version ==="
-          python -c "import setuptools_scm; print(setuptools_scm.get_version())" || echo "setuptools_scm not available"
+          # setuptools_scmの設定を一時的に変更してローカルバージョンを除去
+          echo "=== Original version ==="
+          python -c "import setuptools_scm; print(setuptools_scm.get_version())"
 
-      - name: Build package
+          # 環境変数でローカルバージョンを無効化
+          export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MKDOCS_MERMAID_TO_IMAGE=$(python -c "
+          import setuptools_scm
+          version = setuptools_scm.get_version()
+          # +以降のローカルバージョン部分を削除
+          clean_version = version.split('+')[0]
+          print(clean_version)
+          ")
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MKDOCS_MERMAID_TO_IMAGE=$SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MKDOCS_MERMAID_TO_IMAGE" >> $GITHUB_ENV
+
+          echo "=== Clean version ==="
+          echo $SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MKDOCS_MERMAID_TO_IMAGE
+
+      - name: Build package with clean version
         run: |
           pip install build
+          echo "Building with version: $SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MKDOCS_MERMAID_TO_IMAGE"
           python -m build
 
-      - name: Debug built package
+      - name: Verify built package version
         run: |
           echo "=== Built package files ==="
           ls -la dist/
-          echo "=== Package metadata ==="
+          echo "=== Package version verification ==="
           pip install pkginfo
           for file in dist/*.whl dist/*.tar.gz; do
             echo "--- $file ---"
-            python -c "import pkginfo; p=pkginfo.get_metadata('$file'); print(f'Name: {p.name}'); print(f'Version: {p.version}'); print(f'Summary: {p.summary}')"
+            python -c "
+            import pkginfo
+            p = pkginfo.get_metadata('$file')
+            print(f'Name: {p.name}')
+            print(f'Version: {p.version}')
+            if '+' in p.version:
+                print('WARNING: Local version detected!')
+                exit(1)
+            else:
+                print('Version is clean for PyPI')
+            "
           done
 
-      - name: Test upload with verbose output
-        run: |
-          pip install twine
-          echo "=== Testing upload with twine (verbose) ==="
-          twine check dist/*
-          twine upload --repository testpypi dist/* --verbose --username __token__ --password ${{ secrets.TEST_PYPI_API_TOKEN }}
-        continue-on-error: true
-
-      - name: Publish to TestPyPI (fallback)
-        if: failure()
+      - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
-          verbose: true
