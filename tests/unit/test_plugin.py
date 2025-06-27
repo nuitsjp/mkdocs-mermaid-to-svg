@@ -337,7 +337,11 @@ class TestMermaidToImagePluginServeMode:
         """ビルドモード時にMermaid処理が実行されることを確認"""
         with patch.object(sys, "argv", ["mkdocs", "build"]):
             plugin = MermaidToImagePlugin()
-            plugin.config = {"enabled": True, "output_dir": "assets/images"}
+            plugin.config = {
+                "enabled": True,
+                "output_dir": "assets/images",
+                "error_on_fail": False,
+            }
 
             # プロセッサをモック
             mock_processor = Mock()
@@ -351,7 +355,7 @@ class TestMermaidToImagePluginServeMode:
             # Mock page and config
             mock_page = Mock()
             mock_page.file.src_path = "test.md"
-            mock_config = {"docs_dir": "/tmp/docs"}
+            mock_config = {"docs_dir": "/tmp/docs", "site_dir": "/tmp/site"}
 
             markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
 
