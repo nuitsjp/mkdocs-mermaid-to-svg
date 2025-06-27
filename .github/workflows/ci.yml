@@ -59,6 +59,20 @@ jobs:
         git diff
         echo "=== End git diff ==="
 
+    - name: Check which files were modified by ruff-format
+      run: |
+        echo "=== Checking for modified files specifically ==="
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Modified files detected:"
+          git status --short
+          echo "=== Detailed diff ==="
+          git diff --name-only
+          echo "=== Full diff output ==="
+          git diff
+        else
+          echo "No files were modified"
+        fi
+
     - name: Check for security issues
       run: |
         uv run pip-audit
