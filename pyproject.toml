@@ -155,3 +155,6 @@ mkdocs-mermaid-to-image = { workspace = true }
 dev = [
     "mkdocs-mermaid-to-image",
 ]
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
