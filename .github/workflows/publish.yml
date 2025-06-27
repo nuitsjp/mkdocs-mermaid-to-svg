@@ -1,5 +1,9 @@
 name: Publish Package
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   # タグ作成時のトリガー（本番リリース）
   push:
