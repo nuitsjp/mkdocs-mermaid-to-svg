@@ -42,8 +42,22 @@ jobs:
     - name: Install dependencies
       run: uv sync --all-extras
 
+    - name: Check git status before pre-commit
+      run: |
+        echo "=== Git status before pre-commit ==="
+        git status --porcelain
+        echo "=== End git status ==="
+
     - name: Run pre-commit
       run: uv run pre-commit run --all-files
+
+    - name: Check git status after pre-commit
+      run: |
+        echo "=== Git status after pre-commit ==="
+        git status --porcelain
+        echo "=== Git diff after pre-commit ==="
+        git diff
+        echo "=== End git diff ==="
 
     - name: Check for security issues
       run: |
