@@ -6,9 +6,7 @@
 
 ### 1. 変更内容の確認
 ```bash
-git status              # 変更ファイルの確認
-git diff                # 変更内容の確認
-git log --oneline -10   # 最近のコミット履歴を確認
+git status && git diff && git log --oneline -10
 ```
 
 ### 2. コミットメッセージの作成
