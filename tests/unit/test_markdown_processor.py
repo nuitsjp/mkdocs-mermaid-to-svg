@@ -166,7 +166,7 @@ More content."""
         assert "![Mermaid Diagram](assets/images/test.png)" in result
         assert "```mermaid" not in result
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", False
+            "/path/to/test.png", "test.md", False, ""
         )
 
     def test_replace_blocks_with_images_preserve_original(self, basic_config):
@@ -195,7 +195,7 @@ graph TD
         assert "![Mermaid Diagram](test.png)" in result
         assert "```mermaid" in result  # Original preserved
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", True
+            "/path/to/test.png", "test.md", True, ""
         )
 
     def test_replace_blocks_mismatched_lengths(self, basic_config):

@@ -38,3 +38,29 @@ pip install mkdocs mkdocs-material
 ```bash
 pip install -e .
 ```
+
+## 💡 サンプル
+
+このプラグインを使用すると、Mermaidダイアグラムが自動的に静的画像に変換されます：
+
+```mermaid
+graph LR
+    A[Markdown] --> B[MkDocs Plugin]
+    B --> C[Mermaid CLI]
+    C --> D[Static Image]
+    D --> E[PDF Ready]
+```
+
+複雑なフローチャートも対応：
+
+```mermaid
+flowchart TD
+    Start([開始]) --> Input[Mermaidコード]
+    Input --> Process{処理}
+    Process -->|成功| Output[PNG/SVG画像]
+    Process -->|失敗| Error[エラーログ]
+    Output --> Cache[(キャッシュ)]
+    Cache --> Build[サイトビルド]
+    Build --> End([完了])
+    Error --> End
+```

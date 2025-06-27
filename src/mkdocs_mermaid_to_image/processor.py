@@ -15,7 +15,7 @@ class MermaidProcessor:
         self.image_generator = MermaidImageGenerator(config)
 
     def process_page(
-        self, page_file: str, markdown_content: str, output_dir: str
+        self, page_file: str, markdown_content: str, output_dir: str, page_url: str = ""
     ) -> tuple[str, list[str]]:
         blocks = self.markdown_processor.extract_mermaid_blocks(markdown_content)
 
@@ -48,7 +48,7 @@ class MermaidProcessor:
 
         if successful_blocks:
             modified_content = self.markdown_processor.replace_blocks_with_images(
-                markdown_content, successful_blocks, image_paths, page_file
+                markdown_content, successful_blocks, image_paths, page_file, page_url
             )
             return modified_content, image_paths
 

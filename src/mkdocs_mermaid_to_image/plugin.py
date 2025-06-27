@@ -104,6 +104,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
                 page.file.src_path,
                 markdown,
                 output_dir,
+                page_url=page.url,
             )
 
             self.generated_images.extend(image_paths)
