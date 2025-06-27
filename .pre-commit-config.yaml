@@ -19,6 +19,7 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix, --config=pyproject.toml]
       - id: ruff-format
+        exclude: ^src/mkdocs_mermaid_to_image/_version\.py$
 
   # Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy

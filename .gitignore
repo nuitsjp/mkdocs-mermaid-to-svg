@@ -13,6 +13,9 @@ build/
 *.egg
 .python-version
 
+# Generated files
+*/_version.py
+
 # Virtual Environment
 .venv/
 venv/
