@@ -44,19 +44,35 @@ class MermaidBlock:
         return bool(result)
 
     def get_image_markdown(
-        self, image_path: str, page_file: str, preserve_original: bool = False
+        self,
+        image_path: str,
+        page_file: str,
+        preserve_original: bool = False,
+        page_url: str = "",
     ) -> str:
         image_path_obj = Path(image_path)
 
-        if "docs" in image_path_obj.parts:
-            docs_index = image_path_obj.parts.index("docs")
-            relative_parts = image_path_obj.parts[docs_index + 1 :]
-            image_site_path = str(Path(*relative_parts))
-        else:
-            image_site_path = f"assets/images/{image_path_obj.name}"
+        # Use image filename for the assets/images path
+        image_site_path = f"assets/images/{image_path_obj.name}"
 
-        page_path = Path(page_file)
-        page_depth = len(page_path.parent.parts) if page_path.parent != Path() else 0
+        # Calculate depth based on page URL, not file path
+        if page_url:
+            # Remove leading/trailing slashes and count directory levels
+            url_parts = page_url.strip("/").split("/")
+            # Remove index.html or similar if present, count actual directory depth
+            if url_parts == [""] or (len(url_parts) == 1 and url_parts[0] == ""):
+                page_depth = 0  # Root page
+            else:
+                # Count directory levels (exclude page filename if present)
+                page_depth = len(
+                    [part for part in url_parts if part and not part.endswith(".html")]
+                )
+        else:
+            # Fallback to old method if page_url is not provided
+            page_path = Path(page_file)
+            page_depth = (
+                len(page_path.parent.parts) if page_path.parent != Path() else 0
+            )
 
         if page_depth > 0:
             relative_image_path = "../" * page_depth + image_site_path

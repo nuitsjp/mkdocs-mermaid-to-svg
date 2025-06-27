@@ -250,11 +250,15 @@ class TestMermaidImageGenerator:
         assert str(mermaid_file) in cmd
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
     def test_build_mmdc_command_with_missing_optional_files(
-        self, mock_command_available, basic_config
+        self, mock_getenv, mock_command_available, basic_config
     ):
         """オプションファイルが存在しない場合のコマンド生成テスト"""
         mock_command_available.return_value = True
+        # 非CI環境をシミュレート
+        mock_getenv.return_value = None
+
         basic_config.update(
             {
                 "css_file": "/nonexistent/custom.css",
@@ -271,12 +275,78 @@ class TestMermaidImageGenerator:
         assert "/nonexistent/custom.css" in cmd
 
         # Puppeteer configは存在確認しているので含まれない
-        assert "-p" not in cmd
+        # (CI用の-pフラグとユーザー指定の-pフラグを区別するため、カウントで確認)
+        p_count = cmd.count("-p")
+        assert p_count == 0  # CI用もユーザー用も追加されない
         assert "/nonexistent/puppeteer.json" not in cmd
 
         # Mermaid configは存在確認していないので含まれる
         assert "-c" in cmd
         assert "/nonexistent/mermaid.json" in cmd
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
+    def test_build_mmdc_command_ci_environment(
+        self, mock_getenv, mock_command_available, basic_config
+    ):
+        """CI環境で--no-sandboxオプションが追加されるかテスト"""
+        mock_command_available.return_value = True
+
+        # CI環境をシミュレート
+        def mock_env(key):
+            if key == "CI":
+                return "true"
+            elif key == "GITHUB_ACTIONS":
+                return None
+            return None
+
+        mock_getenv.side_effect = mock_env
+
+        generator = MermaidImageGenerator(basic_config)
+        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+
+        assert "-p" in cmd
+        # Check that the puppeteer config file is created
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
+    def test_build_mmdc_command_github_actions_environment(
+        self, mock_getenv, mock_command_available, basic_config
+    ):
+        """GitHub Actions環境で--no-sandboxオプションが追加されるかテスト"""
+        mock_command_available.return_value = True
+
+        # GitHub Actions環境をシミュレート
+        def mock_env(key):
+            if key == "CI":
+                return None
+            elif key == "GITHUB_ACTIONS":
+                return "true"
+            return None
+
+        mock_getenv.side_effect = mock_env
+
+        generator = MermaidImageGenerator(basic_config)
+        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+
+        assert "-p" in cmd
+        # Check that the puppeteer config file is created
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
+    def test_build_mmdc_command_non_ci_environment(
+        self, mock_getenv, mock_command_available, basic_config
+    ):
+        """非CI環境で--no-sandboxオプションが追加されないかテスト"""
+        mock_command_available.return_value = True
+
+        # 非CI環境をシミュレート
+        mock_getenv.return_value = None
+
+        generator = MermaidImageGenerator(basic_config)
+        generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+
+        # In non-CI environment, no additional -p flag should be added for sandbox
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_generate_with_error_on_fail_true(

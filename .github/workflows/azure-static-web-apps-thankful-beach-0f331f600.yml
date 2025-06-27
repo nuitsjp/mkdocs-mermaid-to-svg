@@ -1,13 +1,27 @@
 name: Azure Static Web Apps CI/CD
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
       - main
+    paths:
+      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - 'docs/**'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+    paths:
+      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - 'docs/**'
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   build_and_deploy_job:
@@ -15,10 +29,41 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Install Python dependencies
+        run: uv sync --all-extras
+
+      - name: Install this plugin in development mode
+        run: uv pip install -e .
+
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: Install Japanese fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji
+
+      - name: Build MkDocs site
+        run: uv run mkdocs build
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -26,12 +71,10 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_BEACH_0F331F600 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+          app_location: "site"  # MkDocs build output directory
+          api_location: ""      # Api source code path - optional
+          output_location: ""   # Not needed when app_location points to build output
+          skip_app_build: true  # Skip Oryx build since we already built with MkDocs
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

@@ -65,6 +65,7 @@ class MarkdownProcessor:
         blocks: list[MermaidBlock],
         image_paths: list[str],
         page_file: str,
+        page_url: str = "",
     ) -> str:
         if len(blocks) != len(image_paths):
             raise ValueError("Number of blocks and image paths must match")
@@ -77,7 +78,10 @@ class MarkdownProcessor:
 
         for block, image_path in sorted_blocks:
             image_markdown = block.get_image_markdown(
-                image_path, page_file, self.config.get("preserve_original", False)
+                image_path,
+                page_file,
+                self.config.get("preserve_original", False),
+                page_url,
             )
 
             result = (

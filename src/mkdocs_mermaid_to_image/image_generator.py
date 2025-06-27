@@ -102,6 +102,20 @@ class MermaidImageGenerator:
             str(config.get("scale", self.config["scale"])),
         ]
 
+        # Add --no-sandbox for CI environments via puppeteer config
+        import json
+        import os
+        import tempfile
+
+        if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+            # Create temporary puppeteer config with --no-sandbox
+            puppeteer_config = {"args": ["--no-sandbox"]}
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as f:
+                json.dump(puppeteer_config, f)
+                cmd.extend(["-p", f.name])
+
         if self.config.get("css_file"):
             cmd.extend(["-C", self.config["css_file"]])
 
