@@ -102,6 +102,12 @@ class MermaidImageGenerator:
             str(config.get("scale", self.config["scale"])),
         ]
 
+        # Add --no-sandbox for CI environments
+        import os
+
+        if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+            cmd.extend(["--puppeteerArgs", "--no-sandbox"])
+
         if self.config.get("css_file"):
             cmd.extend(["-C", self.config["css_file"]])
 

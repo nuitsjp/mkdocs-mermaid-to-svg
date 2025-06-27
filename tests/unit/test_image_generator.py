@@ -279,6 +279,71 @@ class TestMermaidImageGenerator:
         assert "/nonexistent/mermaid.json" in cmd
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
+    def test_build_mmdc_command_ci_environment(
+        self, mock_getenv, mock_command_available, basic_config
+    ):
+        """CI環境で--no-sandboxオプションが追加されるかテスト"""
+        mock_command_available.return_value = True
+
+        # CI環境をシミュレート
+        def mock_env(key):
+            if key == "CI":
+                return "true"
+            elif key == "GITHUB_ACTIONS":
+                return None
+            return None
+
+        mock_getenv.side_effect = mock_env
+
+        generator = MermaidImageGenerator(basic_config)
+        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+
+        assert "--puppeteerArgs" in cmd
+        assert "--no-sandbox" in cmd
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
+    def test_build_mmdc_command_github_actions_environment(
+        self, mock_getenv, mock_command_available, basic_config
+    ):
+        """GitHub Actions環境で--no-sandboxオプションが追加されるかテスト"""
+        mock_command_available.return_value = True
+
+        # GitHub Actions環境をシミュレート
+        def mock_env(key):
+            if key == "CI":
+                return None
+            elif key == "GITHUB_ACTIONS":
+                return "true"
+            return None
+
+        mock_getenv.side_effect = mock_env
+
+        generator = MermaidImageGenerator(basic_config)
+        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+
+        assert "--puppeteerArgs" in cmd
+        assert "--no-sandbox" in cmd
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
+    def test_build_mmdc_command_non_ci_environment(
+        self, mock_getenv, mock_command_available, basic_config
+    ):
+        """非CI環境で--no-sandboxオプションが追加されないかテスト"""
+        mock_command_available.return_value = True
+
+        # 非CI環境をシミュレート
+        mock_getenv.return_value = None
+
+        generator = MermaidImageGenerator(basic_config)
+        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+
+        assert "--puppeteerArgs" not in cmd
+        assert "--no-sandbox" not in cmd
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_generate_with_error_on_fail_true(
         self, mock_command_available, basic_config
     ):
