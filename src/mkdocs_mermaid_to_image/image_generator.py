@@ -4,7 +4,7 @@ MkDocs Mermaid to Image Plugin - 画像生成エンジン
 このファイルは、Mermaid CLIを使用した画像生成を専門に扱います。
 """
 
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
 
@@ -83,7 +83,7 @@ class MermaidImageGenerator:
             self.logger.debug(f"Executing: {' '.join(cmd)}")
 
             # mmdc コマンドを実行
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603
                 cmd, capture_output=True, text=True, timeout=30, check=False
             )
 

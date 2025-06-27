@@ -42,41 +42,13 @@ jobs:
     - name: Install dependencies
       run: uv sync --all-extras
 
-    - name: Check git status before pre-commit
-      run: |
-        echo "=== Git status before pre-commit ==="
-        git status --porcelain
-        echo "=== End git status ==="
-
     - name: Run pre-commit
       run: uv run pre-commit run --all-files
-
-    - name: Check git status after pre-commit
-      run: |
-        echo "=== Git status after pre-commit ==="
-        git status --porcelain
-        echo "=== Git diff after pre-commit ==="
-        git diff
-        echo "=== End git diff ==="
-
-    - name: Check which files were modified by ruff-format
-      run: |
-        echo "=== Checking for modified files specifically ==="
-        if [ -n "$(git status --porcelain)" ]; then
-          echo "Modified files detected:"
-          git status --short
-          echo "=== Detailed diff ==="
-          git diff --name-only
-          echo "=== Full diff output ==="
-          git diff
-        else
-          echo "No files were modified"
-        fi
 
     - name: Check for security issues
       run: |
         uv run pip-audit
-        uv run bandit -r src/
+        uv run bandit -c pyproject.toml -r src/
 
   type-check:
     name: Type Check

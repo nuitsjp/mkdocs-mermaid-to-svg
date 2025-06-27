@@ -131,7 +131,7 @@ disallow_incomplete_defs = false
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
-skips = ["B101", "B311", "B404", "B603"]
+skips = ["B101", "B311"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
