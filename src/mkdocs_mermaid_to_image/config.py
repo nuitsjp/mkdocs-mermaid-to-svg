@@ -216,7 +216,7 @@ class MermaidPluginConfig(Config):  # type: ignore[no-untyped-call]
     enabled = config_options.Type(bool, default=True)
     output_dir = config_options.Type(str, default="assets/images")
     image_format = config_options.Choice(["png", "svg"], default="png")
-    mermaid_config = config_options.Type(str, default=None)
+    mermaid_config = config_options.Optional(config_options.Type(str))
     mmdc_path = config_options.Type(str, default="mmdc")
     theme = config_options.Choice(
         ["default", "dark", "forest", "neutral"], default="default"
@@ -225,9 +225,9 @@ class MermaidPluginConfig(Config):  # type: ignore[no-untyped-call]
     width = config_options.Type(int, default=800)
     height = config_options.Type(int, default=600)
     scale = config_options.Type(float, default=1.0)
-    css_file = config_options.Type(str, default=None)
-    puppeteer_config = config_options.Type(str, default=None)
-    temp_dir = config_options.Type(str, default=None)
+    css_file = config_options.Optional(config_options.Type(str))
+    puppeteer_config = config_options.Optional(config_options.Type(str))
+    temp_dir = config_options.Optional(config_options.Type(str))
     cache_enabled = config_options.Type(bool, default=True)
     cache_dir = config_options.Type(str, default=".mermaid_cache")
     preserve_original = config_options.Type(bool, default=False)
