@@ -1,6 +1,54 @@
 # 使用方法
 
-## 基本的なMermaidダイアグラム
+## プラグイン設定
+
+`mkdocs.yml`でプラグインを設定してください：
+
+```yaml
+plugins:
+  - mermaid-to-image:
+      enabled: true              # デフォルト: true
+      output_dir: "assets/images" # デフォルト: "assets/images"
+      image_format: "png"        # "png" または "svg" (デフォルト: "png")
+      theme: "default"           # "default", "dark", "forest", "neutral"
+      width: 800                 # デフォルト: 800
+      height: 600                # デフォルト: 600
+      scale: 1.0                 # デフォルト: 1.0
+      background_color: "white"  # デフォルト: "white"
+      cache_enabled: true        # デフォルト: true
+      cache_dir: ".mermaid_cache" # デフォルト: ".mermaid_cache"
+      preserve_original: false   # デフォルト: false
+      error_on_fail: false       # デフォルト: false
+      log_level: "INFO"          # "DEBUG", "INFO", "WARNING", "ERROR"
+```
+
+### 主要設定項目
+
+- **enabled**: プラグインの有効/無効
+- **output_dir**: 生成画像の保存ディレクトリ
+- **image_format**: 出力形式（PNG/SVG）
+- **theme**: ダイアグラムテーマ
+- **width/height**: 画像サイズ（px）
+- **scale**: 画像の拡大率
+- **cache_enabled**: キャッシュ機能の有効/無効
+- **preserve_original**: 元のMermaidコードを保持するか
+- **error_on_fail**: エラー時にビルドを停止するか
+
+### 高度な設定
+
+```yaml
+plugins:
+  - mermaid-to-image:
+      mmdc_path: "mmdc"                    # mermaid-cliコマンドパス
+      mermaid_config: "path/to/config.json" # Mermaid設定ファイル
+      css_file: "path/to/custom.css"       # カスタムCSSファイル
+      puppeteer_config: "path/to/config.json" # Puppeteer設定ファイル
+      temp_dir: "/tmp/mermaid"             # 一時ディレクトリ
+```
+
+## Mermaidダイアグラムの記述
+
+### 基本的な記述方法
 
 ```mermaid
 graph TD
@@ -12,52 +60,57 @@ graph TD
     E --> F
 ```
 
-## テーマ属性付きダイアグラム
+## ビルドと実行
 
-```mermaid {theme: dark}
-sequenceDiagram
-    participant A as Alice
-    participant B as Bob
-    A->>B: Hello Bob!
-    B-->>A: Hello Alice!
-```
-
-## サポートされるダイアグラムタイプ
-
-- フローチャート: `graph`, `flowchart`
-- シーケンス図: `sequenceDiagram`
-- クラス図: `classDiagram`
-- 状態図: `stateDiagram`
-- ER図: `erDiagram`
-- ユーザージャーニー: `journey`
-- ガントチャート: `gantt`
-- 円グラフ: `pie`
-- Git図: `gitgraph`
-
-## ビルド実行
+### 通常のビルド
 
 ```bash
-mkdocs build    # HTMLサイト生成
-mkdocs serve    # 開発サーバー起動
+mkdocs build    # 静的サイト生成（画像変換実行）
+mkdocs serve    # 開発サーバー（画像変換スキップ）
 ```
 
-## 生成ファイルの確認
-
-生成された画像ファイルは`assets/images/`ディレクトリに保存されます。
+### ログレベル指定
 
 ```bash
-mkdocs build --verbose  # 詳細ログでビルド
+mkdocs build --verbose  # 詳細ログ
+```
+
+環境変数でログレベルを制御することも可能：
+
+```bash
+LOG_LEVEL=DEBUG mkdocs build
 ```
 
 ## 生成される成果物
 
-Markdownのコードブロックが画像タグに置き換えられ、PDF出力でも正常に表示されます。
+- **変換前**: Mermaidコードブロック
+- **変換後**: 画像タグ（`<img>`）
+- **生成画像**: 設定した`output_dir`に保存
+- **キャッシュ**: 設定した`cache_dir`に保存（再利用）
 
-## テストと開発
+### 生成画像の確認
 
 ```bash
-pytest                           # 全テスト実行
-black mkdocs_mermaid_to_image/   # コードフォーマット
-flake8 mkdocs_mermaid_to_image/  # リント
-mypy mkdocs_mermaid_to_image/    # 型チェック
+# デフォルト設定の場合
+ls site/assets/images/
+
+# カスタム設定の場合
+ls site/[your_output_dir]/
+```
+
+## パフォーマンス最適化
+
+### キャッシュ活用
+
+- `cache_enabled: true`（推奨）
+- 同じダイアグラムの再生成を回避
+- ビルド時間を大幅短縮
+
+### 並列処理対応
+
+```yaml
+plugins:
+  - mermaid-to-image:
+      # 大量のダイアグラムがある場合は一時ディレクトリを分離
+      temp_dir: "/tmp/mermaid_build"
 ```
