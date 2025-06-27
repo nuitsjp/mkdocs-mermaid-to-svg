@@ -4,11 +4,33 @@ on:
   workflow_dispatch:
 
 jobs:
+  # CIワークフローを先に実行
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # CI失敗時の通知ジョブ
+  ci-failure:
+    needs: ci
+    if: ${{ needs.ci.result == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI Failed
+        run: |
+          echo "::error::CI workflow failed. Publication cancelled."
+          echo "Please fix the CI issues before attempting to publish."
+          exit 1
+
   publish:
+    needs: ci
+    if: ${{ needs.ci.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     steps:
+      - name: Check CI success
+        run: |
+          echo "CI workflow completed successfully"
+          echo "Proceeding with package publication"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -18,30 +40,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          node-version: '20'
-
-      - name: Install Mermaid CLI
-        run: npm install -g @mermaid-js/mermaid-cli
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: |
-          pip install uv
-          uv pip install --system '.[dev]'
-
-      - name: Verify CI configuration
-        run: |
-          echo "Checking Puppeteer config for CI environment..."
-          ls -la .github/puppeteer.config.json
-          cat .github/puppeteer.config.json
-
-      - name: Run tests and quality checks
-        run: |
-          uv run pytest
-          uv run ruff check .
-          uv run mypy src/ --strict
+        run: uv sync --all-extras
 
       - name: Debug package metadata
         run: |
@@ -60,27 +66,25 @@ jobs:
           python -c "import setuptools_scm; print(setuptools_scm.get_version())" || echo "setuptools_scm not available"
 
       - name: Build package
-        run: |
-          pip install build
-          python -m build
+        run: uv build
 
       - name: Debug built package
         run: |
           echo "=== Built package files ==="
           ls -la dist/
           echo "=== Package metadata ==="
-          pip install pkginfo
+          uv add pkginfo
           for file in dist/*.whl dist/*.tar.gz; do
             echo "--- $file ---"
-            python -c "import pkginfo; p=pkginfo.get_metadata('$file'); print(f'Name: {p.name}'); print(f'Version: {p.version}'); print(f'Summary: {p.summary}')"
+            uv run python -c "import pkginfo; p=pkginfo.get_metadata('$file'); print(f'Name: {p.name}'); print(f'Version: {p.version}'); print(f'Summary: {p.summary}')"
           done
 
       - name: Test upload with verbose output
         run: |
-          pip install twine
+          uv add twine
           echo "=== Testing upload with twine (verbose) ==="
-          twine check dist/*
-          twine upload --repository testpypi dist/* --verbose --username __token__ --password ${{ secrets.TEST_PYPI_API_TOKEN }}
+          uv run twine check dist/*
+          uv run twine upload --repository testpypi dist/* --verbose --username __token__ --password ${{ secrets.TEST_PYPI_API_TOKEN }}
         continue-on-error: true
 
       - name: Publish to TestPyPI (fallback)

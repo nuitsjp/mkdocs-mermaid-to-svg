@@ -11,6 +11,8 @@ on:
     - cron: '0 0 * * 1'
   # 手動実行を許可
   workflow_dispatch:
+  # 他のワークフローから呼び出し可能
+  workflow_call:
 
 # 同じワークフローの同時実行を制御
 concurrency:
