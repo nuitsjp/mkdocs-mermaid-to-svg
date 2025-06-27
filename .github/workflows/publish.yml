@@ -1,6 +1,11 @@
-name: Publish to PyPI
+name: Publish Package
 
 on:
+  # タグ作成時のトリガー（本番リリース）
+  push:
+    tags:
+      - 'release-*'
+  # 手動実行（テストリリース）
   workflow_dispatch:
 
 jobs:
@@ -20,12 +25,35 @@ jobs:
           echo "Please fix the CI issues before attempting to publish."
           exit 1
 
-  publish:
+  # リリースタイプの判定
+  determine-release-type:
     needs: ci
+    if: ${{ needs.ci.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      is-production: ${{ steps.check.outputs.is-production }}
+      release-type: ${{ steps.check.outputs.release-type }}
+    steps:
+      - name: Determine release type
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/release-* ]]; then
+            echo "is-production=true" >> $GITHUB_OUTPUT
+            echo "release-type=production" >> $GITHUB_OUTPUT
+            echo "Production release detected (tag: ${{ github.ref_name }})"
+          else
+            echo "is-production=false" >> $GITHUB_OUTPUT
+            echo "release-type=test" >> $GITHUB_OUTPUT
+            echo "Test release detected (manual trigger)"
+          fi
+
+  publish:
+    needs: [ci, determine-release-type]
     if: ${{ needs.ci.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+      contents: write  # GitHub Release作成用
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,9 +76,59 @@ jobs:
       - name: Build package
         run: uv build
 
-      - name: Publish to PyPI
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(uv run python -c "import mkdocs_mermaid_to_image; print(mkdocs_mermaid_to_image.__version__)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Package version: $VERSION"
+
+      - name: Validate package
+        run: |
+          uv run python -m twine check dist/*
+          echo "Package validation completed"
+
+      # テストリリース（手動実行時）
+      - name: Publish to TestPyPI
+        if: ${{ needs.determine-release-type.outputs.is-production == 'false' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
+
+      # 本番リリース（タグ作成時）
+      - name: Publish to PyPI
+        if: ${{ needs.determine-release-type.outputs.is-production == 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+      # GitHub Release作成（本番リリース時のみ）
+      - name: Create GitHub Release
+        if: ${{ needs.determine-release-type.outputs.is-production == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+
+      # リリース結果の通知
+      - name: Release Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Type**: ${{ needs.determine-release-type.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.determine-release-type.outputs.is-production }}" == "true" ]]; then
+            echo "- **PyPI**: https://pypi.org/project/mkdocs-mermaid-to-image/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **GitHub Release**: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **TestPyPI**: https://test.pypi.org/project/mkdocs-mermaid-to-image/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **Installation**: \`pip install --index-url https://test.pypi.org/simple/ mkdocs-mermaid-to-image==${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
