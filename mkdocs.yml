@@ -14,8 +14,21 @@ plugins:
   - mermaid-to-image:
       enabled: true
       output_dir: assets/images
-      cache_enabled: true
+      image_format: png
+      mermaid_config: assets/mermaid_config.json
+      mmdc_path: mmdc
       theme: default
+      background_color: white
+      width: 800
+      height: 600
+      scale: 1.0
+      css_file: assets/mermaid.css
+      puppeteer_config: assets/puppeteer_config.json
+      temp_dir: assets/temp
+      cache_enabled: true
+      cache_dir: .mermaid_cache
+      preserve_original: false
+      error_on_fail: false
       log_level: INFO
 
 markdown_extensions:
