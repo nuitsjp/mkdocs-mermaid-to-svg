@@ -65,6 +65,7 @@ packages = ["src/mkdocs_mermaid_to_image"]
 
 [tool.hatch.version]
 source = "vcs"
+raw-options = { local_scheme = "no-local-version" }
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/mkdocs_mermaid_to_image/_version.py"
@@ -155,6 +156,3 @@ mkdocs-mermaid-to-image = { workspace = true }
 dev = [
     "mkdocs-mermaid-to-image",
 ]
-
-[tool.setuptools_scm]
-local_scheme = "no-local-version"
