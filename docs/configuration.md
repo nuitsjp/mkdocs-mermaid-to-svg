@@ -1,5 +1,15 @@
 # 設定オプション
 
+## 最小構成（推奨）
+
+プラグインは適切なデフォルト値を持っているため、最小構成で動作可能です：
+
+```yaml
+# mkdocs.yml
+plugins:
+  - mermaid-to-image  # これだけで動作します！
+```
+
 ## 基本設定
 
 ### プラグイン設定例
@@ -10,20 +20,20 @@ plugins:
   - search:
       lang: ja
 
-  # Mermaid前処理プラグイン
+  # Mermaid前処理プラグイン（カスタマイズ版）
   - mermaid-to-image:
-      enabled: true                    # プラグイン有効化
-      output_dir: assets/images        # 画像出力ディレクトリ
-      image_format: png               # 画像フォーマット（png/svg）
-      theme: default                  # Mermaidテーマ
-      background_color: white         # 背景色
-      width: 800                      # 画像幅
-      height: 600                     # 画像高さ
-      scale: 1.0                      # スケール
-      cache_enabled: true             # キャッシュ機能
-      preserve_original: false        # 元のコード保持
-      error_on_fail: false           # エラー時の動作
-      log_level: INFO                 # ログレベル
+      enabled: true                    # プラグイン有効化（デフォルト: true）
+      output_dir: assets/images        # 画像出力ディレクトリ（デフォルト: assets/images）
+      image_format: png               # 画像フォーマット（デフォルト: png）
+      theme: default                  # Mermaidテーマ（デフォルト: default）
+      background_color: white         # 背景色（デフォルト: white）
+      width: 800                      # 画像幅（デフォルト: 800）
+      height: 600                     # 画像高さ（デフォルト: 600）
+      scale: 1.0                      # スケール（デフォルト: 1.0）
+      cache_enabled: true             # キャッシュ機能（デフォルト: true）
+      preserve_original: false        # 元のコード保持（デフォルト: false）
+      error_on_fail: false           # エラー時の動作（デフォルト: false）
+      log_level: INFO                 # ログレベル（デフォルト: INFO）
 
   # PDF生成プラグイン
   - with-pdf:
@@ -61,6 +71,18 @@ plugins:
 | `log_level` | str | `INFO` | ログレベル |
 
 利用可能なログレベル: DEBUG, INFO, WARNING, ERROR
+
+## オプション設定
+
+以下の設定はオプションで、未指定の場合は無効化されます：
+
+| オプション | 型 | デフォルト | 説明 |
+|-----------|---|-----------|------|
+| `mermaid_config` | str | `null` | Mermaid設定ファイルのパス |
+| `css_file` | str | `null` | カスタムCSSファイルのパス |
+| `puppeteer_config` | str | `null` | Puppeteer設定ファイルのパス |
+| `temp_dir` | str | `null` | 一時ディレクトリのパス |
+| `cache_dir` | str | `.mermaid_cache` | キャッシュディレクトリのパス |
 
 ## 詳細設定
 

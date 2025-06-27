@@ -56,17 +56,26 @@ pip install -e .
 
 ## 設定
 
+### 最小構成（推奨）
+
+プラグインは適切なデフォルト値を持っているため、最小構成で動作可能です：
+
+```yaml
+plugins:
+  - mermaid-to-image
+```
+
 ### 基本設定
 
-`mkdocs.yml`に以下を追加：
+必要に応じて設定をカスタマイズできます：
 
 ```yaml
 plugins:
   - mermaid-to-image:
-      enabled: true
-      output_dir: assets/images
-      theme: default
-      image_format: png
+      enabled: true          # デフォルト: true
+      output_dir: assets/images  # デフォルト: assets/images
+      theme: default         # デフォルト: default
+      image_format: png      # デフォルト: png
 ```
 
 ### 完全な設定例
