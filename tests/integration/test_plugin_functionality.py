@@ -209,7 +209,7 @@ def test_build_mode_integration():
         # Mockページとconfig
         mock_page = Mock()
         mock_page.file.src_path = "example.md"
-        mock_config = {"docs_dir": "/docs"}
+        mock_config = {"docs_dir": "/docs", "site_dir": "/site"}
 
         # 複数のMermaidブロックを含むMarkdown
         test_markdown = """
