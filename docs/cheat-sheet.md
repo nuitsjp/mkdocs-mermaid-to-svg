@@ -42,10 +42,9 @@ claude  # /initialize-projectを実行
 - pre-commitフックを設定
 - 初期テストを実行
 
-## 🔗 主要ドキュメント
+# Claude Code & Gemini Cli チートシート
 
-- **[CLAUDE.md](./CLAUDE.md)**: Claude Code向けの技術仕様と実装ガイド
-- **[template/](./template/)**: ベストプラクティスを反映したサンプルコード集
+- **[CLAUDE.md](../CLAUDE.md)**: Claude Code向けの技術仕様と実装ガイド
 
 ## 📋 Claude Code チートシート
 
