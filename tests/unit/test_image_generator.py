@@ -250,11 +250,15 @@ class TestMermaidImageGenerator:
         assert str(mermaid_file) in cmd
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("os.getenv")
     def test_build_mmdc_command_with_missing_optional_files(
-        self, mock_command_available, basic_config
+        self, mock_getenv, mock_command_available, basic_config
     ):
         """オプションファイルが存在しない場合のコマンド生成テスト"""
         mock_command_available.return_value = True
+        # 非CI環境をシミュレート
+        mock_getenv.return_value = None
+
         basic_config.update(
             {
                 "css_file": "/nonexistent/custom.css",
@@ -271,7 +275,9 @@ class TestMermaidImageGenerator:
         assert "/nonexistent/custom.css" in cmd
 
         # Puppeteer configは存在確認しているので含まれない
-        assert "-p" not in cmd
+        # (CI用の-pフラグとユーザー指定の-pフラグを区別するため、カウントで確認)
+        p_count = cmd.count("-p")
+        assert p_count == 0  # CI用もユーザー用も追加されない
         assert "/nonexistent/puppeteer.json" not in cmd
 
         # Mermaid configは存在確認していないので含まれる
