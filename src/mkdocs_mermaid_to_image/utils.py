@@ -23,10 +23,13 @@ import tempfile  # 一時ファイル作成のための標準ライブラリ
 from pathlib import Path  # より便利なパス操作のための標準ライブラリ
 from shutil import which  # whichコマンド相当の機能
 
+from .logging_config import get_plugin_logger
+
 
 def setup_logger(name: str, log_level: str = "INFO") -> logging.Logger:
-    """
-    プラグイン用のロガーを設定・取得する関数
+    """プラグイン用のロガーを設定・取得する関数 (deprecated).
+
+    Note: Use get_plugin_logger instead for better structured logging.
 
     Args:
         name (str): ロガーの名前（通常は__name__を使用）
@@ -37,17 +40,11 @@ def setup_logger(name: str, log_level: str = "INFO") -> logging.Logger:
         logging.Logger: 設定されたロガーオブジェクト
 
     Python学習者へのヒント：
-    - loggingは、print()の代わりに使用する本格的なログ出力システムです
-    - ログレベルにより、出力される情報の詳細度を制御できます
-    - ハンドラー（handler）は、ログの出力先を決定します（コンソール、ファイルなど）
-    - フォーマッター（formatter）は、ログメッセージの表示形式を決定します
-
-    使用例:
-        logger = setup_logger(__name__, 'DEBUG')
-        logger.info("処理を開始します")
-        logger.error("エラーが発生しました")
+    - この関数は下位互換性のために残していますが、新しいコードでは
+      get_plugin_logger を使用してください
+    - 構造化ログ機能を活用するため、新しいログ設定システムを推奨します
     """
-    # 指定された名前のロガーを取得（既存の場合は再利用）
+    # Keep the original implementation for backward compatibility
     logger = logging.getLogger(name)
 
     # ハンドラーが未設定の場合のみ設定（重複設定を防ぐ）
@@ -172,20 +169,50 @@ def clean_temp_file(file_path: str) -> None:
     - try-except文を使用することで、エラーが発生しても処理を継続できます
     - os.path.exists()でファイルの存在を確認してから削除します
     - OSErrorは、ファイル操作で発生する可能性のある例外です
-    - passは「何もしない」を意味し、例外を無視する場合に使用します
+    - 構造化ログを使用してエラーの詳細を記録します
 
     使用例:
         clean_temp_file('/tmp/temp_file.mmd')
         # ファイルが存在する場合は削除、存在しない場合は何もしない
     """
+    if not file_path:
+        return
+
+    logger = get_plugin_logger(__name__)
+    file_path_obj = Path(file_path)
+
     try:
         # ファイルが存在する場合のみ削除を実行
-        if Path(file_path).exists():
-            Path(file_path).unlink()
-    except OSError:
-        # ファイル削除でエラーが発生しても処理を継続
-        # （権限不足、ファイルがロックされている等）
-        pass
+        if file_path_obj.exists():
+            file_path_obj.unlink()
+            logger.debug(
+                "Temporary file cleaned successfully",
+                extra={"context": {"file_path": file_path, "operation": "delete"}},
+            )
+    except PermissionError as e:
+        logger.warning(
+            f"Permission denied when cleaning temporary file: {file_path}",
+            extra={
+                "context": {
+                    "file_path": file_path,
+                    "error_type": "PermissionError",
+                    "error_message": str(e),
+                    "suggestion": "Check file permissions or run with privileges",
+                }
+            },
+        )
+    except OSError as e:
+        logger.warning(
+            f"OS error when cleaning temporary file: {file_path}",
+            extra={
+                "context": {
+                    "file_path": file_path,
+                    "error_type": "OSError",
+                    "error_message": str(e),
+                    "suggestion": "File may be locked by another process",
+                }
+            },
+        )
 
 
 def get_relative_path(file_path: str, base_path: str) -> str:
@@ -210,12 +237,40 @@ def get_relative_path(file_path: str, base_path: str) -> str:
         rel_path = get_relative_path(image_file, base_dir)
         # 結果: '../images/diagram.png'
     """
+    if not file_path or not base_path:
+        return file_path
+
+    logger = get_plugin_logger(__name__)
+
     try:
         # 基準パスからファイルパスへの相対パスを計算
-        return os.path.relpath(file_path, base_path)
-    except ValueError:
+        rel_path = os.path.relpath(file_path, base_path)
+        logger.debug(
+            "Relative path calculated successfully",
+            extra={
+                "context": {
+                    "file_path": file_path,
+                    "base_path": base_path,
+                    "relative_path": rel_path,
+                }
+            },
+        )
+        return rel_path
+    except ValueError as e:
         # 相対パス計算に失敗した場合は、元のファイルパスをそのまま返す
-        # （異なるドライブ間での計算など）
+        logger.warning(
+            f"Cannot calculate relative path from {base_path} to {file_path}",
+            extra={
+                "context": {
+                    "file_path": file_path,
+                    "base_path": base_path,
+                    "error_type": "ValueError",
+                    "error_message": str(e),
+                    "fallback": "Using absolute path",
+                    "suggestion": "Often happens with cross-drive paths on Windows",
+                }
+            },
+        )
         return file_path
 
 
