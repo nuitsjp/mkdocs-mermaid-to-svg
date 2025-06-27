@@ -27,10 +27,6 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Check CI success
-        run: |
-          echo "CI workflow completed successfully"
-          echo "Proceeding with package publication"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -49,49 +45,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Debug package metadata
-        run: |
-          echo "=== Package metadata debug ==="
-          if [ -f "pyproject.toml" ]; then
-            echo "pyproject.toml contents:"
-            cat pyproject.toml
-          fi
-          if [ -f "setup.py" ]; then
-            echo "setup.py contents:"
-            cat setup.py
-          fi
-          echo "=== Git describe ==="
-          git describe --tags --dirty --always
-          echo "=== setuptools_scm version ==="
-          python -c "import setuptools_scm; print(setuptools_scm.get_version())" || echo "setuptools_scm not available"
-
       - name: Build package
         run: uv build
 
-      - name: Debug built package
-        run: |
-          echo "=== Built package files ==="
-          ls -la dist/
-          echo "=== Package metadata ==="
-          uv add pkginfo
-          for file in dist/*.whl dist/*.tar.gz; do
-            echo "--- $file ---"
-            uv run python -c "import pkginfo; p=pkginfo.get_metadata('$file'); print(f'Name: {p.name}'); print(f'Version: {p.version}'); print(f'Summary: {p.summary}')"
-          done
-
-      - name: Test upload with verbose output
-        run: |
-          uv add twine
-          echo "=== Testing upload with twine (verbose) ==="
-          uv run twine check dist/*
-          uv run twine upload --repository testpypi dist/* --verbose --username __token__ --password ${{ secrets.TEST_PYPI_API_TOKEN }}
-        continue-on-error: true
-
-      - name: Publish to TestPyPI (fallback)
-        if: failure()
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
-          verbose: true
