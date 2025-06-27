@@ -40,18 +40,8 @@ npm install -g @mermaid-js/mermaid-cli
 
 ### 2. プラグインのインストール
 
-#### PyPIからインストール（リリース版）
-
 ```bash
 pip install mkdocs-mermaid-to-image
-```
-
-#### 開発版のインストール
-
-```bash
-git clone https://github.com/nuitsjp/mkdocs-mermaid-to-image.git
-cd mkdocs-mermaid-to-image
-pip install -e .
 ```
 
 ## 設定
@@ -160,81 +150,16 @@ graph TD
 <img alt="Mermaid Diagram" src="assets/images/page_mermaid_0_hash.png" />
 ```
 
-## 開発
-
-このプラグインの開発に参加したい方は、[開発ガイド](docs/development.md)をご覧ください。
-
-開発ガイドには以下の内容が含まれています：
-- 🛠️ 開発環境のセットアップ手順
-- 🧪 テスト実行とデバッグ方法
-- 📋 コーディング規約とベストプラクティス
-- 🔄 開発ワークフローとリリース手順
-- 🐛 トラブルシューティングガイド
-
-### クイックスタート
-
-```bash
-# リポジトリをクローン
-git clone https://github.com/nuitsjp/mkdocs-mermaid-to-image.git
-cd mkdocs-mermaid-to-image
-
-# 開発環境セットアップ
-uv add --dev --editable .
-
-# 開発サーバー起動
-uv run mkdocs serve
-```
-
-詳細は[開発ガイド](docs/development.md)をご確認ください。
-
-## トラブルシューティング
-
-### よくある問題
-
-1. **Mermaid CLIが見つからない**
-   ```bash
-   npm install -g @mermaid-js/mermaid-cli
-   ```
-
-2. **画像が生成されない**
-   - ログレベルをDEBUGに設定して詳細を確認
-   - `mmdc_path`の設定を確認
-
-3. **PDF出力で画像が表示されない**
-   - 画像パスが正しいか確認
-   - 相対パスの設定を確認
-
-### ログの確認
-
-```yaml
-plugins:
-  - mermaid-to-image:
-      log_level: DEBUG
-```
-
-## コントリビューション
-
-プロジェクトへの貢献を歓迎します！
-
-1. このリポジトリをフォーク
-2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. プルリクエストを作成
-
-詳細は[コントリビューションガイド](docs/contributing.md)をご覧ください。
-
 ## ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
 
 ## 謝辞
 
+このプロジェクトが存在するのは、下記のプロダクトのおかげです。ありがとうございます。
+
 - [MkDocs](https://mkdocs.org/) - 静的サイトジェネレーター
 - [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) - 美しいテーマ
 - [Mermaid.js](https://mermaid.js.org/) - ダイアグラム記法
 - [mermaid-cli](https://github.com/mermaid-js/mermaid-cli) - コマンドライン画像生成
-
----
-
-**Made with ❤️ by [nuitsjp](https://github.com/nuitsjp)**
+- [discus0434/python-template-for-claude-code](https://github.com/discus0434/python-template-for-claude-code) - このプロジェクトのベースとなった高品質なPythonテンプレート（作成者: [discus0434](https://github.com/discus0434)）
