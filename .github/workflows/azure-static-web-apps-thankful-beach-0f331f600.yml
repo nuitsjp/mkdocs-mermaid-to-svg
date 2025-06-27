@@ -54,6 +54,7 @@ jobs:
           app_location: "/" # App source code path
           api_location: "" # Api source code path - optional
           output_location: "site" # Built app content directory - MkDocs output
+          skip_app_build: true # Skip Oryx build since we already built with MkDocs
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
