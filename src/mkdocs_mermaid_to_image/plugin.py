@@ -146,8 +146,8 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             self.processor = MermaidProcessor(config_dict)
 
             # 画像出力ディレクトリが存在することを保証
-            # MkDocsのdocs_dirとプラグインのoutput_dirを結合
-            output_dir = Path(config["docs_dir"]) / self.config["output_dir"]
+            # MkDocsのsite_dirとプラグインのoutput_dirを結合
+            output_dir = Path(config["site_dir"]) / self.config["output_dir"]
             ensure_directory(output_dir)
 
             # 初期化成功をログに記録
@@ -223,7 +223,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
 
         try:
             # 画像出力ディレクトリの絶対パスを取得
-            output_dir = Path(config["docs_dir"]) / self.config["output_dir"]
+            output_dir = Path(config["site_dir"]) / self.config["output_dir"]
 
             # ページを処理してMermaidブロックを画像に変換
             modified_content, image_paths = self.processor.process_page(
