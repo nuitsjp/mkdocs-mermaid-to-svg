@@ -11,6 +11,8 @@
 
 このプラグインは、MkDocsドキュメント内のMermaidダイアグラムを事前に静的画像（PNG/SVG）に変換し、ドキュメントビルド時に画像として埋め込むことで、PDF出力やオフライン表示を可能にします。
 
+- [Documents](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
+
 ### 主な特徴
 
 - 🖼️ **静的画像変換**: MermaidダイアグラムをPNG/SVG画像として事前レンダリング
