@@ -62,7 +62,12 @@ jobs:
           sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji
 
       - name: Build MkDocs site
-        run: uv run mkdocs build
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            uv run mkdocs build -f mkdocs.prod.yml
+          else
+            uv run mkdocs build
+          fi
 
       - name: Build And Deploy
         id: builddeploy
