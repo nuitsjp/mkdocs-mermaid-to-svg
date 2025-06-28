@@ -3,3 +3,8 @@ INHERIT: mkdocs.base.yml
 plugins:
   - search
   - mermaid-to-image
+  - to-pdf:
+      cover_subtitle: 'MkDocs Mermaid to Image'
+      toc_title: 目次
+      toc_level: 3
+      output_path: MkDocs-Mermaid-to-Image.pdf

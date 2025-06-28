@@ -220,6 +220,21 @@ test_mkdocs() {
     fi
 }
 
+# 日本語フォントのインストール
+install_japanese_fonts() {
+    print_step "Installing Japanese fonts..."
+    if [[ "$OSTYPE" == "linux"* ]]; then
+        sudo apt-get update
+        sudo apt-get install -y fonts-noto-cjk fonts-ipafont-gothic fonts-ipafont-mincho fonts-noto-color-emoji
+        print_success "Japanese fonts installed (Noto, IPA)"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        brew install --cask font-noto-sans-cjk font-noto-serif-cjk font-ipaexfont
+        print_success "Japanese fonts installed (Noto, IPAex)"
+    else
+        print_warning "Unsupported OS for automatic Japanese font installation. Please install manually."
+    fi
+}
+
 # Main setup flow
 main() {
     echo "🚀 MkDocs Mermaid to Image Plugin Setup"
@@ -233,6 +248,9 @@ main() {
     check_gemini_cli
     check_mermaid_cli
     check_github_cli
+
+    # 日本語フォントのインストール
+    install_japanese_fonts
 
     # Perform setup
     setup_python

@@ -6,6 +6,8 @@
 
 **MkDocs環境でMermaidダイアグラムを静的画像として事前レンダリングし、PDF出力に対応させるプラグインです。**
 
+- [Sample PDF](MkDocs-Mermaid-to-Image.pdf)
+
 ## ✨ 特徴
 
 - MermaidダイアグラムをPNG/SVG画像として事前レンダリング
