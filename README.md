@@ -62,11 +62,30 @@ plugins:
 ```yaml
 plugins:
   - mermaid-to-image:
-      enabled: true          # デフォルト: true
+      enabled: true          # デフォルト: 環境変数MERMAID_TO_IMAGE_ENABLEDに依存（未設定時はfalse）
       output_dir: assets/images  # デフォルト: assets/images
       theme: default         # デフォルト: default
       image_format: png      # デフォルト: png
 ```
+
+### 環境変数による動的制御
+
+プラグインの有効/無効は環境変数`MERMAID_TO_IMAGE_ENABLED`で制御できます：
+
+```bash
+# プラグインを有効化
+export MERMAID_TO_IMAGE_ENABLED=true
+mkdocs build
+
+# プラグインを無効化（デフォルト）
+export MERMAID_TO_IMAGE_ENABLED=false
+mkdocs build
+
+# 環境変数未設定時は無効（高速な開発サイクル）
+mkdocs serve
+```
+
+**対応値**: `true`, `1`, `yes`, `on` でプラグイン有効化
 
 ### 完全な設定例
 
@@ -79,7 +98,7 @@ plugins:
   - search
   - mermaid-to-image:
       # 基本設定
-      enabled: true
+      enabled: true  # 環境変数MERMAID_TO_IMAGE_ENABLEDで動的制御可能
       output_dir: assets/images
       image_format: png  # png or svg
 
