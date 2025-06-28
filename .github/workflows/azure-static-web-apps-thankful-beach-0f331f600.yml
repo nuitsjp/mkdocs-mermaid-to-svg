@@ -61,6 +61,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji
 
+      - name: Set Mermaid plugin configuration
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "MERMAID_TO_IMAGE_ENABLED=true" >> $GITHUB_ENV
+            echo "Setting mermaid-to-image plugin to enabled for main branch"
+          else
+            echo "MERMAID_TO_IMAGE_ENABLED=false" >> $GITHUB_ENV
+            echo "Setting mermaid-to-image plugin to disabled for branch: ${{ github.ref }}"
+          fi
+
       - name: Build MkDocs site
         run: uv run mkdocs build
 

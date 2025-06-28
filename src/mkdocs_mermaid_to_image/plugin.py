@@ -1,3 +1,4 @@
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -12,9 +13,15 @@ from .processor import MermaidProcessor
 from .utils import ensure_directory, setup_logger
 
 
+def _get_enabled_default() -> bool:
+    """Get the default enabled value from environment variable."""
+    env_value = os.environ.get("MERMAID_TO_IMAGE_ENABLED", "false").lower()
+    return env_value in ("true", "1", "yes", "on")
+
+
 class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-untyped-call]
     config_scheme = (
-        ("enabled", config_options.Type(bool, default=True)),
+        ("enabled", config_options.Type(bool, default=_get_enabled_default())),
         ("output_dir", config_options.Type(str, default="assets/images")),
         ("image_format", config_options.Choice(["png", "svg"], default="png")),
         ("mermaid_config", config_options.Optional(config_options.Type(str))),

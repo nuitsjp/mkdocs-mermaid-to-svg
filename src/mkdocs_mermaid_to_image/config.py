@@ -1,8 +1,15 @@
+import os
 from pathlib import Path
 from typing import Any
 
 from mkdocs.config import config_options
 from mkdocs.config.base import Config
+
+
+def _get_enabled_default() -> bool:
+    """Get the default enabled value from environment variable."""
+    env_value = os.environ.get("MERMAID_TO_IMAGE_ENABLED", "false").lower()
+    return env_value in ("true", "1", "yes", "on")
 
 
 class ConfigManager:
@@ -11,7 +18,7 @@ class ConfigManager:
         return (
             (
                 "enabled",
-                config_options.Type(bool, default=True),
+                config_options.Type(bool, default=_get_enabled_default()),
             ),
             (
                 "output_dir",
@@ -98,7 +105,7 @@ class ConfigManager:
 
 
 class MermaidPluginConfig(Config):  # type: ignore[no-untyped-call]
-    enabled = config_options.Type(bool, default=True)
+    enabled = config_options.Type(bool, default=_get_enabled_default())
     output_dir = config_options.Type(str, default="assets/images")
     image_format = config_options.Choice(["png", "svg"], default="png")
     mermaid_config = config_options.Optional(config_options.Type(str))
