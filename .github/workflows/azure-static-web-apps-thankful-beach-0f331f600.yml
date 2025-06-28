@@ -11,6 +11,9 @@ on:
     paths:
       - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
       - 'docs/**'
+      - 'mkdocs.yml'
+      - 'mkdocs.base.yml'
+      - 'mkdocs.prod.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -18,6 +21,9 @@ on:
     paths:
       - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
       - 'docs/**'
+      - 'mkdocs.yml'
+      - 'mkdocs.base.yml'
+      - 'mkdocs.prod.yml'
 
 permissions:
   contents: read

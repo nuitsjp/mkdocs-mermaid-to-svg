@@ -44,6 +44,7 @@ dev = [
     "bandit>=1.7.0",
     "pip-audit>=2.6.0",
     "twine>=5.0.0",
+    "mkdocs-to-pdf>=0.10.1",
 ]
 
 docs = [
