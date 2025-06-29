@@ -4,7 +4,7 @@
   "description": "MkDocs plugin to convert Mermaid diagrams to static images",
   "private": true,
   "dependencies": {
-    "@mermaid-js/mermaid-cli": "^10.0.0"
+    "@mermaid-js/mermaid-cli": "^10.9.1"
   },
   "scripts": {
     "setup": "npm install",
