@@ -1,3 +1,4 @@
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ from .utils import ensure_directory, setup_logger
 class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-untyped-call]
     config_scheme = (
         ("enabled", config_options.Type(bool, default=True)),
+        ("enabled_if_env", config_options.Optional(config_options.Type(str))),
         ("output_dir", config_options.Type(str, default="assets/images")),
         ("image_format", config_options.Choice(["png", "svg"], default="png")),
         ("mermaid_config", config_options.Optional(config_options.Type(str))),
@@ -52,6 +54,18 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
 
         self.is_serve_mode: bool = "serve" in sys.argv
 
+    def _should_be_enabled(self, config: MermaidPluginConfig) -> bool:
+        """環境変数設定に基づいてプラグインが有効化されるべきかどうかを判定"""
+        enabled_if_env = config.get("enabled_if_env")
+
+        if enabled_if_env is not None:
+            # enabled_if_envが設定されている場合、環境変数の存在と値をチェック
+            env_value = os.environ.get(enabled_if_env)
+            return env_value is not None and env_value.strip() != ""
+
+        # enabled_if_envが設定されていない場合は通常のenabled設定に従う
+        return config.get("enabled", True)
+
     def on_config(self, config: Any) -> Any:
         try:
             config_dict = dict(self.config)
@@ -59,7 +73,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
 
             self.logger = setup_logger(__name__, self.config["log_level"])
 
-            if not self.config["enabled"]:
+            if not self._should_be_enabled(self.config):
                 self.logger.info("Mermaid preprocessor plugin is disabled")
                 return config
 
@@ -76,7 +90,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
         return config
 
     def on_files(self, files: Any, *, config: Any) -> Any:
-        if not self.config["enabled"] or not self.processor:
+        if not self._should_be_enabled(self.config) or not self.processor:
             return files
 
         self.generated_images = []
@@ -86,7 +100,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
     def on_page_markdown(
         self, markdown: str, *, page: Any, config: Any, files: Any
     ) -> Optional[str]:
-        if not self.config["enabled"] or not self.processor:
+        if not self._should_be_enabled(self.config) or not self.processor:
             return markdown
 
         if self.is_serve_mode:
@@ -134,7 +148,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             return markdown
 
     def on_post_build(self, *, config: Any) -> None:
-        if not self.config["enabled"]:
+        if not self._should_be_enabled(self.config):
             return
 
         if self.generated_images and self.logger:
@@ -150,7 +164,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
                     self.logger.debug(f"Cleaned up cache directory: {cache_dir}")
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
-        if not self.config["enabled"]:
+        if not self._should_be_enabled(self.config):
             return server
 
         if self.config["cache_enabled"]:

@@ -20,6 +20,7 @@ class TestMinimalConfig:
                     "css_file",
                     "puppeteer_config",
                     "temp_dir",
+                    "enabled_if_env",
                 ], f"{config_name} should have a default value"
 
     def test_enabled_デフォルトTrue_で動作(self):

@@ -57,6 +57,7 @@ class TestConfigManager:
         # 期待される設定項目のリスト
         expected_configs = [
             "enabled",  # プラグインの有効/無効
+            "enabled_if_env",  # 環境変数による有効化
             "output_dir",  # 画像出力ディレクトリ
             "image_format",  # 画像形式
             "mmdc_path",  # Mermaid CLIのパス
@@ -186,3 +187,28 @@ class TestConfigManager:
             # Clean up temporary files
             Path(css_file_path).unlink()
             Path(puppeteer_file_path).unlink()
+
+    def test_config_scheme_includes_enabled_if_env(self):
+        """
+        設定スキーマにenabled_if_envが含まれることをテスト
+        """
+        scheme = ConfigManager.get_config_scheme()
+        config_names = [item[0] for item in scheme]
+
+        # enabled_if_envが設定スキーマに含まれることを確認
+        assert "enabled_if_env" in config_names
+
+    def test_enabled_if_env_is_optional(self):
+        """
+        enabled_if_envがオプショナル設定であることをテスト
+        """
+        from mkdocs.config import config_options
+
+        scheme = ConfigManager.get_config_scheme()
+        scheme_dict = dict(scheme)
+
+        # enabled_if_envの設定オプションを取得
+        enabled_if_env_option = scheme_dict["enabled_if_env"]
+
+        # オプショナル設定であることを確認
+        assert isinstance(enabled_if_env_option, config_options.Optional)

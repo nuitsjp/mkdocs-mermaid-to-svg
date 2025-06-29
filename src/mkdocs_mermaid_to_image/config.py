@@ -14,6 +14,10 @@ class ConfigManager:
                 config_options.Type(bool, default=True),
             ),
             (
+                "enabled_if_env",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
                 "output_dir",
                 config_options.Type(str, default="assets/images"),
             ),
@@ -99,6 +103,7 @@ class ConfigManager:
 
 class MermaidPluginConfig(Config):  # type: ignore[no-untyped-call]
     enabled = config_options.Type(bool, default=True)
+    enabled_if_env = config_options.Optional(config_options.Type(str))
     output_dir = config_options.Type(str, default="assets/images")
     image_format = config_options.Choice(["png", "svg"], default="png")
     mermaid_config = config_options.Optional(config_options.Type(str))

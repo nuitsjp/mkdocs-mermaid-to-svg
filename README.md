@@ -70,6 +70,36 @@ plugins:
       image_format: png      # デフォルト: png
 ```
 
+### PDF出力との組み合わせ
+
+**PDF生成時のみMermaidダイアグラムを画像化したい場合**は、`enabled_if_env`オプションを使用して環境変数による制御を行います：
+
+```yaml
+plugins:
+  - search
+  - mermaid-to-image:
+      enabled_if_env: ENABLE_PDF_EXPORT  # 環境変数が設定されている場合のみ有効化
+  - to-pdf:
+      cover_subtitle: 'Project Documentation'
+      output_path: docs.pdf
+```
+
+**使用方法：**
+
+```bash
+# 通常のHTMLビルド（Mermaidはブラウザで表示）
+mkdocs build
+
+# PDF生成時のみ画像化してビルド
+ENABLE_PDF_EXPORT=1 mkdocs build
+```
+
+この設定により：
+- **HTMLビルド時**: Mermaidダイアグラムはブラウザ上でJavaScriptによって動的レンダリング
+- **PDF生成時**: 事前に静的画像として変換されPDFに正しく出力
+
+**注意**: 環境変数は値が設定されていれば（`0`、`false`等でも）プラグインが有効化されます。完全に未設定か空文字列の場合のみ無効化されます。
+
 ### 完全な設定例
 
 ```yaml
@@ -82,6 +112,7 @@ plugins:
   - mermaid-to-image:
       # 基本設定
       enabled: true
+      enabled_if_env: ENABLE_PDF_EXPORT  # 環境変数による制御（オプション）
       output_dir: assets/images
       image_format: png  # png or svg
 

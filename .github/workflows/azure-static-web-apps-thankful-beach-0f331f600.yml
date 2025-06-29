@@ -12,8 +12,6 @@ on:
       - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'mkdocs.base.yml'
-      - 'mkdocs.prod.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -22,8 +20,6 @@ on:
       - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'mkdocs.base.yml'
-      - 'mkdocs.prod.yml'
 
 permissions:
   contents: read
@@ -70,10 +66,20 @@ jobs:
       - name: Build MkDocs site
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            uv run mkdocs build -f mkdocs.prod.yml
+            # mainブランチ: PDF生成のためMermaidダイアグラムを静的画像化
+            ENABLE_PDF_EXPORT=1 uv run mkdocs build
           else
+            # 開発ブランチ: 高速ビルド（Mermaidは動的レンダリング）
             uv run mkdocs build
           fi
+
+      - name: Upload PDF artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-pdf
+          path: site/*.pdf
+          retention-days: 30
 
       - name: Build And Deploy
         id: builddeploy
