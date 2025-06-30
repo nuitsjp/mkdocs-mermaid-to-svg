@@ -64,9 +64,8 @@ class TestMinimalMkDocsConfig:
         with tempfile.TemporaryDirectory() as temp_dir:
             mock_mkdocs_config["docs_dir"] = temp_dir
 
-            # ディレクトリ作成とプロセッサ初期化をモック
+            # プロセッサ初期化をモック
             with (
-                patch("mkdocs_mermaid_to_image.plugin.ensure_directory"),
                 patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor"),
                 patch("mkdocs_mermaid_to_image.plugin.setup_logger"),
             ):

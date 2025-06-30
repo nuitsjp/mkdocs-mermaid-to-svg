@@ -177,7 +177,6 @@ sequenceDiagram
     Plugin->>Proc: new MermaidProcessor(config)
     Proc-->>Plugin: processorインスタンス
 
-    Plugin->>Plugin: 出力ディレクトリ作成
     Plugin-->>MkDocs: 初期化完了
 ```
 
@@ -229,6 +228,9 @@ sequenceDiagram
     participant FileSystem
 
     Proc->>ImgGen: generate(code, output_path, config)
+
+    ImgGen->>FileSystem: ensure_directory(output_path.parent)
+
     ImgGen->>Utils: get_temp_file_path()
     Utils-->>ImgGen: temp_file
 

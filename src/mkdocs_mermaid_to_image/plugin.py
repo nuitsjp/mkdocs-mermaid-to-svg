@@ -10,7 +10,7 @@ from mkdocs.plugins import BasePlugin
 from .config import ConfigManager, MermaidPluginConfig
 from .exceptions import MermaidConfigError, MermaidPreprocessorError
 from .processor import MermaidProcessor
-from .utils import ensure_directory, setup_logger
+from .utils import setup_logger
 
 
 class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-untyped-call]
@@ -78,9 +78,6 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
                 return config
 
             self.processor = MermaidProcessor(config_dict)
-
-            output_dir = Path(config["site_dir"]) / self.config["output_dir"]
-            ensure_directory(output_dir)
 
             self.logger.info("Mermaid preprocessor plugin initialized successfully")
 
