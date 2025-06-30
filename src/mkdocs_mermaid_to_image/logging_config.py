@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
-from collections.abc import MutableMapping
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
 
 from .types import LogContext
 
@@ -16,7 +20,7 @@ class StructuredFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         log_entry: dict[str, Any] = {
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -103,7 +107,7 @@ def setup_plugin_logging(
 
 def get_plugin_logger(
     name: str, **context: Any
-) -> Union[logging.Logger, logging.LoggerAdapter[logging.Logger]]:
+) -> logging.Logger | logging.LoggerAdapter[logging.Logger]:
     logger = logging.getLogger(name)
 
     if context:

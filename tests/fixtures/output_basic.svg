@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" height="300" viewBox="0 0 400 300">
+  <!-- Placeholder SVG for testing infrastructure -->
+  <!-- This will be replaced with actual mermaid-generated SVG -->
+  <g id="mermaid-diagram">
+    <rect x="50" y="20" width="80" height="40" rx="5" fill="#f9f9f9" stroke="#333"/>
+    <text x="90" y="45" text-anchor="middle" font-family="Arial" font-size="12">Start</text>
+
+    <rect x="160" y="20" width="80" height="40" rx="5" fill="#f9f9f9" stroke="#333"/>
+    <text x="200" y="45" text-anchor="middle" font-family="Arial" font-size="12">Process</text>
+
+    <rect x="160" y="100" width="80" height="40" rx="5" fill="#f9f9f9" stroke="#333"/>
+    <text x="200" y="125" text-anchor="middle" font-family="Arial" font-size="12">Decision</text>
+
+    <rect x="80" y="180" width="80" height="40" rx="5" fill="#f9f9f9" stroke="#333"/>
+    <text x="120" y="205" text-anchor="middle" font-family="Arial" font-size="12">Action 1</text>
+
+    <rect x="240" y="180" width="80" height="40" rx="5" fill="#f9f9f9" stroke="#333"/>
+    <text x="280" y="205" text-anchor="middle" font-family="Arial" font-size="12">Action 2</text>
+
+    <rect x="160" y="260" width="80" height="40" rx="5" fill="#f9f9f9" stroke="#333"/>
+    <text x="200" y="285" text-anchor="middle" font-family="Arial" font-size="12">End</text>
+
+    <!-- Arrows -->
+    <path d="M130,40 L160,40" stroke="#333" marker-end="url(#arrowhead)"/>
+    <path d="M200,60 L200,100" stroke="#333" marker-end="url(#arrowhead)"/>
+    <path d="M180,140 L140,180" stroke="#333" marker-end="url(#arrowhead)"/>
+    <path d="M220,140 L260,180" stroke="#333" marker-end="url(#arrowhead)"/>
+    <path d="M120,220 L180,260" stroke="#333" marker-end="url(#arrowhead)"/>
+    <path d="M280,220 L220,260" stroke="#333" marker-end="url(#arrowhead)"/>
+
+    <!-- Arrow marker -->
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+      </marker>
+    </defs>
+  </g>
+</svg>
