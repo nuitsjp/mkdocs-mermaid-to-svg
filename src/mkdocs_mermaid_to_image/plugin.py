@@ -109,7 +109,9 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             return markdown
 
         try:
-            output_dir = Path(config["site_dir"]) / self.config["output_dir"]
+            # ソース側のdocsディレクトリ内に画像を生成
+            docs_dir = Path(config["docs_dir"])
+            output_dir = docs_dir / self.config["output_dir"]
 
             modified_content, image_paths = self.processor.process_page(
                 page.file.src_path,
@@ -122,7 +124,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
 
             if image_paths and self.logger:
                 self.logger.info(
-                    f"Processed {len(image_paths)} Mermaid diagrams in "
+                    f"Generated {len(image_paths)} Mermaid diagrams for "
                     f"{page.file.src_path}"
                 )
 

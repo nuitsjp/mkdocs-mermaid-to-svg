@@ -136,7 +136,8 @@ class TestMermaidBlock:
             "/home/user/docs/assets/images/test.png", "development/page.md"
         )
 
-        assert result == "![Mermaid Diagram](../assets/images/test.png)"
+        # 新しい実装では常にassets/images/filename.pngを使用
+        assert result == "![Mermaid Diagram](assets/images/test.png)"
 
     def test_get_filename(self):
         """ファイル名生成のテスト"""
@@ -191,4 +192,5 @@ class TestMermaidBlock:
         result = block.get_image_markdown(
             "/path/to/image.png", "/path/to/page.md", page_url="docs/guide/index.html"
         )
-        assert "../../assets/images/image.png" in result  # 2 levels deep (docs/guide/)
+        # 新しい実装では相対パス計算を行わず、常にassets/images/filename.pngを使用
+        assert "assets/images/image.png" in result
