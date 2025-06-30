@@ -253,9 +253,8 @@ sequenceDiagram
 
     ImgGen-->>Proc: return True
 
-    finally
-        ImgGen->>Utils: clean_temp_file(temp_file)
-    end
+    note over ImgGen: 最終処理: 一時ファイルをクリーンアップ
+    ImgGen->>Utils: clean_temp_file(temp_file)
 ```
 
 ## 開発・本番環境での処理分岐戦略
@@ -327,4 +326,5 @@ graph TD
 ### エラー発生時の処理
 
 - **設定エラー (`MermaidConfigError`)**: `on_config`で発生。ビルドプロセスを即座に停止させます。
+- **CLI実行エラー (`MermaidCLIError`)**: `image_generator.py`で発生。`error_on_fail` 設定が `true` の場合はビルドを停止させ、`false` の場合はエラーをログに出力して処理を続行します（該当の図は画像化されません）。
 - **CLI実行エラー (`MermaidCLIError`)**: `image_generator.py`で発生。`error_on_fail` 設定が `true` の場合はビルドを停止させ、`false` の場合はエラーをログに出力して処理を続行します（該当の図は画像化されません）。
