@@ -371,6 +371,89 @@ class TestMermaidImageGenerator:
             ):
                 generator.generate("invalid", "/tmp/output.png", basic_config)
 
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_generate_with_missing_output_file_error_on_fail_true(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        """出力ファイルが作成されない場合にerror_on_fail=Trueで例外が発生するかテスト"""
+        basic_config["error_on_fail"] = True
+        mock_command_available.return_value = True
+
+        generator = MermaidImageGenerator(basic_config)
+
+        # Create a real temp file path
+        temp_file = tmp_path / "temp.mmd"
+
+        with (
+            patch("subprocess.run") as mock_subprocess,
+            patch(
+                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+            ) as mock_temp_path,
+            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+            patch("os.path.exists") as mock_exists,
+        ):
+            mock_subprocess.return_value = Mock(returncode=0, stderr="")
+            mock_temp_path.return_value = str(temp_file)
+            mock_exists.return_value = False  # Output file does not exist
+
+            with pytest.raises(MermaidCLIError, match="Image not created"):
+                generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_generate_with_timeout_error_on_fail_true(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        """タイムアウト発生時にerror_on_fail=Trueで例外が発生するかテスト"""
+        basic_config["error_on_fail"] = True
+        mock_command_available.return_value = True
+
+        generator = MermaidImageGenerator(basic_config)
+
+        # Create a real temp file path
+        temp_file = tmp_path / "temp.mmd"
+
+        with (
+            patch("subprocess.run") as mock_subprocess,
+            patch(
+                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+            ) as mock_temp_path,
+            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+        ):
+            mock_subprocess.side_effect = subprocess.TimeoutExpired("mmdc", 30)
+            mock_temp_path.return_value = str(temp_file)
+
+            with pytest.raises(MermaidCLIError, match="timed out"):
+                generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_generate_with_general_exception_error_on_fail_true(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        """一般的な例外発生時にerror_on_fail=Trueで例外が発生するかテスト"""
+        basic_config["error_on_fail"] = True
+        mock_command_available.return_value = True
+
+        generator = MermaidImageGenerator(basic_config)
+
+        # Create a real temp file path
+        temp_file = tmp_path / "temp.mmd"
+
+        with (
+            patch("subprocess.run") as mock_subprocess,
+            patch(
+                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+            ) as mock_temp_path,
+            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+        ):
+            mock_subprocess.side_effect = Exception("Unexpected error")
+            mock_temp_path.return_value = str(temp_file)
+
+            with pytest.raises(MermaidCLIError, match="Error generating image"):
+                generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
+
     @pytest.mark.parametrize(
         "mmd_file, expected_png",
         [

@@ -180,3 +180,58 @@ class TestUtilityFunctions:
         result = is_command_available("nonexistent-command")
         assert result is False
         mock_which.assert_called_once_with("nonexistent-command")
+
+    def test_clean_temp_file_empty_path(self):
+        """空のパスが渡された場合の早期リターンをテスト"""
+        # Line 53: if not file_path: return
+        clean_temp_file("")
+        clean_temp_file(None)
+        # Should not raise any exception
+
+    @patch("mkdocs_mermaid_to_image.utils.Path.unlink")
+    def test_clean_temp_file_permission_error(self, mock_unlink):
+        """PermissionErrorが発生した場合の処理をテスト"""
+        mock_unlink.side_effect = PermissionError("Access denied")
+
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_path = temp_file.name
+
+        # Should not raise exception, but log warning
+        clean_temp_file(temp_path)
+
+        # Clean up
+        with contextlib.suppress(OSError):
+            Path(temp_path).unlink()
+
+    @patch("mkdocs_mermaid_to_image.utils.Path.unlink")
+    def test_clean_temp_file_os_error(self, mock_unlink):
+        """OSErrorが発生した場合の処理をテスト"""
+        mock_unlink.side_effect = OSError("File locked")
+
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_path = temp_file.name
+
+        # Should not raise exception, but log warning
+        clean_temp_file(temp_path)
+
+        # Clean up
+        with contextlib.suppress(OSError):
+            Path(temp_path).unlink()
+
+    def test_get_relative_path_empty_inputs(self):
+        """空の入力値での早期リターンをテスト"""
+        # Line 93: if not file_path or not base_path: return file_path
+        assert get_relative_path("", "base") == ""
+        assert get_relative_path("file", "") == "file"
+        assert get_relative_path("", "") == ""
+
+    @patch("mkdocs_mermaid_to_image.utils.os.path.relpath")
+    def test_get_relative_path_value_error(self, mock_relpath):
+        """ValueErrorが発生した場合のフォールバックをテスト"""
+        mock_relpath.side_effect = ValueError("Cross-drive paths not supported")
+
+        file_path = "C:\\file.txt"
+        base_path = "/home/user"
+
+        result = get_relative_path(file_path, base_path)
+        assert result == file_path  # Should return original file_path

@@ -170,3 +170,25 @@ class TestMermaidBlock:
         merged_config = args[2]
         assert merged_config["width"] == 800  # 元の設定のまま
         assert merged_config["height"] == 600  # 元の設定のまま
+
+    def test_get_image_markdown_depth_edge_cases(self):
+        """ページ深度計算のエッジケースをテスト"""
+        block = MermaidBlock("graph TD\n A --> B", 0, 20)
+
+        # Empty page URL case
+        result = block.get_image_markdown(
+            "/path/to/image.png", "/path/to/page.md", page_url=""
+        )
+        assert "assets/images/image.png" in result  # Root page, no depth prefix
+
+        # Page URL with only slash
+        result = block.get_image_markdown(
+            "/path/to/image.png", "/path/to/page.md", page_url="/"
+        )
+        assert "assets/images/image.png" in result  # Root page, no depth prefix
+
+        # Page URL with .html extension (should be excluded from depth calculation)
+        result = block.get_image_markdown(
+            "/path/to/image.png", "/path/to/page.md", page_url="docs/guide/index.html"
+        )
+        assert "../../assets/images/image.png" in result  # 2 levels deep (docs/guide/)

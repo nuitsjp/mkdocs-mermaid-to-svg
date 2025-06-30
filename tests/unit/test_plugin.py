@@ -210,6 +210,66 @@ class TestMermaidToImagePlugin:
         assert result == markdown
         plugin.logger.error.assert_called()
 
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_on_page_markdown_mermaid_error_with_error_on_fail_true(
+        self, _mock_processor_class, plugin, mock_page, mock_config
+    ):
+        """MermaidPreprocessorError例外とerror_on_fail=Trueのテスト"""
+        from mkdocs_mermaid_to_image.exceptions import MermaidPreprocessorError
+
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "error_on_fail": True,  # この場合は例外が再発生される
+            "log_level": "INFO",
+        }
+
+        # processorがMermaidPreprocessorErrorを投げるようにモック
+        mock_processor = Mock()
+        mock_processor.process_page.side_effect = MermaidPreprocessorError(
+            "Mermaid processing failed"
+        )
+        plugin.processor = mock_processor
+        plugin.logger = Mock()
+
+        markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
+
+        with pytest.raises(MermaidPreprocessorError):
+            plugin.on_page_markdown(
+                markdown, page=mock_page, config=mock_config, files=[]
+            )
+
+        plugin.logger.error.assert_called()
+
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_on_page_markdown_general_error_with_error_on_fail_true(
+        self, _mock_processor_class, plugin, mock_page, mock_config
+    ):
+        """一般的な例外とerror_on_fail=Trueのテスト"""
+        from mkdocs_mermaid_to_image.exceptions import MermaidPreprocessorError
+
+        plugin.config = {
+            "enabled": True,
+            "output_dir": "assets/images",
+            "error_on_fail": True,  # この場合は例外が再発生される
+            "log_level": "INFO",
+        }
+
+        # processorが一般的な例外を投げるようにモック
+        mock_processor = Mock()
+        mock_processor.process_page.side_effect = ValueError("Unexpected error")
+        plugin.processor = mock_processor
+        plugin.logger = Mock()
+
+        markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
+
+        with pytest.raises(MermaidPreprocessorError):
+            plugin.on_page_markdown(
+                markdown, page=mock_page, config=mock_config, files=[]
+            )
+
+        plugin.logger.error.assert_called()
+
     def test_on_post_build_disabled(self, plugin):
         """プラグイン無効時のon_post_buildの挙動をテスト"""
         plugin.config = {"enabled": False}
