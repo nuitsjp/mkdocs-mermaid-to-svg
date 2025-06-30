@@ -9,18 +9,30 @@ from .logging_config import get_plugin_logger
 
 
 def setup_logger(name: str, log_level: str = "INFO") -> logging.Logger:
+    """プラグイン用のロガーを設定する"""
+    # メインロガーを取得
     logger = logging.getLogger(name)
 
-    if not logger.handlers:
-        handler = logging.StreamHandler()
+    # 既存のハンドラをクリア
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
 
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    # ハンドラを追加
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
-    logger.setLevel(getattr(logging, log_level.upper()))
+    # ログレベルを設定
+    level = getattr(logging, log_level.upper())
+    logger.setLevel(level)
+    handler.setLevel(level)
+
+    # 親ロガーへの伝播を無効にして重複を避ける
+    logger.propagate = False
+
     return logger
 
 

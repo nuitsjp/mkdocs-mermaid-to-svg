@@ -159,4 +159,4 @@ def create_performance_context(
     return context
 
 
-setup_plugin_logging()
+# setup_plugin_logging()を削除して自動初期化を無効化
