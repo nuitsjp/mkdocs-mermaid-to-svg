@@ -1,8 +1,5 @@
 # MkDocs Mermaid to Image Plugin
 
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org/downloads/)
-[![MkDocs](https://img.shields.io/badge/mkdocs-1.4+-green.svg)](https://mkdocs.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **MkDocs環境でMermaidダイアグラムを静的画像として事前レンダリングし、PDF出力に対応させるプラグインです。**
 

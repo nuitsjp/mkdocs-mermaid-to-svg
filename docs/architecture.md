@@ -4,8 +4,6 @@
 
 MkDocs Mermaid to Image Pluginは、MkDocsプロジェクト内のMermaid図をビルド時に静的画像（PNG/SVG）に変換するプラグインです。Mermaid CLIを利用してMarkdownファイル内のMermaidコードブロックを画像化し、Markdownの内容を画像参照タグに置き換えます。これにより、PDF出力やオフライン環境での閲覧に対応します。
 
-**参考**: MkDocsプラグインシステムの詳細については [`docs/mkdocs-architecture.md`](docs/mkdocs-architecture.md) を参照してください。
-
 ## プロジェクト構造
 
 ```

@@ -44,8 +44,6 @@ claude  # /initialize-projectを実行
 
 # Claude Code & Gemini Cli チートシート
 
-- **[CLAUDE.md](../CLAUDE.md)**: Claude Code向けの技術仕様と実装ガイド
-
 ## 📋 Claude Code チートシート
 
 #### 基本的なCLIコマンド
@@ -415,7 +413,7 @@ project-root/
 ## 📚 ドキュメント階層
 
 ### 🎯 主要ドキュメント
-- **[CLAUDE.md](CLAUDE.md)** - プロジェクト全体の包括的なガイド
+- **CLAUDE.md** - プロジェクト全体の包括的なガイド
   - プロジェクト概要とコーディング規約
   - よく使うコマンドとGitHub操作
   - 型ヒント、テスト戦略、セキュリティ
@@ -423,12 +421,12 @@ project-root/
 ### 🤝 戦略ガイド
 
 ### 🎨 プロジェクト種別ごとのガイド
-- **[ml-project-guide.md](docs/ml-project-guide.md)** - 機械学習プロジェクト向け
+- **ml-project-guide.md** - 機械学習プロジェクト向け
   - PyTorch, Hydra, wandb の統合設定
   - 実験管理とデータバージョニング
   - GPUの最適化とモデル管理
 
-- **[backend-project-guide.md](docs/backend-project-guide.md)** - FastAPIバックエンドプロジェクト向け
+- **backend-project-guide.md** - FastAPIバックエンドプロジェクト向け
   - 非同期データベース操作とJWT認証
   - API設計とセキュリティ設定
   - Docker開発環境と本番環境に関する考慮事項
