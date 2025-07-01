@@ -6,6 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Testing
 ```bash
+# Run tests with short traceback format
+make test
+
 # Run tests with coverage report
 make test-cov
 
@@ -20,23 +23,18 @@ make test-property       # Property-based tests only
 ```bash
 # Format code
 make format
-# or: uv run ruff format . --config=pyproject.toml
 
 # Lint and fix issues
 make lint
-# or: uv run ruff check . --fix --config=pyproject.toml
 
 # Type checking
 make typecheck
-# or: uv run mypy src/ --strict
 
 # Security check
 make security
-# or: uv run bandit -r src/
 
 # Dependency vulnerability audit
 make audit
-# or: uv run pip-audit
 
 # Run all quality checks in sequence
 make check
@@ -135,5 +133,7 @@ Error behavior is controlled by `error_on_fail` setting:
 - **Unit tests** (`tests/unit/`) - Test individual components in isolation
 - **Integration tests** (`tests/integration/`) - Test plugin with actual MkDocs builds
 - **Property tests** - Use Hypothesis for property-based testing
+- **Fixtures** (`tests/fixtures/`) - Sample Mermaid files and expected outputs
+- **Test coverage** - Maintained with pytest-cov, reports in `htmlcov/`
 - **Fixtures** (`tests/fixtures/`) - Sample Mermaid files and expected outputs
 - **Test coverage** - Maintained with pytest-cov, reports in `htmlcov/`
