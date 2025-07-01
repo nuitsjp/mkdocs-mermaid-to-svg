@@ -141,10 +141,16 @@ classDiagram
     class MermaidCLIError {<<exception>>}
     class MermaidConfigError {<<exception>>}
     class MermaidParsingError {<<exception>>}
+    class MermaidFileError {<<exception>>}
+    class MermaidValidationError {<<exception>>}
+    class MermaidImageError {<<exception>>}
 
     MermaidCLIError --|> MermaidPreprocessorError
     MermaidConfigError --|> MermaidPreprocessorError
     MermaidParsingError --|> MermaidPreprocessorError
+    MermaidFileError --|> MermaidPreprocessorError
+    MermaidValidationError --|> MermaidPreprocessorError
+    MermaidImageError --|> MermaidPreprocessorError
 
     MermaidToImagePlugin o-- MermaidProcessor
     MermaidToImagePlugin ..> ConfigManager
@@ -165,7 +171,6 @@ sequenceDiagram
     participant Plugin as MermaidToImagePlugin
     participant CfgMgr as ConfigManager
     participant Proc as MermaidProcessor
-    participant Utils
 
     MkDocs->>Plugin: on_config(config)
 
@@ -176,15 +181,12 @@ sequenceDiagram
         Plugin->>MkDocs: raise MermaidConfigError
     end
 
-    Note over Plugin: verboseモード判定
-    alt verboseモードでない
-        Plugin->>Plugin: log_level = "INFO", config_dict["log_level"] = "WARNING"
-    else verboseモード
-        Plugin->>Plugin: log_level = self.config["log_level"]
+    Note over Plugin: verboseモードに応じてログレベルを設定
+    alt verboseモード
+        Plugin->>Plugin: config_dict["log_level"] = "DEBUG"
+    else
+        Plugin->>Plugin: config_dict["log_level"] = "WARNING"
     end
-
-    Plugin->>Utils: setup_logger(__name__, log_level)
-    Utils-->>Plugin: logger
 
     Plugin->>Plugin: _should_be_enabled(self.config)
     Note over Plugin: enabled_if_env環境変数チェック含む
@@ -194,7 +196,6 @@ sequenceDiagram
     end
 
     Plugin->>Proc: new MermaidProcessor(config_dict)
-    Proc->>Utils: setup_logger(__name__, config["log_level"])
     Proc->>Proc: MarkdownProcessor(config)
     Proc->>Proc: MermaidImageGenerator(config)
     Proc-->>Plugin: processorインスタンス
@@ -297,15 +298,16 @@ sequenceDiagram
     ImgGen->>FileSystem: ensure_directory(output_path.parent)
 
     ImgGen->>ImgGen: _build_mmdc_command(temp_file, output_path, config)
-    ImgGen-->>ImgGen: cmd: list[str]
+    Note over ImgGen: CI環境の場合、--no-sandbox付きの<br/>一時Puppeteer設定を生成
+    ImgGen-->>ImgGen: (cmd: list[str], puppeteer_config_file: str | None)
 
     ImgGen->>Subprocess: run(cmd)
     Subprocess-->>ImgGen: result
 
     alt 実行失敗 or 画像ファイルなし
-        ImgGen->>ImgGen: logger.error(...)
+        ImgGen->>ImgGen: _handle_command_failure() or _handle_missing_output()
         alt error_on_fail=true
-            ImgGen->>ImgGen: raise MermaidCLIError
+            ImgGen->>ImgGen: raise MermaidCLIError or MermaidImageError
         end
         ImgGen-->>Block: return False
     end
@@ -315,6 +317,7 @@ sequenceDiagram
 
     note right of ImgGen: finallyブロックで一時ファイルをクリーンアップ
     ImgGen->>Utils: clean_temp_file(temp_file)
+    ImgGen->>Utils: clean_temp_file(puppeteer_config_file)
 ```
 
 ## 環境別処理戦略
@@ -356,12 +359,8 @@ verboseモードの有無に応じてログ出力を調整：
 
 ```python
 # src/mkdocs_mermaid_to_image/plugin.py
-# verboseモードでない場合は、INFOレベルに設定
-if not self.is_verbose_mode:
-    log_level = "INFO"
-    config_dict["log_level"] = "WARNING"  # 下位モジュールは詳細ログを抑制
-else:
-    log_level = self.config["log_level"]
+# verboseモードに応じてログレベルを動的に設定
+config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
 ```
 
 ## プラグイン設定管理
@@ -425,21 +424,25 @@ graph TD
     B[MermaidCLIError] --> A
     C[MermaidConfigError] --> A
     D[MermaidParsingError] --> A
+    E[MermaidFileError] --> A
+    F[MermaidValidationError] --> A
+    G[MermaidImageError] --> A
 
     style A fill:#fce4ec,stroke:#c51162,stroke-width:2px
 ```
 
 ### エラー発生時の処理
 
-- **設定エラー (`MermaidConfigError`)**: `on_config`で発生し、ビルドプロセスを即座に停止させます。
+- **設定エラー (`MermaidConfigError`, `MermaidFileError`)**: `on_config`で発生し、ビルドプロセスを即座に停止させます。
 - **CLI実行エラー (`MermaidCLIError`)**: `image_generator.py`で発生します。
   - `error_on_fail=true`: 例外が送出され、ビルドが停止します。
   - `error_on_fail=false`: エラーログを出力後、処理を継続します（該当図は画像化されません）。
+- **画像生成エラー (`MermaidImageError`)**: 画像ファイルが生成されなかった場合に発生します。
 - **その他エラー**: 予期せぬエラーは `on_page_markdown` 内でキャッチされ、`error_on_fail` の設定に従って処理されます。
 
 ### ログ出力戦略
 
 - **設定レベル**: `log_level` 設定で制御します。
-- **Verboseモード**: コマンドライン引数 `--verbose` / `-v` で詳細ログを有効化します。
+- **Verboseモード**: コマンドライン引数 `--verbose` / `-v` で詳細ログ（`DEBUG`レベル）を有効化します。
+- **通常モード**: `WARNING`レベルのログのみ出力されます。
 - **条件付きログ**: 画像生成時は常にINFOレベルで結果を出力します。
-- **下位モジュール**: verboseモードでない場合は、ログレベルがWARNINGに制限され、詳細なログ出力が抑制されます。
