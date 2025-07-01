@@ -1,224 +1,139 @@
 # CLAUDE.md
 
-このファイルは、Claude Code（claude.ai/code）がこのリポジトリのコードを扱う際のガイダンスを提供します。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## プロジェクト概要
+## Development Commands
 
-**mkdocs-mermaid-to-image** は、Markdownドキュメント内のMermaid.jsダイアグラムをビルド時に静的画像（PNG/SVG）へ変換するMkDocsプラグインです。これにより、`mkdocs-with-pdf` のようなPDF出力プラグインとの互換性が実現し、オフラインでのダイアグラム閲覧も可能になります。
-
-**主な特徴:**
-- ビルド時にMermaidダイアグラムを静的画像へ変換
-- すべてのMermaidダイアグラムタイプ（フローチャート、シーケンス、クラス図など）に対応
-- MkDocsのPDF生成プラグインと完全互換
-- テーマ変更や出力フォーマットのカスタマイズが可能
-- 効率的なビルドのためのインテリジェントなキャッシュシステム
-- 包括的なエラーハンドリングと優雅なフォールバック
-
-## アーキテクチャ概要
-
-**MkDocsプラグイン統合:**
-- MkDocsのライフサイクルフックを持つ `BasePlugin` を実装
-- **plugin.py**: メインプラグインクラス（`MermaidToImagePlugin`）と設定管理
-- **processor.py**: ダイアグラム変換を統括するコア処理エンジン
-- **markdown_processor.py**: Markdownを解析しMermaidブロックを特定
-- **image_generator.py**: Mermaid CLIによる画像生成を担当
-- **mermaid_block.py**: Mermaidダイアグラム表現用データ構造
-- **config.py**: プラグイン設定スキーマとバリデーション
-- **utils.py**: ロギング、ファイル操作、ユーティリティ関数
-- **exceptions.py**: カスタム例外階層
-
-**処理フロー:**
-1. `on_config` フックでプラグイン設定を検証
-2. `on_page_markdown` フックで各ページのMarkdownを処理
-3. Mermaidブロックを抽出し画像へ変換
-4. 元のMermaid構文を画像参照に置換
-5. 生成画像をキャッシュし次回ビルドに活用
-
-## 技術スタック
-
-- **言語**: Python 3.9+
-- **主要依存**: MkDocs ≥1.4.0, mkdocs-material ≥8.0.0
-- **画像処理**: Pillow ≥8.0.0, numpy ≥1.20.0
-- **外部依存**: Node.js + `@mermaid-js/mermaid-cli`（mmdcコマンド）
-- **パッケージ管理**: uv（最新のPythonパッケージマネージャ）
-- **コード品質**: ruff（リント/フォーマット）, mypy（厳格な型チェック）
-- **テスト**: pytest + hypothesis（プロパティベーステスト）
-- **自動化**: pre-commitフック, GitHub Actions CI/CD
-
-## 開発環境セットアップ
-
-**クイックセットアップ:**
+### Testing
 ```bash
-make setup  # scripts/setup.shによる自動セットアップ
+# Run tests with coverage report
+make test-cov
+
+# Run specific test types
+make test-unit           # Unit tests only
+make test-integration    # Integration tests only
+make test-property       # Property-based tests only
+
 ```
 
-**手動セットアップ:**
+### Code Quality
 ```bash
-# 依存関係インストール
-uv sync --all-extras
+# Format code
+make format
+# or: uv run ruff format . --config=pyproject.toml
 
-# pre-commitフックインストール
-uv run pre-commit install
+# Lint and fix issues
+make lint
+# or: uv run ruff check . --fix --config=pyproject.toml
 
-# Node.jsとMermaid CLIの確認
-node --version
-npx mmdc --version
+# Type checking
+make typecheck
+# or: uv run mypy src/ --strict
+
+# Security check
+make security
+# or: uv run bandit -r src/
+
+# Dependency vulnerability audit
+make audit
+# or: uv run pip-audit
+
+# Run all quality checks in sequence
+make check
 ```
 
-## よく使う開発コマンド
-
-**テスト:**
+### Development Server
 ```bash
-make test                    # 全テスト実行
-make test-unit              # ユニットテストのみ
-make test-integration       # 統合テストのみ
-make test-cov               # カバレッジ付きテスト
+# Start MkDocs development server with hot reload
+uv run mkdocs serve
+
+# Build documentation site
+uv run mkdocs build
 ```
 
-**コード品質:**
-```bash
-make format                 # コードフォーマット（ruff format）
-make lint                   # リント＆自動修正（ruff check --fix）
-make typecheck              # 型チェック（mypy --strict）
-make security               # セキュリティスキャン（bandit）
-make audit                  # 依存脆弱性チェック
-make check                  # すべての品質チェックを順次実行
-```
+## Project Architecture
 
-**開発サーバー:**
-```bash
-uv run mkdocs serve         # 開発サーバー起動
-uv run mkdocs build         # ドキュメントビルド
-```
+This is a MkDocs plugin that converts Mermaid diagrams to static images (PNG/SVG) during the build process, enabling PDF output and offline viewing.
 
-**依存管理:**
-```bash
-uv add package_name         # ランタイム依存追加
-uv add --dev dev_package    # 開発依存追加
-uv sync --all-extras        # すべての依存を同期
-```
+### Core Components
 
-## プラグイン固有の開発上の注意
+- **`plugin.py`** - Main MkDocs plugin class (`MermaidToImagePlugin`)
+  - Handles MkDocs lifecycle hooks (`on_config`, `on_files`, `on_page_markdown`, `on_post_build`)
+  - Manages plugin state and mode detection (serve vs build)
+  - Integrates with MkDocs file system
 
-**1. 複数ランタイム環境:**
-- Python（≥3.9）とNode.js（≥16）の両方が必要
-- Mermaid CLI（mmdc）はnpmでグローバルインストール必須
-- Windows/Unix両対応のパス処理
+- **`processor.py`** - Page processing orchestrator (`MermaidProcessor`)
+  - Coordinates markdown processing and image generation
+  - Handles batch processing of Mermaid blocks per page
 
-**2. MkDocsプラグインライフサイクル:**
-- フック実装: `on_config`, `on_page_markdown`
-- 設定バリデーションは `config_options` スキーマで
-- エラー時もMkDocsビルドを中断しないこと
+- **`markdown_processor.py`** - Markdown parsing and transformation (`MarkdownProcessor`)
+  - Extracts Mermaid code blocks using regex patterns
+  - Replaces Mermaid blocks with image tags
+  - Preserves attributes and handles relative paths
 
-**3. 画像生成の課題:**
-- ヘッドレスブラウザ依存（Mermaid CLI経由のPuppeteer）
-- 一時ファイルの管理とクリーンアップ
-- キャッシュの無効化戦略
-- ダイアグラムタイプ間でのテーマ一貫性
+- **`image_generator.py`** - Image generation via Mermaid CLI (`MermaidImageGenerator`)
+  - Executes `@mermaid-js/mermaid-cli` (mmdc) subprocess
+  - Handles CI environment configuration (puppeteer sandboxing)
+  - Manages temporary files and cleanup
 
-**4. テスト戦略:**
-- **ユニットテスト**（`tests/unit/`）: 個別コンポーネントのテスト
-- **統合テスト**（`tests/integration/`）: MkDocsとのE2Eテスト
-- **プロパティテスト**（`tests/property/`）: hypothesisによる入力検証
-- **フィクスチャ**（`tests/fixtures/`）: サンプルMermaidファイルと期待出力
+- **`config.py`** - Configuration schema and validation (`MermaidPluginConfig`, `ConfigManager`)
+  - Validates plugin settings from `mkdocs.yml`
+  - Provides type-safe configuration access
 
-## 設定
+### Processing Flow
 
-**プラグイン設定スキーマ（config.py）:**
-```python
-# 主な設定項目
-image_format: 'png' | 'svg'          # 出力フォーマット
-theme: 'default' | 'dark' | 'forest' | 'neutral'
-cache_enabled: bool                   # キャッシュ有効化
-output_dir: str                       # 画像出力ディレクトリ
-```
+1. **Plugin Initialization** (`on_config`):
+   - Validates configuration via `ConfigManager`
+   - Sets up logging based on verbose mode
+   - Checks `enabled_if_env` environment variable for conditional activation
+   - Creates `MermaidProcessor` instance
 
-**MkDocsでのプラグインテスト:**
-```yaml
-# mkdocs.yml
-plugins:
-  - mermaid-to-image:
-      image_format: 'png'
-      theme: 'default'
-      cache_enabled: true
-```
+2. **Page Processing** (`on_page_markdown`):
+   - Skips processing in serve mode (development)
+   - Extracts Mermaid blocks from markdown
+   - Generates images for each block via Mermaid CLI
+   - Replaces blocks with image references
+   - Registers generated images with MkDocs file system
 
-## コード品質基準
+3. **Image Generation**:
+   - Creates temporary `.mmd` files with Mermaid code
+   - Builds `mmdc` command with configuration options
+   - Handles CI environments with puppeteer `--no-sandbox`
+   - Cleans up temporary files
 
-**型チェック:**
-- mypyのstrictモード＆完全な型ヒント
-- すべての公開APIに型アノテーション必須
-- 前方参照には `from __future__ import annotations` を使用
+### Key Configuration Options
 
-**テスト要件:**
-- 最低90%のコードカバレッジ
-- テスト命名規則: `test_<scenario>_<expected_result>`
-- 入力バリデーションはプロパティベーステスト
-- 実際のMkDocsビルドによる統合テスト
+- **`enabled_if_env`** - Enable plugin only when environment variable is set (useful for PDF builds)
+- **`output_dir`** - Directory for generated images (default: `assets/images`)
+- **`image_format`** - Output format: `png` or `svg`
+- **`theme`** - Mermaid theme: `default`, `dark`, `forest`, `neutral`
+- **`error_on_fail`** - Whether to stop build on image generation failure
+- **`cache_enabled`** - Enable image caching for performance
 
-**エラーハンドリング:**
-- `exceptions.py` にカスタム例外階層
-- 画像生成失敗時も優雅にフォールバック
-- 解決策付きの詳細なエラーメッセージ
-- 適切なレベル（DEBUG, INFO, WARNING, ERROR）でのロギング
+### Error Handling
 
-## トラブルシューティング
+The plugin uses a structured exception hierarchy:
+- **`MermaidConfigError`** - Configuration validation errors (stops build)
+- **`MermaidCLIError`** - Mermaid CLI execution errors
+- **`MermaidImageError`** - Image file generation/validation errors
+- **`MermaidFileError`** - File system operation errors
 
-**よくある問題:**
+Error behavior is controlled by `error_on_fail` setting:
+- `true` - Stop build on any error
+- `false` - Log errors and continue (skip failed diagrams)
 
-1. **Mermaid CLIが見つからない:**
-   ```bash
-   npm install -g @mermaid-js/mermaid-cli
-   ```
+### Development Notes
 
-2. **Puppeteer/Chromiumの問題:**
-   ```bash
-   # Linux: 依存パッケージのインストール
-   apt-get install -y libgtk-3-0 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libasound2 libpangocairo-1.0-0 libatk1.0-0
-   ```
+- Plugin automatically detects serve mode (`mkdocs serve`) and skips image processing for faster development
+- Use `--verbose` flag for detailed debug logging
+- CI environments are detected and handled with appropriate puppeteer configuration
+- Generated images are dynamically registered with MkDocs file system for proper copying to site directory
+- Pre-commit hooks ensure code quality (ruff, mypy, bandit)
 
-3. **pre-commitの失敗:**
-   ```bash
-   uv run pre-commit clean
-   uv run pre-commit install
-   ```
+### Testing Strategy
 
-## GitHub運用
-
-**プルリクエスト作成:**
-```bash
-make pr TITLE="Feature: Add new theme support" BODY="Description" LABEL="enhancement"
-```
-
-**Issue作成:**
-```bash
-make issue TITLE="Bug: Image generation fails" BODY="Details" LABEL="bug"
-```
-
-**ブランチ命名規則:**
-- 機能: `feature/theme-support`
-- バグ: `fix/image-generation-error`
-- ドキュメント: `docs/update-readme`
-
-## パフォーマンス考慮
-
-- 画像生成はCPU負荷が高い（ヘッドレスブラウザレンダリング）
-- キャッシュシステムで再生成のオーバーヘッドを削減
-- 大きなダイアグラムはタイムアウト値の増加が必要な場合あり
-- 複数ダイアグラムの並列処理も検討
-
-## エントリポイント
-
-プラグインはsetuptoolsエントリポイントで登録されます:
-```python
-# pyproject.toml
-[project.entry-points."mkdocs.plugins"]
-mermaid-to-image = "mkdocs_mermaid_to_image.plugin:MermaidToImagePlugin"
-```
-
-## ドキュメント
-
-- **docs/**: MkDocsドキュメント（プラグイン自体で自己文書化）
-- **README.md**: インストールと基本的な使い方
-- **docs/development.md**: 詳細な開発ガイド
-- **docs/architecture.md**: 技術アーキテクチャ詳細
+- **Unit tests** (`tests/unit/`) - Test individual components in isolation
+- **Integration tests** (`tests/integration/`) - Test plugin with actual MkDocs builds
+- **Property tests** - Use Hypothesis for property-based testing
+- **Fixtures** (`tests/fixtures/`) - Sample Mermaid files and expected outputs
+- **Test coverage** - Maintained with pytest-cov, reports in `htmlcov/`
