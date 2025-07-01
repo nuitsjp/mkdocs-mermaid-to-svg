@@ -8,23 +8,6 @@ MkDocs Mermaid to Image Pluginのコードレビューを実施した結果、�
 
 ### Phase 2: コード品質の全般的改善
 
-#### 2.1 設定スキーマの重複解消
-**優先度**: 中
-
-**作業内容**:
-1. `plugin.py`の`config_scheme`を削除
-2. `config.py`の`ConfigManager.get_config_scheme()`を活用
-3. 設定検証ロジックの統一
-
-**修正例**:
-```python
-# src/mkdocs_mermaid_to_image/plugin.py
-from .config import ConfigManager
-
-class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
-    config_scheme = ConfigManager.get_config_scheme()
-```
-
 #### 2.2 エラーハンドリングの改善
 **優先度**: 中
 
