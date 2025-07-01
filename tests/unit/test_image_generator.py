@@ -83,6 +83,7 @@ class TestMermaidImageGenerator:
     @patch("subprocess.run")
     @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
+    @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_subprocess_error(
         self,
         mock_clean,
@@ -114,6 +115,7 @@ class TestMermaidImageGenerator:
     @patch("os.path.exists")
     @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
+    @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_no_output_file(
         self,
         mock_clean,
@@ -146,6 +148,7 @@ class TestMermaidImageGenerator:
     @patch("subprocess.run")
     @patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file")
+    @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_timeout(
         self,
         mock_clean,
