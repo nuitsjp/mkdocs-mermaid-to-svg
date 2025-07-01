@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 from .image_generator import MermaidImageGenerator
 from .logging_config import get_logger
@@ -15,7 +15,11 @@ class MermaidProcessor:
         self.image_generator = MermaidImageGenerator(config)
 
     def process_page(
-        self, page_file: str, markdown_content: str, output_dir: str, page_url: str = ""
+        self,
+        page_file: str,
+        markdown_content: str,
+        output_dir: Union[str, Path],
+        page_url: str = "",
     ) -> tuple[str, list[str]]:
         blocks = self.markdown_processor.extract_mermaid_blocks(markdown_content)
 

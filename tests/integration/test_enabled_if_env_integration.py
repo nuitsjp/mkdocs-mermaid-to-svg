@@ -1,7 +1,6 @@
 import os
 import unittest.mock
 
-from mkdocs_mermaid_to_image.config import MermaidPluginConfig
 from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
 
 
@@ -12,13 +11,23 @@ class TestEnabledIfEnvIntegration:
         """環境変数が設定されている場合のプラグインライフサイクルテスト"""
         with unittest.mock.patch.dict(os.environ, {"ENABLE_PDF_EXPORT": "1"}):
             plugin = MermaidToImagePlugin()
-            config = MermaidPluginConfig()
-            config.load_dict(
-                {
-                    "enabled_if_env": "ENABLE_PDF_EXPORT",
-                    "log_level": "ERROR",  # ログ出力を抑制
-                }
-            )
+            config = {
+                "enabled_if_env": "ENABLE_PDF_EXPORT",
+                "log_level": "ERROR",  # ログ出力を抑制
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "output_dir": "assets/images",
+                "image_format": "png",
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "cache_enabled": True,
+                "cache_dir": ".mermaid_cache",
+                "preserve_original": False,
+                "error_on_fail": False,
+                "cleanup_generated_images": False,
+            }
 
             # プラグインが有効化されることを確認
             assert plugin._should_be_enabled(config) is True
@@ -35,13 +44,23 @@ class TestEnabledIfEnvIntegration:
         """環境変数が設定されていない場合のプラグインライフサイクルテスト"""
         with unittest.mock.patch.dict(os.environ, {}, clear=True):
             plugin = MermaidToImagePlugin()
-            config = MermaidPluginConfig()
-            config.load_dict(
-                {
-                    "enabled_if_env": "ENABLE_PDF_EXPORT",
-                    "log_level": "ERROR",  # ログ出力を抑制
-                }
-            )
+            config = {
+                "enabled_if_env": "ENABLE_PDF_EXPORT",
+                "log_level": "ERROR",  # ログ出力を抑制
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "output_dir": "assets/images",
+                "image_format": "png",
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "cache_enabled": True,
+                "cache_dir": ".mermaid_cache",
+                "preserve_original": False,
+                "error_on_fail": False,
+                "cleanup_generated_images": False,
+            }
 
             # プラグインが無効化されることを確認
             assert plugin._should_be_enabled(config) is False
@@ -59,10 +78,23 @@ class TestEnabledIfEnvIntegration:
         """環境変数有効時のMarkdown処理テスト"""
         with unittest.mock.patch.dict(os.environ, {"ENABLE_PDF_EXPORT": "1"}):
             plugin = MermaidToImagePlugin()
-            config = MermaidPluginConfig()
-            config.load_dict(
-                {"enabled_if_env": "ENABLE_PDF_EXPORT", "log_level": "ERROR"}
-            )
+            config = {
+                "enabled_if_env": "ENABLE_PDF_EXPORT",
+                "log_level": "ERROR",
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "output_dir": "assets/images",
+                "image_format": "png",
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "cache_enabled": True,
+                "cache_dir": ".mermaid_cache",
+                "preserve_original": False,
+                "error_on_fail": False,
+                "cleanup_generated_images": False,
+            }
             plugin.config = config
 
             # serve モードでない場合のテスト
@@ -100,10 +132,23 @@ graph TD
         """環境変数無効時のMarkdown処理テスト"""
         with unittest.mock.patch.dict(os.environ, {}, clear=True):
             plugin = MermaidToImagePlugin()
-            config = MermaidPluginConfig()
-            config.load_dict(
-                {"enabled_if_env": "ENABLE_PDF_EXPORT", "log_level": "ERROR"}
-            )
+            config = {
+                "enabled_if_env": "ENABLE_PDF_EXPORT",
+                "log_level": "ERROR",
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "output_dir": "assets/images",
+                "image_format": "png",
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "cache_enabled": True,
+                "cache_dir": ".mermaid_cache",
+                "preserve_original": False,
+                "error_on_fail": False,
+                "cleanup_generated_images": False,
+            }
             plugin.config = config
 
             test_markdown = """
@@ -137,10 +182,23 @@ graph TD
         """環境変数無効時のpost_build処理テスト"""
         with unittest.mock.patch.dict(os.environ, {}, clear=True):
             plugin = MermaidToImagePlugin()
-            config = MermaidPluginConfig()
-            config.load_dict(
-                {"enabled_if_env": "ENABLE_PDF_EXPORT", "log_level": "ERROR"}
-            )
+            config = {
+                "enabled_if_env": "ENABLE_PDF_EXPORT",
+                "log_level": "ERROR",
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "output_dir": "assets/images",
+                "image_format": "png",
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "cache_enabled": True,
+                "cache_dir": ".mermaid_cache",
+                "preserve_original": False,
+                "error_on_fail": False,
+                "cleanup_generated_images": False,
+            }
             plugin.config = config
 
             mock_config = {"site_dir": "/tmp/test"}

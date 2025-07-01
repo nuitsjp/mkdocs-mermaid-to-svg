@@ -230,6 +230,224 @@ check_make() {
     fi
 }
 
+install_update_uv() {
+    print_step "Installing/updating uv to latest version..."
+
+    # Always install/update to latest version
+    if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
+        print_warning "SSL verification failed, trying with --insecure flag..."
+        curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
+    fi
+
+    # Add uv to PATH for current session - check multiple possible locations
+    if [[ -f "$HOME/.local/bin/uv" ]]; then
+        export PATH="$HOME/.local/bin:$PATH"
+    elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
+        export PATH="$HOME/.cargo/bin:$PATH"
+    fi
+
+    # Add to shell rc file
+    if [[ "$SHELL" == "/bin/zsh" ]]; then
+        if [[ -f "$HOME/.local/bin/uv" ]]; then
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+        else
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+        fi
+    elif [[ "$SHELL" == "/bin/bash" ]]; then
+        if [[ -f "$HOME/.local/bin/uv" ]]; then
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+        else
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+        fi
+    elif [[ "$SHELL" == "/bin/fish" ]]; then
+        if [[ -f "$HOME/.local/bin/uv" ]]; then
+            echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
+        else
+            echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
+        fi
+    fi
+
+    # Verify installation
+    if ! command -v uv &> /dev/null; then
+        print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+        exit 1
+    fi
+
+    print_success "uv installed/updated successfully ($(uv --version))"
+}
+
+install_update_npm() {
+    print_step "Installing/updating Node.js (LTS) and npm to latest versions..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        print_step "Using nodebrew to install/update latest Node.js LTS"
+        if ! command -v nodebrew &> /dev/null; then
+            print_step "Installing nodebrew"
+            if ! command -v brew &> /dev/null; then
+                print_error "Homebrew is not installed. Please install Homebrew first."
+                exit 1
+            fi
+            brew install nodebrew
+            echo "export PATH=$HOME/.nodebrew/current/bin:$PATH" >> $rc_file
+            export PATH="$HOME/.nodebrew/current/bin:$PATH"
+        fi
+        # Always install/update to latest stable
+        nodebrew install-binary stable || nodebrew install stable
+        nodebrew use stable
+        print_success "Node.js $(node -v) installed/updated (latest LTS)"
+    elif [[ "$OSTYPE" == "linux"* ]]; then
+        print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        print_success "Node.js $(node -v) installed/updated (latest LTS)"
+    else
+        print_error "Unsupported OS. Please install Node.js 18以上 manually."
+        exit 1
+    fi
+
+    # Verify installation
+    if ! command -v npm &> /dev/null; then
+        print_error "Failed to install npm. Please install Node.js manually."
+        exit 1
+    fi
+    print_success "npm installed/updated ($(npm --version)), Node.js $(node -v)"
+}
+
+install_update_github_cli() {
+    print_step "Installing/updating GitHub CLI to latest version..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        if ! command -v brew &> /dev/null; then
+            print_error "Homebrew is not installed. Please install Homebrew first."
+            exit 1
+        fi
+        # Always install/update to latest
+        brew install gh || brew upgrade gh
+    elif [[ "$OSTYPE" == "linux"* ]]; then
+        type -p curl >/dev/null || sudo apt-get install curl -y
+        if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
+            print_warning "SSL verification failed, trying with --insecure flag..."
+            curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        fi
+        sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && sudo apt-get update \
+        && sudo apt-get install gh -y
+    else
+        print_error "Unsupported OS for automatic gh installation."
+        exit 1
+    fi
+
+    # Verify installation
+    if ! command -v gh &> /dev/null; then
+        print_error "Failed to install GitHub CLI."
+        exit 1
+    fi
+
+    print_success "GitHub CLI installed/updated successfully ($(gh --version | head -n1))"
+    if ! gh auth status &> /dev/null; then
+        print_step "Please run 'gh auth login' to authenticate with GitHub after setup completes."
+    fi
+}
+
+install_update_claude_code() {
+    print_step "Installing/updating Claude Code to latest version..."
+    export NODE_ENV=production
+    export TERM=xterm-256color
+    unset WINDIR
+    # Always install/update to latest
+    if sudo npm i -g @anthropic-ai/claude-code@latest; then
+        print_success "Claude Code installed/updated ($(claude --version))"
+        if ! claude auth status &> /dev/null; then
+            print_step "Run 'claude auth' to authenticate after setup completes"
+        fi
+    else
+        print_warning "Claude Code installation failed. This might be due to environment detection issues."
+        print_step "You can try installing manually later with:"
+        echo "  sudo npm i -g @anthropic-ai/claude-code@latest"
+        print_step "If the issue persists, check: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview#check-system-requirements"
+        exit 1
+    fi
+}
+
+install_update_gemini_cli() {
+    print_step "Installing/updating Gemini CLI to latest version..."
+    # Always install/update to latest
+    npm install -g @google/gemini-cli@latest
+    print_success "Gemini CLI installed/updated ($(gemini --version))"
+    print_step "Run 'gemini auth' to authenticate after setup completes"
+}
+
+install_update_mermaid_cli() {
+    print_step "Installing/updating Mermaid CLI to latest version..."
+    # Always install/update to latest
+    npm install -g @mermaid-js/mermaid-cli@latest
+    print_success "Mermaid CLI installed/updated ($(mmdc --version))"
+}
+
+install_update_make() {
+    print_step "Installing/updating make..."
+    if [[ "$OSTYPE" == "linux"* ]]; then
+        sudo apt-get install -y make
+        print_success "make installed/updated successfully"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        if ! command -v brew &> /dev/null; then
+            print_error "Homebrew is not installed. Please install Homebrew first."
+            exit 1
+        fi
+        brew install make || brew upgrade make
+        print_success "make installed/updated successfully"
+    else
+        print_error "Unsupported OS. Please install make manually."
+        exit 1
+    fi
+    print_success "make is available ($(make --version | head -n1))"
+}
+
+# Update system packages once at the beginning
+update_system_packages() {
+    if [[ "$OSTYPE" == "linux"* ]]; then
+        print_step "Updating system packages..."
+        sudo apt-get update
+        print_success "System packages updated"
+    fi
+}
+
+install_update_cargo() {
+    print_step "Installing/updating Rust and Cargo to latest version..."
+
+    # Always install/update to latest version
+    if ! curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
+        print_warning "SSL verification failed, trying with --insecure flag..."
+        curl --proto '=https' --tlsv1.2 -sSf --insecure https://sh.rustup.rs | sh -s -- -y
+    fi
+
+    # Source cargo environment
+    source "$HOME/.cargo/env" 2>/dev/null || true
+    export PATH="$HOME/.cargo/bin:$PATH"
+
+    # Add to shell rc file
+    if [[ "$SHELL" == "/bin/zsh" ]]; then
+        echo 'source "$HOME/.cargo/env"' >> ~/.zshrc
+    elif [[ "$SHELL" == "/bin/bash" ]]; then
+        echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
+    elif [[ "$SHELL" == "/bin/fish" ]]; then
+        echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
+    fi
+
+    # Update to latest stable if already installed
+    if command -v rustup &> /dev/null; then
+        rustup update stable
+        rustup default stable
+    fi
+
+    # Verify installation
+    if ! command -v cargo &> /dev/null; then
+        print_error "Failed to install Rust/Cargo. Please install manually with: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        exit 1
+    fi
+
+    print_success "Rust/Cargo installed/updated successfully ($(cargo --version))"
+}
+
 # Setup Python environment
 setup_python() {
     print_step "Setting up Python environment..."
@@ -318,14 +536,13 @@ test_mkdocs() {
 
 # 日本語フォントのインストール
 install_japanese_fonts() {
-    print_step "Installing Japanese fonts..."
+    print_step "Installing/updating Japanese fonts..."
     if [[ "$OSTYPE" == "linux"* ]]; then
-        sudo apt-get update
         sudo apt-get install -y fonts-noto-cjk fonts-ipafont-gothic fonts-ipafont-mincho fonts-noto-color-emoji
-        print_success "Japanese fonts installed (Noto, IPA)"
+        print_success "Japanese fonts installed/updated (Noto, IPA)"
     elif [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install --cask font-noto-sans-cjk font-noto-serif-cjk font-ipaexfont
-        print_success "Japanese fonts installed (Noto, IPAex)"
+        brew install --cask font-noto-sans-cjk font-noto-serif-cjk font-ipaexfont || brew upgrade --cask font-noto-sans-cjk font-noto-serif-cjk font-ipaexfont
+        print_success "Japanese fonts installed/updated (Noto, IPAex)"
     else
         print_warning "Unsupported OS for automatic Japanese font installation. Please install manually."
     fi
@@ -337,16 +554,20 @@ main() {
     echo "======================================="
     echo
 
-    # Check prerequisites
-    check_make
-    check_uv
-    check_npm
-    check_claude_code
-    check_gemini_cli
-    check_mermaid_cli
-    check_github_cli
+    # Update system packages once at the beginning
+    update_system_packages
 
-    # 日本語フォントのインストール
+    # Install/update all tools to latest versions
+    install_update_make
+    install_update_cargo
+    install_update_uv
+    install_update_npm
+    # install_update_claude_code
+    install_update_gemini_cli
+    install_update_mermaid_cli
+    install_update_github_cli
+
+    # Install/update Japanese fonts
     install_japanese_fonts
 
     # Perform setup

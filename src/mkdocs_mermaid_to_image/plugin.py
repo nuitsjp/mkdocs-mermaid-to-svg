@@ -2,62 +2,33 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
-from mkdocs.config import config_options
 from mkdocs.plugins import BasePlugin
 
-from .config import ConfigManager, MermaidPluginConfig
+if TYPE_CHECKING:
+    from mkdocs.structure.files import Files
+
+from .config import ConfigManager
 from .exceptions import MermaidConfigError, MermaidPreprocessorError
 from .logging_config import get_logger
 from .processor import MermaidProcessor
 from .utils import clean_generated_images
 
 
-class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-untyped-call]
-    config_scheme = (
-        ("enabled", config_options.Type(bool, default=True)),
-        ("enabled_if_env", config_options.Optional(config_options.Type(str))),
-        ("output_dir", config_options.Type(str, default="assets/images")),
-        ("image_format", config_options.Choice(["png", "svg"], default="png")),
-        ("mermaid_config", config_options.Optional(config_options.Type(str))),
-        ("mmdc_path", config_options.Type(str, default="mmdc")),
-        (
-            "theme",
-            config_options.Choice(
-                ["default", "dark", "forest", "neutral"], default="default"
-            ),
-        ),
-        ("background_color", config_options.Type(str, default="white")),
-        ("width", config_options.Type(int, default=800)),
-        ("height", config_options.Type(int, default=600)),
-        ("scale", config_options.Type(float, default=1.0)),
-        ("css_file", config_options.Optional(config_options.Type(str))),
-        ("puppeteer_config", config_options.Optional(config_options.Type(str))),
-        ("temp_dir", config_options.Optional(config_options.Type(str))),
-        ("cache_enabled", config_options.Type(bool, default=True)),
-        ("cache_dir", config_options.Type(str, default=".mermaid_cache")),
-        ("preserve_original", config_options.Type(bool, default=False)),
-        ("error_on_fail", config_options.Type(bool, default=False)),
-        (
-            "log_level",
-            config_options.Choice(
-                ["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO"
-            ),
-        ),
-        ("cleanup_generated_images", config_options.Type(bool, default=False)),
-    )
+class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
+    config_scheme = ConfigManager.get_config_scheme()
 
     def __init__(self) -> None:
         super().__init__()
         self.processor: Optional[MermaidProcessor] = None
         self.generated_images: list[str] = []
-        self.files: Optional[Any] = None  # MkDocsのFilesオブジェクトを保持
+        self.files: Optional[Files] = None
 
         self.is_serve_mode: bool = "serve" in sys.argv
         self.is_verbose_mode: bool = "--verbose" in sys.argv or "-v" in sys.argv
 
-    def _should_be_enabled(self, config: MermaidPluginConfig) -> bool:
+    def _should_be_enabled(self, config: dict[str, Any]) -> bool:
         """環境変数設定に基づいてプラグインが有効化されるべきかどうかを判定"""
         enabled_if_env = config.get("enabled_if_env")
 
@@ -67,7 +38,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             return env_value is not None and env_value.strip() != ""
 
         # enabled_if_envが設定されていない場合は通常のenabled設定に従う
-        return config.get("enabled", True)
+        return bool(config.get("enabled", True))
 
     def on_config(self, config: Any) -> Any:
         try:
