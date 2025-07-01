@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from shutil import which
 
-from .logging_config import get_plugin_logger
+from .logging_config import get_logger
 
 
 def generate_image_filename(
@@ -36,16 +36,12 @@ def clean_temp_file(file_path: str) -> None:
     if not file_path:
         return
 
-    logger = get_plugin_logger(__name__)
+    logger = get_logger(__name__)
     file_path_obj = Path(file_path)
 
     try:
         if file_path_obj.exists():
             file_path_obj.unlink()
-            logger.debug(
-                "Temporary file cleaned successfully",
-                extra={"context": {"file_path": file_path, "operation": "delete"}},
-            )
     except PermissionError as e:
         logger.warning(
             f"Permission denied when cleaning temporary file: {file_path}",
@@ -76,20 +72,10 @@ def get_relative_path(file_path: str, base_path: str) -> str:
     if not file_path or not base_path:
         return file_path
 
-    logger = get_plugin_logger(__name__)
+    logger = get_logger(__name__)
 
     try:
         rel_path = os.path.relpath(file_path, base_path)
-        logger.debug(
-            "Relative path calculated successfully",
-            extra={
-                "context": {
-                    "file_path": file_path,
-                    "base_path": base_path,
-                    "relative_path": rel_path,
-                }
-            },
-        )
         return rel_path
     except ValueError as e:
         logger.warning(
@@ -170,7 +156,5 @@ def clean_generated_images(
                     },
                 )
 
-    if cleaned_count > 0 and logger:
-        logger.info(f"Cleaned up {cleaned_count} generated images")
-    if error_count > 0 and logger:
-        logger.warning(f"Failed to clean {error_count} generated images")
+    if (cleaned_count > 0 or error_count > 0) and logger:
+        logger.info(f"Image cleanup: {cleaned_count} cleaned, {error_count} errors")

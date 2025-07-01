@@ -1,6 +1,6 @@
 import contextlib
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .utils import generate_image_filename
 
@@ -11,7 +11,7 @@ class MermaidBlock:
         code: str,
         start_pos: int,
         end_pos: int,
-        attributes: Optional[dict[str, Any]] = None,
+        attributes: dict[str, Any] | None = None,
     ):
         self.code = code.strip()
         self.start_pos = start_pos

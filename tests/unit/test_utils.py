@@ -222,7 +222,7 @@ class TestCleanGeneratedImages:
         clean_generated_images(image_paths, mock_logger)
 
         assert mock_unlink.call_count == 2
-        mock_logger.info.assert_called_with("Cleaned up 2 generated images")
+        mock_logger.info.assert_called_with("Image cleanup: 2 cleaned, 0 errors")
 
     @patch("pathlib.Path.exists")
     @patch("pathlib.Path.unlink")

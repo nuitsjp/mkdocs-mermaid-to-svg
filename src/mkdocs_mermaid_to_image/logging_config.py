@@ -171,12 +171,9 @@ def get_logger(name: str) -> logging.Logger:
     Returns:
         設定済みのロガーインスタンス
     """
-    # 標準のPythonロギングパターンを使用
-    logger = logging.getLogger(name)
-
     # プラグインロギングがセットアップされていない場合は初期化
     root_logger = logging.getLogger("mkdocs_mermaid_to_image")
     if not root_logger.handlers:
         setup_plugin_logging()
 
-    return logger
+    return logging.getLogger(name)

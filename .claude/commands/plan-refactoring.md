@@ -109,8 +109,7 @@ make test-cov
 
 # 各リファクタリングステップ後にテスト
 make test              # 動作確認
-make typecheck         # 型安全性確認
-make lint              # コード品質確認
+make check-all         # 型安全性確認, コード品質確認
 ```
 
 **段階的コミット**

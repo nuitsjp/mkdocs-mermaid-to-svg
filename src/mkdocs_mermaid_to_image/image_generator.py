@@ -1,4 +1,8 @@
+import json
+import logging
+import os
 import subprocess  # nosec B404
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +33,7 @@ class MermaidImageGenerator:
         self, mermaid_code: str, output_path: str, config: dict[str, Any]
     ) -> bool:
         temp_file = None
+        puppeteer_config_file = None
 
         try:
             temp_file = get_temp_file_path(".mmd")
@@ -38,9 +43,12 @@ class MermaidImageGenerator:
 
             ensure_directory(str(Path(output_path).parent))
 
-            cmd = self._build_mmdc_command(temp_file, output_path, config)
+            cmd, puppeteer_config_file = self._build_mmdc_command(
+                temp_file, output_path, config
+            )
 
-            self.logger.debug(f"Executing: {' '.join(cmd)}")
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug("Executing mermaid CLI command")
 
             result = subprocess.run(  # nosec B603
                 cmd, capture_output=True, text=True, timeout=30, check=False
@@ -67,6 +75,8 @@ class MermaidImageGenerator:
         finally:
             if temp_file:
                 clean_temp_file(temp_file)
+            if puppeteer_config_file:
+                clean_temp_file(puppeteer_config_file)
 
     def _handle_command_failure(
         self, result: subprocess.CompletedProcess[str], cmd: list[str]
@@ -118,8 +128,7 @@ class MermaidImageGenerator:
                 error_msg,
                 file_path=output_path,
                 operation="write",
-                suggestion="Check file permissions and ensure output "
-                "directory exists",
+                suggestion="Check file permissions and ensure output directory exists",
             ) from e
         return False
 
@@ -141,7 +150,7 @@ class MermaidImageGenerator:
 
     def _build_mmdc_command(
         self, input_file: str, output_file: str, config: dict[str, Any]
-    ) -> list[str]:
+    ) -> tuple[list[str], str | None]:
         cmd = [
             self.config["mmdc_path"],
             "-i",
@@ -161,9 +170,7 @@ class MermaidImageGenerator:
         ]
 
         # Add --no-sandbox for CI environments via puppeteer config
-        import json
-        import os
-        import tempfile
+        puppeteer_config_file = None
 
         if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
             # Create temporary puppeteer config with --no-sandbox
@@ -172,6 +179,7 @@ class MermaidImageGenerator:
                 mode="w", suffix=".json", delete=False
             ) as f:
                 json.dump(puppeteer_config, f)
+                puppeteer_config_file = f.name
                 cmd.extend(["-p", f.name])
 
         if self.config.get("css_file"):
@@ -190,4 +198,4 @@ class MermaidImageGenerator:
         if self.config.get("mermaid_config"):
             cmd.extend(["-c", self.config["mermaid_config"]])
 
-        return cmd
+        return cmd, puppeteer_config_file

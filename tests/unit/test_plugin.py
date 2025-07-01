@@ -275,11 +275,10 @@ class TestMermaidToImagePlugin:
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.png"]
 
-        with patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_get_logger:
-            mock_logger = Mock()
-            mock_get_logger.return_value = mock_logger
-            plugin.on_post_build(config={})
-            mock_logger.info.assert_called_with("Generated 2 Mermaid images total")
+        mock_logger = Mock()
+        plugin.logger = mock_logger
+        plugin.on_post_build(config={})
+        mock_logger.info.assert_called_with("Generated 2 Mermaid images total")
 
     @patch("shutil.rmtree")
     @patch("pathlib.Path.exists")
@@ -374,14 +373,13 @@ class TestMermaidToImagePlugin:
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
 
-        with patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_get_logger:
-            mock_logger = Mock()
-            mock_get_logger.return_value = mock_logger
-            plugin.on_post_build(config={})
-            # clean_generated_imagesが呼び出されるべき
-            mock_clean_generated_images.assert_called_once_with(
-                plugin.generated_images, mock_logger
-            )
+        mock_logger = Mock()
+        plugin.logger = mock_logger
+        plugin.on_post_build(config={})
+        # clean_generated_imagesが呼び出されるべき
+        mock_clean_generated_images.assert_called_once_with(
+            plugin.generated_images, mock_logger
+        )
 
     def test_on_serve_disabled(self, plugin):
         """プラグイン無効時のon_serveの挙動をテスト"""

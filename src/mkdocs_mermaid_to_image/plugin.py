@@ -29,6 +29,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
         self.processor: Optional[MermaidProcessor] = None
         self.generated_images: list[str] = []
         self.files: Optional[Files] = None
+        self.logger = get_logger(__name__)
 
         self.is_serve_mode: bool = "serve" in sys.argv
         self.is_verbose_mode: bool = "--verbose" in sys.argv or "-v" in sys.argv
@@ -50,43 +51,36 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
             config_dict = dict(self.config)
             ConfigManager.validate_config(config_dict)
 
-            # verboseモードでない場合は、INFOレベルに設定
-            if not self.is_verbose_mode:
-                config_dict["log_level"] = "WARNING"  # 下位モジュールは詳細ログを抑制
-
-            logger = get_logger(__name__)
+            # verboseモードでない場合は、WARNINGレベルに設定
+            config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
 
             if not self._should_be_enabled(self.config):
-                logger.info("Mermaid preprocessor plugin is disabled")
+                self.logger.info("Mermaid preprocessor plugin is disabled")
                 return config
 
             self.processor = MermaidProcessor(config_dict)
 
-            logger.info("Mermaid preprocessor plugin initialized successfully")
+            self.logger.info("Mermaid preprocessor plugin initialized successfully")
 
         except (MermaidConfigError, MermaidFileError) as e:
-            logger = get_logger(__name__)
-            logger.error(f"Configuration error: {e!s}")
+            self.logger.error(f"Configuration error: {e!s}")
             raise
         except FileNotFoundError as e:
-            logger = get_logger(__name__)
-            logger.error(f"Required file not found: {e!s}")
+            self.logger.error(f"Required file not found: {e!s}")
             raise MermaidFileError(
                 f"Required file not found during plugin initialization: {e!s}",
                 operation="read",
                 suggestion="Ensure all required files exist",
             ) from e
         except (OSError, PermissionError) as e:
-            logger = get_logger(__name__)
-            logger.error(f"File system error: {e!s}")
+            self.logger.error(f"File system error: {e!s}")
             raise MermaidFileError(
                 f"File system error during plugin initialization: {e!s}",
                 operation="access",
                 suggestion="Check file permissions and disk space",
             ) from e
         except Exception as e:
-            logger = get_logger(__name__)
-            logger.error(f"Unexpected error during plugin initialization: {e!s}")
+            self.logger.error(f"Unexpected error during plugin initialization: {e!s}")
             raise MermaidConfigError(f"Plugin configuration error: {e!s}") from e
 
         return config
@@ -150,8 +144,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
 
             # 画像を生成した場合、常にINFOレベルでログを出力
             if image_paths:
-                logger = get_logger(__name__)
-                logger.info(
+                self.logger.info(
                     f"Generated {len(image_paths)} Mermaid diagrams for "
                     f"{page.file.src_path}"
                 )
@@ -159,15 +152,15 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
             return modified_content
 
         except MermaidPreprocessorError as e:
-            logger = get_logger(__name__)
-            logger.error(f"Error processing {page.file.src_path}: {e!s}")
+            self.logger.error(f"Error processing {page.file.src_path}: {e!s}")
             if self.config["error_on_fail"]:
                 raise
             return markdown
 
         except (FileNotFoundError, OSError, PermissionError) as e:
-            logger = get_logger(__name__)
-            logger.error(f"File system error processing {page.file.src_path}: {e!s}")
+            self.logger.error(
+                f"File system error processing {page.file.src_path}: {e!s}"
+            )
             if self.config["error_on_fail"]:
                 raise MermaidFileError(
                     f"File system error processing {page.file.src_path}: {e!s}",
@@ -178,8 +171,9 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
                 ) from e
             return markdown
         except ValueError as e:
-            logger = get_logger(__name__)
-            logger.error(f"Validation error processing {page.file.src_path}: {e!s}")
+            self.logger.error(
+                f"Validation error processing {page.file.src_path}: {e!s}"
+            )
             if self.config["error_on_fail"]:
                 raise MermaidValidationError(
                     f"Validation error processing {page.file.src_path}: {e!s}",
@@ -188,8 +182,9 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
                 ) from e
             return markdown
         except Exception as e:
-            logger = get_logger(__name__)
-            logger.error(f"Unexpected error processing {page.file.src_path}: {e!s}")
+            self.logger.error(
+                f"Unexpected error processing {page.file.src_path}: {e!s}"
+            )
             if self.config["error_on_fail"]:
                 raise MermaidPreprocessorError(f"Unexpected error: {e!s}") from e
             return markdown
@@ -201,16 +196,7 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
             return markdown
 
         if self.is_serve_mode:
-            logger = get_logger(__name__)
-            logger.debug(
-                f"Skipping Mermaid image generation in serve mode for "
-                f"{page.file.src_path}"
-            )
             return markdown
-
-        # デバッグログを追加
-        logger = get_logger(__name__)
-        logger.debug(f"Processing page: {page.file.src_path}")
 
         return self._process_mermaid_diagrams(markdown, page, config)
 
@@ -220,20 +206,18 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
 
         # 生成した画像の総数をINFOレベルで出力
         if self.generated_images:
-            logger = get_logger(__name__)
-            logger.info(f"Generated {len(self.generated_images)} Mermaid images total")
+            self.logger.info(
+                f"Generated {len(self.generated_images)} Mermaid images total"
+            )
 
         # 生成画像のクリーンアップ
         if self.config.get("cleanup_generated_images", False) and self.generated_images:
-            logger = get_logger(__name__)
-            clean_generated_images(self.generated_images, logger)
+            clean_generated_images(self.generated_images, self.logger)
 
         if not self.config["cache_enabled"]:
             cache_dir = self.config["cache_dir"]
             if Path(cache_dir).exists():
                 shutil.rmtree(cache_dir)
-                logger = get_logger(__name__)
-                logger.debug(f"Cleaned up cache directory: {cache_dir}")
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
         if not self._should_be_enabled(self.config):

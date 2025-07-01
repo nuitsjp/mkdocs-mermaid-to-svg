@@ -178,7 +178,7 @@ class TestMermaidImageGenerator:
         mock_command_available.return_value = True
         generator = MermaidImageGenerator(basic_config)
 
-        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
 
         assert "mmdc" in cmd
         assert "-i" in cmd
@@ -209,7 +209,9 @@ class TestMermaidImageGenerator:
             {"theme": "dark", "background_color": "black", "width": 1000, "height": 800}
         )
 
-        cmd = generator._build_mmdc_command("input.mmd", "output.png", override_config)
+        cmd, _ = generator._build_mmdc_command(
+            "input.mmd", "output.png", override_config
+        )
 
         assert "-t" in cmd
         assert "dark" in cmd
@@ -244,7 +246,7 @@ class TestMermaidImageGenerator:
         )
         generator = MermaidImageGenerator(basic_config)
 
-        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
 
         assert "-C" in cmd
         assert str(css_file) in cmd
@@ -272,7 +274,7 @@ class TestMermaidImageGenerator:
         )
         generator = MermaidImageGenerator(basic_config)
 
-        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
 
         # CSS fileは存在確認していないので含まれる
         assert "-C" in cmd
@@ -307,7 +309,7 @@ class TestMermaidImageGenerator:
         mock_getenv.side_effect = mock_env
 
         generator = MermaidImageGenerator(basic_config)
-        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
 
         assert "-p" in cmd
         # Check that the puppeteer config file is created
@@ -331,7 +333,7 @@ class TestMermaidImageGenerator:
         mock_getenv.side_effect = mock_env
 
         generator = MermaidImageGenerator(basic_config)
-        cmd = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
 
         assert "-p" in cmd
         # Check that the puppeteer config file is created
