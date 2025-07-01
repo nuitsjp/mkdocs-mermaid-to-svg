@@ -256,11 +256,11 @@ class TestCleanGeneratedImages:
 
         clean_generated_images(image_paths, mock_logger)
 
-        # warning が複数回呼ばれる（個別エラー + 全体サマリー）
+        # warning が呼ばれることを確認
         assert mock_logger.warning.call_count >= 1
-        # OS error メッセージがあることをチェック
+        # OSError メッセージがあることをチェック
         warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
-        assert any("OS error" in call for call in warning_calls)
+        assert any("OSError" in call for call in warning_calls)
 
     def test_clean_generated_images_empty_list(self):
         """空のリストの場合のテスト"""
@@ -285,7 +285,7 @@ class TestCleanGeneratedImages:
 
         clean_generated_images(image_paths, mock_logger)
 
-        # 存在しないファイルは削除されない
+        # 存在しないファイルは削除されない（エラーでもない）
         mock_logger.info.assert_not_called()
         mock_logger.warning.assert_not_called()
 

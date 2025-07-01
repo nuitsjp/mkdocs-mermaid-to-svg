@@ -71,7 +71,10 @@ class TestMermaidParsingError:
             mermaid_code=None,
         )
 
-        assert error.details["mermaid_code"] is None
+        # None values are now filtered out
+        assert "mermaid_code" not in error.details
+        assert error.details["source_file"] == "test.md"
+        assert error.details["line_number"] == 1
 
     def test_mermaid_parsing_error_with_exactly_200_chars(self) -> None:
         """Test MermaidParsingError with exactly 200 character code."""
@@ -102,21 +105,15 @@ class TestOtherExceptions:
         """Test MermaidCLIError creation."""
         error = MermaidCLIError("CLI command failed")
         assert str(error) == "CLI command failed"
-        # MermaidCLIError always sets default details
-        expected_details = {"command": None, "return_code": None, "stderr": None}
-        assert error.details == expected_details
+        # None values are now filtered out
+        assert error.details == {}
 
     def test_mermaid_config_error(self) -> None:
         """Test MermaidConfigError creation."""
         error = MermaidConfigError("Configuration invalid")
         assert str(error) == "Configuration invalid"
-        # MermaidConfigError always sets default details
-        expected_details = {
-            "config_key": None,
-            "config_value": None,
-            "suggestion": None,
-        }
-        assert error.details == expected_details
+        # None values are now filtered out
+        assert error.details == {}
 
     def test_exception_inheritance(self) -> None:
         """Test that all exceptions inherit from MermaidPreprocessorError."""

@@ -32,40 +32,67 @@ def get_temp_file_path(suffix: str = ".mmd") -> str:
     return path
 
 
-def clean_temp_file(file_path: str) -> None:
-    if not file_path:
-        return
+def _get_cleanup_suggestion(error_type: str) -> str:
+    """Get contextual suggestion based on error type."""
+    if error_type == "PermissionError":
+        return "Check file permissions or run with privileges"
+    elif error_type == "OSError":
+        return "File may be locked by another process"
+    else:
+        return "Try again or check system logs for details"
 
-    logger = get_logger(__name__)
-    file_path_obj = Path(file_path)
+
+def clean_file_with_error_handling(
+    file_path: str,
+    logger: logging.Logger | None = None,
+    operation_type: str = "cleanup",
+) -> tuple[bool, bool]:
+    """ファイル削除の共通処理（エラーハンドリング付き）
+
+    Args:
+        file_path: 削除するファイルのパス
+        logger: ロガーインスタンス（Noneの場合はログ出力なし）
+        operation_type: 操作の種類（ログ出力用）
+
+    Returns:
+        Tuple of (success, had_error) where:
+        - success: True if file was successfully deleted
+        - had_error: True if there was an actual error (not just non-existence)
+    """
+    if not file_path:
+        return False, False
+
+    file_obj = Path(file_path)
 
     try:
-        if file_path_obj.exists():
-            file_path_obj.unlink()
-    except PermissionError as e:
-        logger.warning(
-            f"Permission denied when cleaning temporary file: {file_path}",
-            extra={
-                "context": {
-                    "file_path": file_path,
-                    "error_type": "PermissionError",
-                    "error_message": str(e),
-                    "suggestion": "Check file permissions or run with privileges",
-                }
-            },
-        )
-    except OSError as e:
-        logger.warning(
-            f"OS error when cleaning temporary file: {file_path}",
-            extra={
-                "context": {
-                    "file_path": file_path,
-                    "error_type": "OSError",
-                    "error_message": str(e),
-                    "suggestion": "File may be locked by another process",
-                }
-            },
-        )
+        if file_obj.exists():
+            file_obj.unlink()
+            if logger:
+                logger.debug(f"Successfully cleaned file: {file_path}")
+            return True, False
+        return False, False  # File doesn't exist, not an error
+    except (PermissionError, OSError) as e:
+        error_type = type(e).__name__
+        if logger:
+            logger.warning(
+                f"{error_type} when cleaning file: {file_path}",
+                extra={
+                    "context": {
+                        "file_path": file_path,
+                        "operation_type": operation_type,
+                        "error_type": error_type,
+                        "error_message": str(e),
+                        "suggestion": _get_cleanup_suggestion(error_type),
+                    }
+                },
+            )
+        return False, True  # Actual error occurred
+
+
+def clean_temp_file(file_path: str) -> None:
+    """一時ファイルをクリーンアップする"""
+    logger = get_logger(__name__)
+    clean_file_with_error_handling(file_path, logger, "temp_cleanup")
 
 
 def get_relative_path(file_path: str, base_path: str) -> str:
@@ -105,56 +132,14 @@ def clean_generated_images(
     if not image_paths:
         return
 
-    cleaned_count = 0
-    error_count = 0
+    results = [
+        clean_file_with_error_handling(path, logger, "image_cleanup")
+        for path in image_paths
+        if path
+    ]
 
-    for image_path in image_paths:
-        if not image_path:
-            continue
-
-        image_file = Path(image_path)
-
-        try:
-            if image_file.exists():
-                image_file.unlink()
-                cleaned_count += 1
-                if logger:
-                    logger.debug(
-                        f"Cleaned generated image: {image_path}",
-                        extra={
-                            "context": {"file_path": image_path, "operation": "delete"}
-                        },
-                    )
-        except PermissionError as e:
-            error_count += 1
-            if logger:
-                logger.warning(
-                    f"Permission denied when cleaning generated image: {image_path}",
-                    extra={
-                        "context": {
-                            "file_path": image_path,
-                            "error_type": "PermissionError",
-                            "error_message": str(e),
-                            "suggestion": (
-                                "Check file permissions or run with privileges"
-                            ),
-                        }
-                    },
-                )
-        except OSError as e:
-            error_count += 1
-            if logger:
-                logger.warning(
-                    f"OS error when cleaning generated image: {image_path}",
-                    extra={
-                        "context": {
-                            "file_path": image_path,
-                            "error_type": "OSError",
-                            "error_message": str(e),
-                            "suggestion": "File may be locked by another process",
-                        }
-                    },
-                )
+    cleaned_count = sum(success for success, _ in results)
+    error_count = sum(had_error for _, had_error in results)
 
     if (cleaned_count > 0 or error_count > 0) and logger:
         logger.info(f"Image cleanup: {cleaned_count} cleaned, {error_count} errors")

@@ -167,6 +167,9 @@ install_update_cargo() {
 install_update_similarity_py() {
     print_step "Installing/updating similarity-py to latest version..."
 
+    # Ensure cargo bin path is in PATH
+    export PATH="$HOME/.cargo/bin:$PATH"
+
     # Install similarity-py via cargo with SSL fallback
     if ! cargo install similarity-py; then
         print_warning "SSL verification failed, trying with insecure registry..."
@@ -197,13 +200,20 @@ EOF
         fi
     fi
 
-    # Verify installation
-    if ! command -v similarity-py &> /dev/null; then
-        print_warning "similarity-py installation may have failed, but continuing setup..."
-        return 0
+    # Ensure cargo bin path is permanently added to PATH
+    if ! grep -q 'export PATH="$HOME/.cargo/bin:$PATH"' ~/.bashrc; then
+        print_step "Adding cargo bin directory to PATH in ~/.bashrc..."
+        echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
     fi
 
-    print_success "similarity-py installed/updated successfully"
+    # Verify installation with explicit path
+    if [ -f "$HOME/.cargo/bin/similarity-py" ]; then
+        print_success "similarity-py installed/updated successfully (binary found at $HOME/.cargo/bin/similarity-py)"
+        print_step "Note: You may need to run 'source ~/.bashrc' or restart your terminal to use 'similarity-py' command"
+    else
+        print_warning "similarity-py binary not found at expected location, but continuing setup..."
+        return 0
+    fi
 }
 
 # Setup Python environment

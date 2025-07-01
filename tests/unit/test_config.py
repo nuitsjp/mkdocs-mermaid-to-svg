@@ -97,68 +97,59 @@ class TestConfigManager:
         result = ConfigManager.validate_config(valid_config)
         assert result is True
 
-    def test_validate_config_invalid_width(self):
-        invalid_config = {
-            "width": -100,
+    @pytest.mark.parametrize(
+        "config_override,expected_error,error_message",
+        [
+            (
+                {"width": -100},
+                MermaidConfigError,
+                "Width and height must be positive integers",
+            ),
+            (
+                {"height": 0},
+                MermaidConfigError,
+                "Width and height must be positive integers",
+            ),
+            (
+                {"scale": -1.5},
+                MermaidConfigError,
+                "Scale must be a positive number",
+            ),
+            (
+                {"css_file": "/nonexistent/file.css"},
+                MermaidFileError,
+                "CSS file not found",
+            ),
+            (
+                {"puppeteer_config": "/nonexistent/config.json"},
+                MermaidFileError,
+                "Puppeteer config file not found",
+            ),
+        ],
+    )
+    def test_validate_config_errors(
+        self, config_override, expected_error, error_message
+    ):
+        """
+        設定検証エラーのパラメータ化テスト
+
+        Python学習者へのヒント：
+        - @pytest.mark.parametrizeデコレータで複数のテストケースを一度に実行
+        - 各パラメータセットに対して同じテストロジックを適用
+        - config_override: 基本設定を上書きする値
+        - expected_error: 期待される例外タイプ
+        - error_message: 期待されるエラーメッセージ
+        """
+        base_config = {
+            "width": 800,
             "height": 600,
             "scale": 1.0,
             "css_file": None,
             "puppeteer_config": None,
         }
+        invalid_config = {**base_config, **config_override}
 
-        with pytest.raises(
-            MermaidConfigError, match="Width and height must be positive integers"
-        ):
-            ConfigManager.validate_config(invalid_config)
-
-    def test_validate_config_invalid_height(self):
-        invalid_config = {
-            "width": 800,
-            "height": 0,
-            "scale": 1.0,
-            "css_file": None,
-            "puppeteer_config": None,
-        }
-
-        with pytest.raises(
-            MermaidConfigError, match="Width and height must be positive integers"
-        ):
-            ConfigManager.validate_config(invalid_config)
-
-    def test_validate_config_invalid_scale(self):
-        invalid_config = {
-            "width": 800,
-            "height": 600,
-            "scale": -1.5,
-            "css_file": None,
-            "puppeteer_config": None,
-        }
-
-        with pytest.raises(MermaidConfigError, match="Scale must be a positive number"):
-            ConfigManager.validate_config(invalid_config)
-
-    def test_validate_config_missing_css_file(self):
-        invalid_config = {
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
-            "css_file": "/nonexistent/file.css",
-            "puppeteer_config": None,
-        }
-
-        with pytest.raises(MermaidFileError, match="CSS file not found"):
-            ConfigManager.validate_config(invalid_config)
-
-    def test_validate_config_missing_puppeteer_config(self):
-        invalid_config = {
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
-            "css_file": None,
-            "puppeteer_config": "/nonexistent/config.json",
-        }
-
-        with pytest.raises(MermaidFileError, match="Puppeteer config file not found"):
+        with pytest.raises(expected_error, match=error_message):
             ConfigManager.validate_config(invalid_config)
 
     def test_validate_config_with_existing_files(self):

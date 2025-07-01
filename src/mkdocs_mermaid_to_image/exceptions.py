@@ -1,15 +1,29 @@
+from __future__ import annotations
+
+from typing import Any
+
+
 class MermaidPreprocessorError(Exception):
-    def __init__(
-        self, message: str, details: dict[str, str | int | None] | None = None
-    ) -> None:
-        """Initialize the exception with a message and optional details.
+    def __init__(self, message: str, **context_params: Any) -> None:
+        """Initialize the exception with a message and optional context parameters.
 
         Args:
             message: Human-readable error message
-            details: Optional dictionary with additional error context
+            **context_params: Arbitrary context parameters for error details
         """
+        details = {k: v for k, v in context_params.items() if v is not None}
+
+        # Truncate long mermaid content for readability
+        for key in ["mermaid_content", "mermaid_code"]:
+            if (
+                key in details
+                and isinstance(details[key], str)
+                and len(details[key]) > 200
+            ):
+                details[key] = details[key][:200] + "..."
+
         super().__init__(message)
-        self.details = details or {}
+        self.details = details
 
 
 class MermaidCLIError(MermaidPreprocessorError):
@@ -28,12 +42,9 @@ class MermaidCLIError(MermaidPreprocessorError):
             return_code: Exit code of the failed command
             stderr: Standard error output from the command
         """
-        details = {
-            "command": command,
-            "return_code": return_code,
-            "stderr": stderr,
-        }
-        super().__init__(message, details)
+        super().__init__(
+            message, command=command, return_code=return_code, stderr=stderr
+        )
 
 
 class MermaidConfigError(MermaidPreprocessorError):
@@ -52,12 +63,12 @@ class MermaidConfigError(MermaidPreprocessorError):
             config_value: The invalid configuration value
             suggestion: Suggested fix for the configuration error
         """
-        details = {
-            "config_key": config_key,
-            "config_value": config_value,
-            "suggestion": suggestion,
-        }
-        super().__init__(message, details)
+        super().__init__(
+            message,
+            config_key=config_key,
+            config_value=config_value,
+            suggestion=suggestion,
+        )
 
 
 class MermaidParsingError(MermaidPreprocessorError):
@@ -76,14 +87,12 @@ class MermaidParsingError(MermaidPreprocessorError):
             line_number: Line number where the error was found
             mermaid_code: The problematic Mermaid code block
         """
-        details = {
-            "source_file": source_file,
-            "line_number": line_number,
-            "mermaid_code": mermaid_code[:200] + "..."
-            if mermaid_code and len(mermaid_code) > 200
-            else mermaid_code,
-        }
-        super().__init__(message, details)
+        super().__init__(
+            message,
+            source_file=source_file,
+            line_number=line_number,
+            mermaid_code=mermaid_code,
+        )
 
 
 class MermaidFileError(MermaidPreprocessorError):
@@ -102,12 +111,9 @@ class MermaidFileError(MermaidPreprocessorError):
             operation: The file operation that failed (read, write, create, etc.)
             suggestion: Suggested fix for the file error
         """
-        details: dict[str, str | int | None] = {
-            "file_path": file_path,
-            "operation": operation,
-            "suggestion": suggestion,
-        }
-        super().__init__(message, details)
+        super().__init__(
+            message, file_path=file_path, operation=operation, suggestion=suggestion
+        )
 
 
 class MermaidValidationError(MermaidPreprocessorError):
@@ -126,12 +132,12 @@ class MermaidValidationError(MermaidPreprocessorError):
             invalid_value: The value that failed validation
             expected_format: Expected format or pattern
         """
-        details: dict[str, str | int | None] = {
-            "validation_type": validation_type,
-            "invalid_value": invalid_value,
-            "expected_format": expected_format,
-        }
-        super().__init__(message, details)
+        super().__init__(
+            message,
+            validation_type=validation_type,
+            invalid_value=invalid_value,
+            expected_format=expected_format,
+        )
 
 
 class MermaidImageError(MermaidPreprocessorError):
@@ -152,12 +158,10 @@ class MermaidImageError(MermaidPreprocessorError):
             mermaid_content: Mermaid diagram content that failed to render
             suggestion: Suggested fix for the image generation error
         """
-        details: dict[str, str | int | None] = {
-            "image_format": image_format,
-            "image_path": image_path,
-            "mermaid_content": mermaid_content[:200] + "..."
-            if mermaid_content and len(mermaid_content) > 200
-            else mermaid_content,
-            "suggestion": suggestion,
-        }
-        super().__init__(message, details)
+        super().__init__(
+            message,
+            image_format=image_format,
+            image_path=image_path,
+            mermaid_content=mermaid_content,
+            suggestion=suggestion,
+        )
