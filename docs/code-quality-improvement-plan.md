@@ -1,5 +1,14 @@
 # コード品質改善計画書
 
+下記のプランを立てて実施します。
+
+## ゴールデンルール
+
+1. t-wada式TDDで推進すること
+2. 小さなリファクタリングを繰り返し推進すること
+3. make test-cov を実行しつつ、全体が破壊されていない事を確認しながら進めること
+4. make check-all を実行しつつ、全体のコード品質を保ちつつ進めること
+
 ## 概要
 
 MkDocs Mermaid to Image Pluginのコードレビューを実施した結果、主にロギング実装とコード品質に関して改善が必要な点を特定しました。本計画書では、これらの問題に対する具体的な対応計画を記述します。
@@ -7,36 +16,6 @@ MkDocs Mermaid to Image Pluginのコードレビューを実施した結果、�
 ## 改善計画
 
 ### Phase 2: コード品質の全般的改善
-
-#### 2.2 エラーハンドリングの改善
-**優先度**: 中
-
-**修正内容**:
-- 汎用的な`except Exception`を具体的な例外処理に変更
-- カスタム例外の適切な活用
-- エラーメッセージの統一化
-
-**修正例**:
-```python
-# 修正前
-try:
-    # 処理
-except Exception as e:
-    # 汎用的な処理
-
-# 修正後
-try:
-    # 処理
-except (ValueError, TypeError) as e:
-    logger.error(f"Configuration error: {e}")
-    raise MermaidConfigError(f"Invalid configuration: {e}") from e
-except FileNotFoundError as e:
-    logger.error(f"Required file not found: {e}")
-    raise MermaidPreprocessorError(f"Missing dependency: {e}") from e
-except Exception as e:
-    logger.error(f"Unexpected error: {e}")
-    raise
-```
 
 #### 2.3 依存関係の整理
 **優先度**: 低
