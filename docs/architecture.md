@@ -19,7 +19,8 @@ mkdocs-mermaid-to-image/
         ├── config.py               # 設定スキーマ (MermaidPluginConfig, ConfigManager)
         ├── types.py                # 型定義 (TypedDictなど)
         ├── exceptions.py           # カスタム例外クラス
-        └── utils.py                # ユーティリティ関数・ロギング設定
+        ├── logging_config.py       # ロギング設定・構造化フォーマッタ
+        └── utils.py                # ユーティリティ関数
 ```
 
 ## ファイル依存関係図
@@ -31,6 +32,7 @@ graph TD
         A --> C[config.py]
         A --> D[exceptions.py]
         A --> E[utils.py]
+        A --> F[logging_config.py]
     end
 
     subgraph "Processing Logic"
@@ -63,6 +65,7 @@ graph TD
     style C fill:#fff3e0
     style D fill:#fce4ec
     style E fill:#f3e5f5
+    style F fill:#f3e5f5
 ```
 
 ## クラス図
@@ -82,6 +85,7 @@ classDiagram
         +list~str~ generated_images
         +Files files
         +bool is_serve_mode
+        +bool is_verbose_mode
         +on_config(config)
         +on_files(files, config)
         +on_page_markdown(markdown, page, config, files)
@@ -129,6 +133,7 @@ classDiagram
 
     class ConfigManager {
         <<static>>
+        +get_config_scheme() tuple
         +validate_config(config) bool
     }
 
