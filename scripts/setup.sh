@@ -413,14 +413,16 @@ main() {
     echo "  uv run mkdocs serve    # Start development server"
     echo "  uv run mkdocs build    # Build documentation"
     echo "  uv run pytest         # Run tests"
-    echo "  uv run pre-commit run --all-files  # Run quality checks"
+    echo "  make pre-commit        # Run pre-commit checks"
     echo
     echo "Quality assurance:"
     echo "  make test              # Run tests"
     echo "  make format            # Format code"
     echo "  make lint              # Lint code"
     echo "  make typecheck         # Type check"
-    echo "  make check             # Run all checks"
+    echo "  make check             # Run quality checks"
+    echo "  make check-security    # Run security checks"
+    echo "  make check-all         # Run all checks"
     echo "  make help              # Show all available commands"
     echo
     echo "Plugin development:"

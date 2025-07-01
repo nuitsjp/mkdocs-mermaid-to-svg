@@ -26,10 +26,13 @@ make test-cov
 
 ### Code Quality
 ```bash
-# Run all quality checks in sequence
+# Run quality checks (equivalent to pre-commit hooks)
 make check
 
-# Run all checks on all files with pre-commit
+# Run security checks
+make check-security
+
+# Run complete checks (quality + security)
 make check-all
 ```
 
@@ -119,4 +122,6 @@ Error behavior is controlled by `error_on_fail` setting:
 - Use `--verbose` flag for detailed debug logging
 - CI environments are detected and handled with appropriate puppeteer configuration
 - Generated images are dynamically registered with MkDocs file system for proper copying to site directory
-- Pre-commit hooks ensure code quality (ruff, mypy, bandit)
+- Mermaid CLI uses local installation with automatic fallback to `npx mmdc`
+- Quality checks are unified with pre-commit hooks (`make check`)
+- Use `make check-all` before submitting PRs

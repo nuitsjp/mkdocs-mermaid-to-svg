@@ -37,15 +37,59 @@ make install-dev
 
 `Makefile` には、開発を効率化するためのコマンドが多数定義されています。
 
+### 開発コマンド
+
 - `make install-dev`: 開発用に編集可能モードでパッケージをインストールします。
 - `make test`: すべてのテストを実行します。
 - `make test-cov`: カバレッジレポート付きでテストを実行します。
-- `make check`: フォーマット、リント、型チェック、テストを順番に実行します。
-- `make check-all`: pre-commitを使って、すべてのファイルに対して品質チェックを実行します。
+
+### 品質チェック
+
+- `make check`: 品質チェック（pre-commitフックと同等の内容）を実行します。
+- `make check-security`: セキュリティチェック（bandit + pip-audit）を実行します。
+- `make check-all`: 完全チェック（品質 + セキュリティ）を実行します。
+
+### MkDocsコマンド
+
 - `uv run mkdocs serve`: 開発用のローカルサーバーを起動します。
 - `uv run mkdocs build`: ドキュメントサイトをビルドします。
 - `ENABLE_PDF_EXPORT=1 uv run mkdocs build`: PDF生成を有効にしてドキュメントサイトをビルドします。
+
+### Mermaid CLI
+
 - `mmdc --version`: ローカルインストールされたMermaid CLIのバージョン確認。
 - `npx mmdc --version`: npx経由でのMermaid CLIのバージョン確認（フォールバック）。
 
 利用可能なすべてのコマンドについては、`make help` を実行して確認してください。
+
+## 開発ワークフロー
+
+### 日常的な開発
+
+1. **コード変更後**:
+   ```bash
+   make check  # 品質チェック（自動修正含む）
+   ```
+
+2. **テスト実行**:
+   ```bash
+   make test   # 全テスト実行
+   ```
+
+### コミット前
+
+```bash
+make check  # pre-commitフックと同等のチェック
+```
+
+### プルリクエスト前
+
+```bash
+make check-all  # 品質 + セキュリティの完全チェック
+```
+
+### PDF生成テスト
+
+```bash
+ENABLE_PDF_EXPORT=1 uv run mkdocs build
+```

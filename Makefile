@@ -1,4 +1,4 @@
-.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all benchmark profile setup pr issue clean install-dev
+.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all check-security benchmark profile setup pr issue clean install-dev
 
 # デフォルトターゲット
 help:
@@ -19,8 +19,9 @@ help:
 	@echo "  security     - セキュリティチェック（bandit）"
 	@echo "  audit        - 依存関係の脆弱性チェック（pip-audit）"
 	@echo "  benchmark    - パフォーマンスベンチマーク実行"
-	@echo "  check        - format, lint, typecheck, testを順番に実行"
-	@echo "  check-all    - pre-commitで全ファイルをチェック"
+	@echo "  check        - 品質チェック（format + lint + typecheck）"
+	@echo "  check-security - セキュリティチェック（security + audit）"
+	@echo "  check-all    - 完全チェック（pre-commitフック全実行）"
 	@echo "  pr           - PR作成 (TITLE=\"タイトル\" BODY=\"本文\" [LABEL=\"ラベル\"])"
 	@echo "  issue        - イシュー作成 (TITLE=\"タイトル\" BODY=\"本文\" [LABEL=\"ラベル\"])"
 	@echo "  clean        - キャッシュファイルの削除"
@@ -80,10 +81,14 @@ benchmark:
 	fi
 
 # 統合チェック
-check: format lint typecheck test
+check: format lint typecheck
+	@echo "Quality checks completed"
 
 check-all:
 	uv run pre-commit run --all-files
+
+check-security: security audit
+	@echo "Security checks completed"
 
 # GitHub操作
 pr:
