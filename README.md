@@ -13,6 +13,12 @@ This plugin requires a Mermaid execution engine. Please install one of the follo
 -   [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
 -   [Node.js](https://nodejs.org/) with [Puppeteer](https://pptr.dev/)
 
+For Mermaid CLI to work properly, you also need to install a browser for Puppeteer:
+
+```bash
+npx puppeteer browsers install chrome-headless-shell
+```
+
 ## Setup
 
 Install the plugin using pip:

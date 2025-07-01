@@ -122,7 +122,18 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 
 
 def is_command_available(command: str) -> bool:
-    return which(command) is not None
+    """Check if a command is available, handling complex commands like 'npx mmdc'"""
+    if not command:
+        return False
+
+    # Split command to get the first part (actual executable)
+    command_parts = command.split()
+    if not command_parts:
+        return False
+
+    # For commands like "npx mmdc", check if "npx" is available
+    base_command = command_parts[0]
+    return which(base_command) is not None
 
 
 def clean_generated_images(

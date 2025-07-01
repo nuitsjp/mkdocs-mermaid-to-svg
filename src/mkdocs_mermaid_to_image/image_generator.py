@@ -20,14 +20,43 @@ class MermaidImageGenerator:
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
         self.logger = get_logger(__name__)
+        self._resolved_mmdc_command: str | None = None
         self._validate_dependencies()
 
     def _validate_dependencies(self) -> None:
-        if not is_command_available(self.config["mmdc_path"]):
-            raise MermaidCLIError(
-                f"Mermaid CLI not found at '{self.config['mmdc_path']}'. "
-                f"Please install it with: npm install -g @mermaid-js/mermaid-cli"
+        """Validate and resolve the mmdc command with fallback support."""
+        primary_command = self.config["mmdc_path"]
+
+        # Try primary command first
+        if is_command_available(primary_command):
+            self._resolved_mmdc_command = primary_command
+            self.logger.debug(f"Using primary mmdc command: {primary_command}")
+            return
+
+        # Determine fallback command
+        if primary_command == "mmdc":
+            fallback_command = "npx mmdc"
+        elif primary_command == "npx mmdc":
+            fallback_command = "mmdc"
+        else:
+            # Custom command, try npx variant
+            fallback_command = f"npx {primary_command}"
+
+        # Try fallback command
+        if is_command_available(fallback_command):
+            self._resolved_mmdc_command = fallback_command
+            self.logger.info(
+                f"Primary command '{primary_command}' not found, "
+                f"using fallback: {fallback_command}"
             )
+            return
+
+        # Both failed
+        raise MermaidCLIError(
+            f"Mermaid CLI not found. Tried '{primary_command}' and "
+            f"'{fallback_command}'. Please install it with: "
+            f"npm install @mermaid-js/mermaid-cli"
+        )
 
     def generate(
         self, mermaid_code: str, output_path: str, config: dict[str, Any]
@@ -151,8 +180,15 @@ class MermaidImageGenerator:
     def _build_mmdc_command(
         self, input_file: str, output_file: str, config: dict[str, Any]
     ) -> tuple[list[str], str | None]:
+        # Use the resolved command from initialization
+        if not self._resolved_mmdc_command:
+            raise MermaidCLIError("Mermaid CLI command not properly resolved")
+
+        # Handle commands like "npx mmdc" by splitting them
+        mmdc_command_parts = self._resolved_mmdc_command.split()
+
         cmd = [
-            self.config["mmdc_path"],
+            *mmdc_command_parts,
             "-i",
             input_file,
             "-o",
@@ -169,18 +205,34 @@ class MermaidImageGenerator:
             str(config.get("scale", self.config["scale"])),
         ]
 
-        # Add --no-sandbox for CI environments via puppeteer config
+        # Add puppeteer config for proper browser handling
         puppeteer_config_file = None
 
+        # Create puppeteer config for better browser compatibility
+        puppeteer_config: dict[str, Any] = {
+            "args": [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-web-security",
+            ]
+        }
+
+        # Try to use system Chrome if available
+        import shutil
+
+        chrome_path = shutil.which("google-chrome") or shutil.which("chromium-browser")
+        if chrome_path:
+            puppeteer_config["executablePath"] = chrome_path
+
+        # In CI environments, additional restrictions may be needed
         if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
-            # Create temporary puppeteer config with --no-sandbox
-            puppeteer_config = {"args": ["--no-sandbox"]}
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as f:
-                json.dump(puppeteer_config, f)
-                puppeteer_config_file = f.name
-                cmd.extend(["-p", f.name])
+            puppeteer_config["args"].extend(["--single-process", "--no-zygote"])
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(puppeteer_config, f)
+            puppeteer_config_file = f.name
+            cmd.extend(["-p", f.name])
 
         if self.config.get("css_file"):
             cmd.extend(["-C", self.config["css_file"]])

@@ -108,7 +108,11 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
-            mock_clean.assert_called_once_with("/tmp/test.mmd")
+            # Both temp file (.mmd) and puppeteer config file (.json) are cleaned
+            assert mock_clean.call_count == 2
+            assert any(
+                "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
+            )
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     @patch("subprocess.run")
@@ -142,7 +146,11 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
-            mock_clean.assert_called_once_with("/tmp/test.mmd")
+            # Both temp file (.mmd) and puppeteer config file (.json) are cleaned
+            assert mock_clean.call_count == 2
+            assert any(
+                "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
+            )
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     @patch("subprocess.run")
@@ -173,7 +181,11 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
-            mock_clean.assert_called_once_with("/tmp/test.mmd")
+            # Both temp file (.mmd) and puppeteer config file (.json) are cleaned
+            assert mock_clean.call_count == 2
+            assert any(
+                "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
+            )
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_build_mmdc_command_basic(self, mock_command_available, basic_config):
@@ -286,7 +298,7 @@ class TestMermaidImageGenerator:
         # Puppeteer configは存在確認しているので含まれない
         # (CI用の-pフラグとユーザー指定の-pフラグを区別するため、カウントで確認)
         p_count = cmd.count("-p")
-        assert p_count == 0  # CI用もユーザー用も追加されない
+        assert p_count == 1  # CI用は常に追加される（システムChrome設定用）
         assert "/nonexistent/puppeteer.json" not in cmd
 
         # Mermaid configは存在確認していないので含まれる

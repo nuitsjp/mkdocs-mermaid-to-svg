@@ -135,11 +135,47 @@ install_update_gemini_cli() {
     print_step "Run 'gemini auth' to authenticate after setup completes"
 }
 
-install_update_mermaid_cli() {
-    print_step "Installing/updating Mermaid CLI to latest version..."
-    # Always install/update to latest
-    npm install -g @mermaid-js/mermaid-cli@latest
-    print_success "Mermaid CLI installed/updated ($(mmdc --version))"
+install_puppeteer_dependencies() {
+    print_step "Installing Puppeteer dependencies for Chrome browser..."
+
+    # Install Chrome browser which includes all necessary dependencies
+    if ! command -v google-chrome &> /dev/null; then
+        print_step "Installing Google Chrome (includes all Puppeteer dependencies)..."
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+        print_success "Google Chrome installed successfully"
+    else
+        print_success "Google Chrome already installed"
+    fi
+
+    # Alternative: Install chromium as fallback if Google Chrome fails
+    if ! command -v google-chrome &> /dev/null && ! command -v chromium-browser &> /dev/null; then
+        print_step "Installing Chromium browser as fallback..."
+        sudo apt-get install -y chromium-browser
+        print_success "Chromium browser installed successfully"
+    fi
+}
+
+setup_mermaid_local() {
+    print_step "Setting up Mermaid CLI locally..."
+
+    # Install Mermaid CLI locally via npm (not globally)
+    print_step "Installing Mermaid CLI locally..."
+    npm install
+
+    # Install Chrome headless shell for Puppeteer
+    print_step "Installing Chrome headless shell for Puppeteer..."
+    npx puppeteer browsers install chrome-headless-shell
+
+    # Verify local installation
+    if npx mmdc --version > /dev/null 2>&1; then
+        print_success "Mermaid CLI installed locally ($(npx mmdc --version))"
+    else
+        print_error "Failed to install Mermaid CLI locally"
+        exit 1
+    fi
 }
 
 update_system_packages() {
@@ -325,6 +361,7 @@ main() {
     install_update_cargo         # cargo, rustc (Rust toolchain)
     install_update_github_cli    # gh (GitHub CLI)
     install_japanese_fonts       # fonts-noto-cjk, fonts-ipafont-* (CJK font support)
+    install_puppeteer_dependencies # Puppeteer Chrome browser dependencies
 
     # SNAP packages: Modern tools with latest versions
     install_update_npm           # Node.js LTS + npm (JavaScript runtime)
@@ -335,12 +372,14 @@ main() {
     # CARGO packages: Rust ecosystem tools
     install_update_similarity_py # similarity-py (Python code similarity detection)
 
-    # NPM global packages: Node.js ecosystem tools
-    install_update_mermaid_cli   # @mermaid-js/mermaid-cli (diagram generation)
+    # NPM global packages: Node.js ecosystem tools (except Mermaid CLI)
     install_update_claude_code   # @anthropic-ai/claude-code (AI assistant)
     install_update_gemini_cli    # @google/gemini-cli (Google AI)
 
     # === PROJECT SETUP ===
+
+    # Mermaid CLI local setup (project-specific)
+    setup_mermaid_local         # npm: local Mermaid CLI + Puppeteer browsers
 
     # Python environment and dependencies
     setup_python                 # uv: Python version pin, install dependencies

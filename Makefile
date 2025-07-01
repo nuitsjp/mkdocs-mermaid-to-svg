@@ -1,4 +1,4 @@
-.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all benchmark profile setup pr issue clean
+.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all benchmark profile setup pr issue clean install-dev
 
 # デフォルトターゲット
 help:
@@ -6,6 +6,7 @@ help:
 	@echo ""
 	@echo "Available targets:"
 	@echo "  setup        - セットアップ（依存関係インストール、pre-commit設定）"
+	@echo "  install-dev  - 開発用に編集可能モードでパッケージをインストール"
 	@echo "  sync         - 全依存関係を同期"
 	@echo "  test         - 全テスト実行（単体・プロパティ・統合）"
 	@echo "  test-cov     - カバレッジ付きテスト実行"
@@ -27,6 +28,9 @@ help:
 # セットアップ
 setup:
 	chmod +x scripts/setup.sh && ./scripts/setup.sh
+
+install-dev:
+	uv pip install -e .
 
 sync:
 	uv sync --all-extras

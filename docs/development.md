@@ -28,7 +28,7 @@ make setup
 ソースコードの変更を即座に反映させるために、編集可能モード (`-e`) でインストールすることを推奨します。
 
 ```bash
-uv pip install -e .
+make install-dev
 ```
 
 これにより、`mkdocs.yml` で `mermaid-to-image` プラグインを指定したMkDocsプロジェクトで、開発中のプラグインを直接テストできます。
@@ -37,11 +37,15 @@ uv pip install -e .
 
 `Makefile` には、開発を効率化するためのコマンドが多数定義されています。
 
+- `make install-dev`: 開発用に編集可能モードでパッケージをインストールします。
 - `make test`: すべてのテストを実行します。
 - `make test-cov`: カバレッジレポート付きでテストを実行します。
 - `make check`: フォーマット、リント、型チェック、テストを順番に実行します。
 - `make check-all`: pre-commitを使って、すべてのファイルに対して品質チェックを実行します。
 - `uv run mkdocs serve`: 開発用のローカルサーバーを起動します。
 - `uv run mkdocs build`: ドキュメントサイトをビルドします。
+- `ENABLE_PDF_EXPORT=1 uv run mkdocs build`: PDF生成を有効にしてドキュメントサイトをビルドします。
+- `mmdc --version`: ローカルインストールされたMermaid CLIのバージョン確認。
+- `npx mmdc --version`: npx経由でのMermaid CLIのバージョン確認（フォールバック）。
 
 利用可能なすべてのコマンドについては、`make help` を実行して確認してください。
