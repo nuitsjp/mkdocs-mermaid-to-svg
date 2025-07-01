@@ -307,6 +307,94 @@ class TestMermaidToImagePlugin:
 
         mock_rmtree.assert_called_once_with(".mermaid_cache")
 
+    @patch("pathlib.Path.exists")
+    def test_on_post_build_image_cleanup_enabled(self, mock_exists, plugin):
+        """画像クリーンアップが有効時に生成画像ファイルが削除されるかテスト"""
+        plugin.config = {
+            "enabled": True,
+            "cache_enabled": True,
+            "cache_dir": ".mermaid_cache",
+            "cleanup_generated_images": True,
+        }
+        plugin.generated_images = [
+            "/path/to/image1.png",
+            "/path/to/image2.svg",
+            "/path/to/nonexistent.png",  # 存在しないファイル
+        ]
+        plugin.logger = Mock()
+
+        # mock_existsをTrue設定（簡単のため全ファイルが存在するとする）
+        mock_exists.return_value = True
+
+        with patch("pathlib.Path.unlink") as mock_unlink:
+            plugin.on_post_build(config={})
+
+            # 3つのファイルが削除される
+            assert mock_unlink.call_count == 3
+
+    @patch("pathlib.Path.exists")
+    def test_on_post_build_image_cleanup_disabled(self, mock_exists, plugin):
+        """画像クリーンアップが無効時に生成画像ファイルが削除されないかテスト"""
+        plugin.config = {
+            "enabled": True,
+            "cache_enabled": True,
+            "cache_dir": ".mermaid_cache",
+            "cleanup_generated_images": False,
+        }
+        plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
+        plugin.logger = Mock()
+        mock_exists.return_value = True
+
+        with patch("pathlib.Path.unlink") as mock_unlink:
+            plugin.on_post_build(config={})
+
+            # クリーンアップが無効なので削除されない
+            mock_unlink.assert_not_called()
+
+    @patch("pathlib.Path.unlink")
+    @patch("pathlib.Path.exists")
+    def test_on_post_build_image_cleanup_error_handling(
+        self, mock_exists, mock_unlink, plugin
+    ):
+        """画像削除時のエラーハンドリングをテスト"""
+        plugin.config = {
+            "enabled": True,
+            "cleanup_generated_images": True,
+            "cache_enabled": True,
+            "cache_dir": ".mermaid_cache",
+        }
+        plugin.generated_images = ["/path/to/image1.png"]
+        plugin.logger = Mock()
+        mock_exists.return_value = True
+        mock_unlink.side_effect = PermissionError("Permission denied")
+
+        # エラーが発生してもプラグインは正常に動作する
+        plugin.on_post_build(config={})
+
+        # エラーログが出力される
+        plugin.logger.warning.assert_called()
+
+    @patch("mkdocs_mermaid_to_image.plugin.clean_generated_images")
+    def test_on_post_build_image_cleanup_without_logger(
+        self, mock_clean_generated_images, plugin
+    ):
+        """loggerがNoneでもクリーンアップが実行されることをテスト"""
+        plugin.config = {
+            "enabled": True,
+            "cleanup_generated_images": True,
+            "cache_enabled": True,
+            "cache_dir": ".mermaid_cache",
+        }
+        plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
+        plugin.logger = None  # logger が None の場合
+
+        plugin.on_post_build(config={})
+
+        # loggerがNoneでもclean_generated_imagesが呼び出されるべき
+        mock_clean_generated_images.assert_called_once_with(
+            plugin.generated_images, None
+        )
+
     def test_on_serve_disabled(self, plugin):
         """プラグイン無効時のon_serveの挙動をテスト"""
         plugin.config = {"enabled": False}

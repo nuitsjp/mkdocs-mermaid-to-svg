@@ -12,7 +12,7 @@ import contextlib
 import logging
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from mkdocs_mermaid_to_image.utils import (
     clean_temp_file,
@@ -235,3 +235,109 @@ class TestUtilityFunctions:
 
         result = get_relative_path(file_path, base_path)
         assert result == file_path  # Should return original file_path
+
+
+class TestCleanGeneratedImages:
+    """clean_generated_images関数のテストクラス"""
+
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.unlink")
+    def test_clean_generated_images_success(self, mock_unlink, mock_exists):
+        """正常なクリーンアップのテスト"""
+        from mkdocs_mermaid_to_image.utils import clean_generated_images
+
+        mock_logger = Mock()
+        image_paths = ["/path/to/image1.png", "/path/to/image2.svg"]
+        mock_exists.return_value = True
+
+        clean_generated_images(image_paths, mock_logger)
+
+        assert mock_unlink.call_count == 2
+        mock_logger.info.assert_called_with("Cleaned up 2 generated images")
+
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.unlink")
+    def test_clean_generated_images_permission_error(self, mock_unlink, mock_exists):
+        """権限エラー時のテスト"""
+        from mkdocs_mermaid_to_image.utils import clean_generated_images
+
+        mock_logger = Mock()
+        image_paths = ["/path/to/image1.png"]
+        mock_exists.return_value = True
+        mock_unlink.side_effect = PermissionError("Permission denied")
+
+        clean_generated_images(image_paths, mock_logger)
+
+        # warning が複数回呼ばれる（個別エラー + 全体サマリー）
+        assert mock_logger.warning.call_count >= 1
+        # 最初の呼び出しが権限エラーメッセージかチェック
+        warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+        assert any("Permission denied" in call for call in warning_calls)
+
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.unlink")
+    def test_clean_generated_images_os_error(self, mock_unlink, mock_exists):
+        """OSエラー時のテスト"""
+        from mkdocs_mermaid_to_image.utils import clean_generated_images
+
+        mock_logger = Mock()
+        image_paths = ["/path/to/image1.png"]
+        mock_exists.return_value = True
+        mock_unlink.side_effect = OSError("File locked")
+
+        clean_generated_images(image_paths, mock_logger)
+
+        # warning が複数回呼ばれる（個別エラー + 全体サマリー）
+        assert mock_logger.warning.call_count >= 1
+        # OS error メッセージがあることをチェック
+        warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+        assert any("OS error" in call for call in warning_calls)
+
+    def test_clean_generated_images_empty_list(self):
+        """空のリストの場合のテスト"""
+        from mkdocs_mermaid_to_image.utils import clean_generated_images
+
+        mock_logger = Mock()
+
+        clean_generated_images([], mock_logger)
+
+        # 何も実行されない
+        mock_logger.info.assert_not_called()
+        mock_logger.warning.assert_not_called()
+
+    @patch("pathlib.Path.exists")
+    def test_clean_generated_images_nonexistent_files(self, mock_exists):
+        """存在しないファイルの場合のテスト"""
+        from mkdocs_mermaid_to_image.utils import clean_generated_images
+
+        mock_logger = Mock()
+        image_paths = ["/path/to/nonexistent.png"]
+        mock_exists.return_value = False
+
+        clean_generated_images(image_paths, mock_logger)
+
+        # 存在しないファイルは削除されない
+        mock_logger.info.assert_not_called()
+        mock_logger.warning.assert_not_called()
+
+    def test_clean_generated_images_empty_string_paths(self):
+        """空文字列のパスが含まれる場合のテスト"""
+        from mkdocs_mermaid_to_image.utils import clean_generated_images
+
+        mock_logger = Mock()
+        image_paths = ["", "/path/to/image.png", None]
+
+        # 例外が発生せず正常に実行される
+        clean_generated_images(image_paths, mock_logger)
+
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.unlink")
+    def test_clean_generated_images_with_none_logger(self, mock_unlink, mock_exists):
+        """loggerがNoneの場合のテスト"""
+        from mkdocs_mermaid_to_image.utils import clean_generated_images
+
+        image_paths = ["/path/to/image1.png", "/path/to/image2.svg"]
+        mock_exists.return_value = True
+
+        # loggerがNoneでも例外が発生しない
+        clean_generated_images(image_paths, None)

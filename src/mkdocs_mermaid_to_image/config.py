@@ -80,6 +80,10 @@ class ConfigManager:
                     ["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO"
                 ),
             ),
+            (
+                "cleanup_generated_images",
+                config_options.Type(bool, default=False),
+            ),
         )
 
     @staticmethod
@@ -125,3 +129,4 @@ class MermaidPluginConfig(Config):  # type: ignore[no-untyped-call]
     log_level = config_options.Choice(
         ["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO"
     )
+    cleanup_generated_images = config_options.Type(bool, default=False)

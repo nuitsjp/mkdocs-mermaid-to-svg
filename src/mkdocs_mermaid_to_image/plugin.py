@@ -10,7 +10,7 @@ from mkdocs.plugins import BasePlugin
 from .config import ConfigManager, MermaidPluginConfig
 from .exceptions import MermaidConfigError, MermaidPreprocessorError
 from .processor import MermaidProcessor
-from .utils import setup_logger
+from .utils import clean_generated_images, setup_logger
 
 
 class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-untyped-call]
@@ -44,6 +44,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
                 ["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO"
             ),
         ),
+        ("cleanup_generated_images", config_options.Type(bool, default=False)),
     )
 
     def __init__(self) -> None:
@@ -208,6 +209,10 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             self.logger.info(
                 f"Generated {len(self.generated_images)} Mermaid images total"
             )
+
+        # 生成画像のクリーンアップ
+        if self.config.get("cleanup_generated_images", False) and self.generated_images:
+            clean_generated_images(self.generated_images, self.logger)
 
         if not self.config["cache_enabled"]:
             cache_dir = self.config["cache_dir"]
