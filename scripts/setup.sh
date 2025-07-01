@@ -93,48 +93,38 @@ check_uv() {
 }
 
 check_npm() {
-    if ! command -v npm &> /dev/null; then
-        print_step "npm is not installed. Installing Node.js and npm..."
-
-        # if macos, use nodebrew
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            print_step "Use nodebrew to install Node.js"
-            if ! command -v nodebrew &> /dev/null; then
-                print_step "Install nodebrew"
-                if ! command -v brew &> /dev/null; then
-                    print_error "Homebrew is not installed. Please install Homebrew first."
-                    exit 1
-                fi
-                brew install nodebrew
-                echo "export PATH=$HOME/.nodebrew/current/bin:$PATH" >> $rc_file
-                export PATH="$HOME/.nodebrew/current/bin:$PATH"
+    print_step "Ensuring latest Node.js (LTS) and npm are installed..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        print_step "Use nodebrew to install/update latest Node.js LTS"
+        if ! command -v nodebrew &> /dev/null; then
+            print_step "Install nodebrew"
+            if ! command -v brew &> /dev/null; then
+                print_error "Homebrew is not installed. Please install Homebrew first."
+                exit 1
             fi
-            nodebrew install stable
-            nodebrew use stable
-            print_success "Node.js installed"
-        elif [[ "$OSTYPE" == "linux"* ]]; then
-            print_step "Installing Node.js via NodeSource repository..."
-            if ! curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -; then
-                print_warning "SSL verification failed, trying with --insecure flag..."
-                curl -fsSL --insecure https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-            fi
-            sudo apt-get install -y nodejs
-            print_success "Node.js installed"
-        else
-            print_error "Unsupported OS. Please install Node.js manually."
-            exit 1
+            brew install nodebrew
+            echo "export PATH=$HOME/.nodebrew/current/bin:$PATH" >> $rc_file
+            export PATH="$HOME/.nodebrew/current/bin:$PATH"
         fi
-
-        # Verify installation
-        if ! command -v npm &> /dev/null; then
-            print_error "Failed to install npm. Please install Node.js manually."
-            exit 1
-        fi
-
-        print_success "npm installed successfully ($(npm --version))"
+        nodebrew install-binary stable || nodebrew install stable
+        nodebrew use stable
+        print_success "Node.js $(node -v) installed/updated (latest LTS)"
+    elif [[ "$OSTYPE" == "linux"* ]]; then
+        print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        print_success "Node.js $(node -v) installed/updated (latest LTS)"
     else
-        print_success "npm is already installed ($(npm --version))"
+        print_error "Unsupported OS. Please install Node.js 18以上 manually."
+        exit 1
     fi
+
+    # Verify installation
+    if ! command -v npm &> /dev/null; then
+        print_error "Failed to install npm. Please install Node.js manually."
+        exit 1
+    fi
+    print_success "npm is installed ($(npm --version)), Node.js $(node -v)"
 }
 
 check_github_cli() {
@@ -177,20 +167,18 @@ check_github_cli() {
 check_claude_code() {
     if ! command -v claude &> /dev/null; then
         print_step "Installing Claude Code..."
-        # WSL環境でWindowsとして誤認識される問題を回避
         export NODE_ENV=production
         export TERM=xterm-256color
         unset WINDIR
-
-        # Claude Codeのインストールを試行
-        if npm i -g @anthropic-ai/claude-code; then
+        if sudo npm i -g @anthropic-ai/claude-code; then
             print_success "Claude Code installed"
             print_step "Run 'claude auth' to authenticate after setup completes"
         else
             print_warning "Claude Code installation failed. This might be due to environment detection issues."
             print_step "You can try installing manually later with:"
-            echo "  npm i -g @anthropic-ai/claude-code"
+            echo "  sudo npm i -g @anthropic-ai/claude-code"
             print_step "If the issue persists, check: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview#check-system-requirements"
+            exit 1
         fi
     else
         print_success "Claude Code is already installed ($(claude --version))"
