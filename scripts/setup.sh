@@ -29,163 +29,13 @@ print_success() {
     echo -e "${GREEN}✓${NC} $1"
 }
 
-# Check if uv is installed
-check_uv() {
-    if ! command -v uv &> /dev/null; then
-        print_step "uv is not installed. Installing uv via pipx..."
+# Install/update functions - unified package management
 
-        # Install pipx if not available
-        if ! command -v pipx &> /dev/null; then
-            print_step "Installing pipx..."
-            sudo apt-get update
-            sudo apt-get install -y pipx
-            # Ensure pipx is in PATH
-            pipx ensurepath
-        fi
-
-        # Install uv using pipx
-        pipx install uv
-
-        # Ensure uv is in PATH
-        export PATH="$HOME/.local/bin:$PATH"
-
-        # Verify installation
-        if ! command -v uv &> /dev/null; then
-            print_error "Failed to install uv via pipx. Trying curl fallback..."
-            # Fallback to curl method
-            if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
-                print_warning "SSL verification failed, trying with --insecure flag..."
-                curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
-            fi
-
-            # Add uv to PATH for current session - check multiple possible locations
-            if [[ -f "$HOME/.local/bin/uv" ]]; then
-                export PATH="$HOME/.local/bin:$PATH"
-            elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
-                export PATH="$HOME/.cargo/bin:$PATH"
-            fi
-
-            # Add to shell rc file
-            if [[ "$SHELL" == "/bin/zsh" ]]; then
-                if [[ -f "$HOME/.local/bin/uv" ]]; then
-                    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-                else
-                    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-                fi
-            elif [[ "$SHELL" == "/bin/bash" ]]; then
-                if [[ -f "$HOME/.local/bin/uv" ]]; then
-                    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-                else
-                    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-                fi
-            elif [[ "$SHELL" == "/bin/fish" ]]; then
-                if [[ -f "$HOME/.local/bin/uv" ]]; then
-                    echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
-                else
-                    echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
-                fi
-            fi
-
-            # Final verification
-            if ! command -v uv &> /dev/null; then
-                print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
-                exit 1
-            fi
-        fi
-
-        print_success "uv installed successfully"
-    else
-        print_success "uv is already installed ($(uv --version))"
-    fi
-}
-
-check_npm() {
-    print_step "Ensuring Node.js and npm are installed..."
-
-    # Install Node.js via snap (includes npm)
-    print_step "Installing Node.js via snap..."
-    sudo snap install node --classic
-    print_success "Node.js $(node -v) installed via snap"
-
-    # Verify installation
-    if ! command -v npm &> /dev/null; then
-        print_error "Failed to install npm with Node.js snap package."
-        exit 1
-    fi
-    print_success "npm is installed ($(npm --version)), Node.js $(node -v)"
-}
-
-check_github_cli() {
-    if ! command -v gh &> /dev/null; then
-        print_step "gh is not installed. Installing GitHub CLI via apt..."
-        # Install GitHub CLI directly via apt
-        sudo apt-get update
-        sudo apt-get install -y gh
-
-        # Verify installation
-        if ! command -v gh &> /dev/null; then
-            print_error "Failed to install GitHub CLI via apt. It may not be available in the default repositories."
-            exit 1
-        fi
-
-        print_success "GitHub CLI installed successfully"
-        print_step "Please run 'gh auth login' to authenticate with GitHub after setup completes."
-    else
-        print_success "GitHub CLI is already installed ($(gh --version | head -n1))"
-    fi
-}
-
-check_claude_code() {
-    if ! command -v claude &> /dev/null; then
-        print_step "Installing Claude Code..."
-        export NODE_ENV=production
-        export TERM=xterm-256color
-        unset WINDIR
-        if sudo npm i -g @anthropic-ai/claude-code; then
-            print_success "Claude Code installed"
-            print_step "Run 'claude auth' to authenticate after setup completes"
-        else
-            print_warning "Claude Code installation failed. This might be due to environment detection issues."
-            print_step "You can try installing manually later with:"
-            echo "  sudo npm i -g @anthropic-ai/claude-code"
-            print_step "If the issue persists, check: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview#check-system-requirements"
-            exit 1
-        fi
-    else
-        print_success "Claude Code is already installed ($(claude --version))"
-    fi
-}
-
-check_gemini_cli() {
-    if ! command -v gemini &> /dev/null; then
-        print_step "Installing Gemini CLI..."
-        npm install -g @google/gemini-cli
-        print_success "Gemini CLI installed"
-        print_step "Run 'gemini auth' to authenticate after setup completes"
-    else
-        print_success "Gemini CLI is already installed ($(gemini --version))"
-    fi
-}
-
-check_mermaid_cli() {
-    print_step "Installing Mermaid CLI..."
-    if ! command -v mmdc &> /dev/null; then
-        npm install -g @mermaid-js/mermaid-cli
-        print_success "Mermaid CLI installed"
-    else
-        print_success "Mermaid CLI already installed ($(mmdc --version))"
-    fi
-}
-
-check_make() {
-    if ! command -v make &> /dev/null; then
-        print_step "make is not installed. Installing make..."
-        sudo apt-get update
-        sudo apt-get install -y make
-        print_success "make installed successfully"
-    else
-        print_success "make is already installed ($(make --version | head -n1))"
-    fi
+install_update_make() {
+    print_step "Installing/updating build tools..."
+    sudo apt-get install -y build-essential make
+    print_success "Build tools installed/updated successfully"
+    print_success "make is available ($(make --version | head -n1))"
 }
 
 install_update_uv() {
@@ -214,46 +64,8 @@ install_update_uv() {
 
     # Verify installation
     if ! command -v uv &> /dev/null; then
-        print_error "Failed to install uv via pipx. Trying curl fallback..."
-        # Fallback to curl method
-        if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
-            print_warning "SSL verification failed, trying with --insecure flag..."
-            curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
-        fi
-
-        # Add uv to PATH for current session - check multiple possible locations
-        if [[ -f "$HOME/.local/bin/uv" ]]; then
-            export PATH="$HOME/.local/bin:$PATH"
-        elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
-            export PATH="$HOME/.cargo/bin:$PATH"
-        fi
-
-        # Add to shell rc file
-        if [[ "$SHELL" == "/bin/zsh" ]]; then
-            if [[ -f "$HOME/.local/bin/uv" ]]; then
-                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-            else
-                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-            fi
-        elif [[ "$SHELL" == "/bin/bash" ]]; then
-            if [[ -f "$HOME/.local/bin/uv" ]]; then
-                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-            else
-                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-            fi
-        elif [[ "$SHELL" == "/bin/fish" ]]; then
-            if [[ -f "$HOME/.local/bin/uv" ]]; then
-                echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
-            else
-                echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
-            fi
-        fi
-
-        # Final verification
-        if ! command -v uv &> /dev/null; then
-            print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
-            exit 1
-        fi
+        print_error "Failed to install uv via pipx. Please install pipx manually."
+        exit 1
     fi
 
     print_success "uv installed/updated successfully ($(uv --version))"
@@ -330,13 +142,6 @@ install_update_mermaid_cli() {
     print_success "Mermaid CLI installed/updated ($(mmdc --version))"
 }
 
-install_update_make() {
-    print_step "Installing/updating make..."
-    sudo apt-get install -y make
-    print_success "make installed/updated successfully"
-    print_success "make is available ($(make --version | head -n1))"
-}
-
 update_system_packages() {
     print_step "Updating system packages..."
     sudo apt-get update
@@ -346,45 +151,32 @@ update_system_packages() {
 install_update_cargo() {
     print_step "Installing/updating Rust and Cargo to latest version..."
 
-    # Try apt first on Linux for better SSL compatibility
+    # Install Rust and Cargo via apt package manager
     print_step "Installing Rust and Cargo via apt package manager..."
-    if sudo apt-get install -y cargo rustc; then
-        print_success "Rust/Cargo installed via apt package manager"
-    else
-        print_warning "apt installation failed, trying rustup installer..."
-        # Fallback to rustup installer with SSL fallback
-        if ! curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
-            print_warning "SSL verification failed, trying with --insecure flag..."
-            curl --proto '=https' --tlsv1.2 -sSf --insecure https://sh.rustup.rs | sh -s -- -y
-        fi
-
-        # Source cargo environment for rustup installation
-        source "$HOME/.cargo/env" 2>/dev/null || true
-        export PATH="$HOME/.cargo/bin:$PATH"
-
-        # Add to shell rc file for rustup installation
-        if [[ "$SHELL" == "/bin/zsh" ]]; then
-            echo 'source "$HOME/.cargo/env"' >> ~/.zshrc
-        elif [[ "$SHELL" == "/bin/bash" ]]; then
-            echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
-        elif [[ "$SHELL" == "/bin/fish" ]]; then
-            echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
-        fi
-    fi
-
-    # Update to latest stable if rustup is available (for rustup installations)
-    if command -v rustup &> /dev/null; then
-        rustup update stable
-        rustup default stable
-    fi
+    sudo apt-get install -y cargo rustc build-essential
 
     # Verify installation
     if ! command -v cargo &> /dev/null; then
-        print_error "Failed to install Rust/Cargo. Please install manually."
+        print_error "Failed to install Rust/Cargo via apt. Please install manually."
         exit 1
     fi
 
     print_success "Rust/Cargo installed/updated successfully ($(cargo --version))"
+}
+
+install_update_similarity_py() {
+    print_step "Installing/updating similarity-py to latest version..."
+
+    # Install similarity-py via cargo
+    cargo install similarity-py
+
+    # Verify installation
+    if ! command -v similarity-py &> /dev/null; then
+        print_error "Failed to install similarity-py via cargo. Please install manually."
+        exit 1
+    fi
+
+    print_success "similarity-py installed/updated successfully ($(similarity-py --help | head -n1 | grep -o 'similarity-py [0-9.]*' || echo 'similarity-py'))"
 }
 
 # Setup Python environment
@@ -485,30 +277,49 @@ main() {
     echo "======================================="
     echo
 
-    # Update system packages once at the beginning
+    # === SYSTEM PREPARATION ===
+    # Update package repositories once at the beginning
     update_system_packages
 
-    # Install/update all tools to latest versions
-    install_update_make
-    install_update_cargo
-    install_update_uv
-    install_update_npm
-    install_update_mermaid_cli
-    install_update_github_cli
-    install_update_claude_code
-    install_update_gemini_cli
+    # === PACKAGE INSTALLATION (by package manager) ===
 
-    # Install/update Japanese fonts
-    install_japanese_fonts
+    # APT packages: System tools and development dependencies
+    install_update_make          # build-essential, make (development tools)
+    install_update_cargo         # cargo, rustc (Rust toolchain)
+    install_update_github_cli    # gh (GitHub CLI)
+    install_japanese_fonts       # fonts-noto-cjk, fonts-ipafont-* (CJK font support)
 
-    # Perform setup
-    setup_python
-    setup_precommit
-    init_git
-    test_plugin
-    run_tests
-    test_mkdocs
+    # SNAP packages: Modern tools with latest versions
+    install_update_npm           # Node.js LTS + npm (JavaScript runtime)
 
+    # PIPX packages: Python ecosystem tools
+    install_update_uv            # uv (modern Python package manager)
+
+    # CARGO packages: Rust ecosystem tools
+    install_update_similarity_py # similarity-py (Python code similarity detection)
+
+    # NPM global packages: Node.js ecosystem tools
+    install_update_mermaid_cli   # @mermaid-js/mermaid-cli (diagram generation)
+    install_update_claude_code   # @anthropic-ai/claude-code (AI assistant)
+    install_update_gemini_cli    # @google/gemini-cli (Google AI)
+
+    # === PROJECT SETUP ===
+
+    # Python environment and dependencies
+    setup_python                 # uv: Python version pin, install dependencies
+    setup_precommit             # uv: pre-commit hooks installation
+
+    # Version control initialization
+    init_git                    # git: repository initialization if needed
+
+    # === VERIFICATION ===
+
+    # Plugin functionality tests
+    test_plugin                 # uv: import test, entry point verification
+    run_tests                   # uv: pytest execution
+    test_mkdocs                 # uv: MkDocs build test
+
+    # === COMPLETION ===
     echo
     echo "✨ Setup complete!"
     echo
