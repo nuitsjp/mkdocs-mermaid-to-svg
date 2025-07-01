@@ -17,6 +17,7 @@ mkdocs-mermaid-to-image/
         ├── image_generator.py      # 画像生成 (MermaidImageGenerator)
         ├── mermaid_block.py        # Mermaidブロック表現 (MermaidBlock)
         ├── config.py               # 設定スキーマ (MermaidPluginConfig, ConfigManager)
+        ├── types.py                # 型定義 (TypedDictなど)
         ├── exceptions.py           # カスタム例外クラス
         └── utils.py                # ユーティリティ関数・ロギング設定
 ```
@@ -79,8 +80,8 @@ classDiagram
         +MermaidProcessor processor
         +Logger logger
         +list~str~ generated_images
+        +Files files
         +bool is_serve_mode
-        +bool is_verbose_mode
         +on_config(config)
         +on_files(files, config)
         +on_page_markdown(markdown, page, config, files)
@@ -105,6 +106,7 @@ classDiagram
         +Logger logger
         +extract_mermaid_blocks(markdown) List~MermaidBlock~
         +replace_blocks_with_images(markdown, blocks, paths, page_file, page_url) str
+        -_parse_attributes(attr_str) dict
     }
 
     class MermaidImageGenerator {
@@ -112,31 +114,32 @@ classDiagram
         +Logger logger
         +generate(code, output_path, config) bool
         -_build_mmdc_command(input_file, output_path, config) list
-        -_run_mmdc_command(cmd) tuple
+        -_validate_dependencies()
     }
 
     class MermaidBlock {
         +str code
         +dict attributes
-        +int line_number
+        +int start_pos
+        +int end_pos
         +generate_image(output_path, generator, config) bool
         +get_filename(page_file, index, format) str
-        +get_image_markdown(image_path, page_file, page_url) str
+        +get_image_markdown(image_path, page_file, preserve_original, page_url) str
     }
 
     class ConfigManager {
         <<static>>
-        +validate_config(config) None
-        -_validate_path_exists(path, description) None
-        -_validate_mmdc_availability(mmdc_path) None
+        +validate_config(config) bool
     }
 
     class MermaidPreprocessorError {<<exception>>}
     class MermaidCLIError {<<exception>>}
     class MermaidConfigError {<<exception>>}
+    class MermaidParsingError {<<exception>>}
 
     MermaidCLIError --|> MermaidPreprocessorError
     MermaidConfigError --|> MermaidPreprocessorError
+    MermaidParsingError --|> MermaidPreprocessorError
 
     MermaidToImagePlugin o-- MermaidProcessor
     MermaidToImagePlugin ..> ConfigManager
@@ -239,7 +242,7 @@ sequenceDiagram
         else 失敗 and error_on_fail=false
             Proc->>Proc: 警告ログ出力、処理継続
         else 失敗 and error_on_fail=true
-            Proc->>Proc: 処理継続（エラーハンドリングはプラグイン層）
+            Proc->>Proc: 処理継続（エラーは上位でキャッチ）
         end
     end
 
@@ -256,46 +259,41 @@ sequenceDiagram
     Plugin-->>MkDocs: modified_markdown
 ```
 
-### 4. 画像生成フロー (`MermaidBlock.generate_image`)
+### 4. 画像生成フロー (`MermaidImageGenerator.generate`)
 
 ```mermaid
 sequenceDiagram
-    participant Block as MermaidBlock
     participant ImgGen as MermaidImageGenerator
     participant Utils
     participant Subprocess
     participant FileSystem
 
-    Block->>ImgGen: generate(code, output_path, config)
-
-    ImgGen->>FileSystem: output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    ImgGen->>Utils: create_temp_file()
+    ImgGen->>Utils: get_temp_file_path()
     Utils-->>ImgGen: temp_file
 
     ImgGen->>FileSystem: temp_file.write_text(code)
 
+    ImgGen->>FileSystem: ensure_directory(output_path.parent)
+
     ImgGen->>ImgGen: _build_mmdc_command(temp_file, output_path, config)
     ImgGen-->>ImgGen: cmd: list[str]
 
-    ImgGen->>ImgGen: _run_mmdc_command(cmd)
-    ImgGen-->>ImgGen: (success, output, error)
+    ImgGen->>Subprocess: run(cmd)
+    Subprocess-->>ImgGen: result
 
-    alt 実行失敗
+    alt 実行失敗 or 画像ファイルなし
         ImgGen->>ImgGen: logger.error(...)
+        alt error_on_fail=true
+            ImgGen->>ImgGen: raise MermaidCLIError
+        end
         ImgGen-->>Block: return False
     end
 
-    ImgGen->>FileSystem: output_path.exists()
-    alt 画像ファイルなし
-        ImgGen->>ImgGen: logger.error(...)
-        ImgGen-->>Block: return False
-    end
-
+    ImgGen->>ImgGen: logger.info(...)
     ImgGen-->>Block: return True
 
-    note over ImgGen: 最終処理: 一時ファイルをクリーンアップ
-    ImgGen->>Utils: 一時ファイル削除
+    note right of ImgGen: finallyブロックで一時ファイルをクリーンアップ
+    ImgGen->>Utils: clean_temp_file(temp_file)
 ```
 
 ## 環境別処理戦略
@@ -318,6 +316,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
 プラグインの有効化は、環境変数設定に基づいて動的に制御できます：
 
 ```python
+# src/mkdocs_mermaid_to_image/plugin.py
 def _should_be_enabled(self, config: MermaidPluginConfig) -> bool:
     enabled_if_env = config.get("enabled_if_env")
     
@@ -335,6 +334,7 @@ def _should_be_enabled(self, config: MermaidPluginConfig) -> bool:
 verboseモードの有無に応じてログ出力を調整：
 
 ```python
+# src/mkdocs_mermaid_to_image/plugin.py
 # verboseモードでない場合は、INFOレベルに設定
 if not self.is_verbose_mode:
     log_level = "INFO"
@@ -345,11 +345,12 @@ else:
 
 ## プラグイン設定管理
 
-設定は `src/mkdocs_mermaid_to_image/config.py` で一元管理されます。
+設定は `mkdocs.yml` で行われ、`src/mkdocs_mermaid_to_image/plugin.py` の `config_scheme` と `src/mkdocs_mermaid_to_image/config.py` の `MermaidPluginConfig` で定義されます。
 
 ### 設定スキーマ
 
 ```python
+# src/mkdocs_mermaid_to_image/plugin.py
 class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
     config_scheme = (
         ("enabled", config_options.Type(bool, default=True)),
@@ -363,18 +364,16 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
 
 ### 設定検証
 
-`ConfigManager.validate_config()` で以下を検証：
-- ファイルパスの存在確認
-- Mermaid CLIの利用可能性確認
-- 設定値の整合性チェック
+`ConfigManager.validate_config()` で設定値の整合性を検証します。
 
 ## ファイル管理戦略
 
 ### 生成画像のFiles登録
 
-生成された画像をMkDocsのFilesオブジェクトに動的に追加：
+生成された画像をMkDocsのFilesオブジェクトに動的に追加し、ビルド対象に含めます。
 
 ```python
+# src/mkdocs_mermaid_to_image/plugin.py
 def _register_generated_images_to_files(self, image_paths: list[str], docs_dir: Path, config: Any) -> None:
     if not (image_paths and self.files):
         return
@@ -391,9 +390,9 @@ def _register_generated_images_to_files(self, image_paths: list[str], docs_dir: 
 
 ### 画像の配置戦略
 
-- **開発時**: `docs_dir` 内の `output_dir` に画像を生成
-- **ビルド時**: MkDocsが自動的にサイトディレクトリにコピー
-- **クリーンアップ**: `cleanup_generated_images` 設定でビルド後の自動削除が可能
+- **開発時**: `docs_dir` 内の `output_dir` に画像を生成します。
+- **ビルド時**: MkDocsが `_register_generated_images_to_files` で登録された画像を自動的にサイトディレクトリにコピーします。
+- **クリーンアップ**: `cleanup_generated_images` 設定でビルド後の自動削除が可能です。
 
 ## エラーハンドリング戦略
 
@@ -404,20 +403,22 @@ graph TD
     A[MermaidPreprocessorError]
     B[MermaidCLIError] --> A
     C[MermaidConfigError] --> A
+    D[MermaidParsingError] --> A
 
     style A fill:#fce4ec,stroke:#c51162,stroke-width:2px
 ```
 
 ### エラー発生時の処理
 
-- **設定エラー (`MermaidConfigError`)**: `on_config`で発生、ビルドプロセスを即座に停止
-- **CLI実行エラー (`MermaidCLIError`)**: `image_generator.py`で発生
-  - `error_on_fail=true`: ビルドを停止
-  - `error_on_fail=false`: エラーログ出力後、処理を継続（該当図は画像化されない）
+- **設定エラー (`MermaidConfigError`)**: `on_config`で発生し、ビルドプロセスを即座に停止させます。
+- **CLI実行エラー (`MermaidCLIError`)**: `image_generator.py`で発生します。
+  - `error_on_fail=true`: 例外が送出され、ビルドが停止します。
+  - `error_on_fail=false`: エラーログを出力後、処理を継続します（該当図は画像化されません）。
+- **その他エラー**: 予期せぬエラーは `on_page_markdown` 内でキャッチされ、`error_on_fail` の設定に従って処理されます。
 
 ### ログ出力戦略
 
-- **設定レベル**: `log_level` 設定で制御
-- **Verboseモード**: コマンドライン引数 `--verbose` / `-v` で詳細ログを有効化
-- **条件付きログ**: 画像生成時は常にINFOレベルで結果を出力
-- **下位モジュール**: verboseモードでない場合はWARNINGレベルに制限
+- **設定レベル**: `log_level` 設定で制御します。
+- **Verboseモード**: コマンドライン引数 `--verbose` / `-v` で詳細ログを有効化します。
+- **条件付きログ**: 画像生成時は常にINFOレベルで結果を出力します。
+- **下位モジュール**: verboseモードでない場合は、ログレベルがWARNINGに制限され、詳細なログ出力が抑制されます。
