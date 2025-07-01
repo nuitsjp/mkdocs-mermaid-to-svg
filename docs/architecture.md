@@ -168,22 +168,38 @@ sequenceDiagram
     participant Utils
 
     MkDocs->>Plugin: on_config(config)
-    Plugin->>CfgMgr: validate_config(self.config)
+    
+    Note over Plugin: config_dict = dict(self.config)
+    Plugin->>CfgMgr: validate_config(config_dict)
     CfgMgr-->>Plugin: 検証結果
     alt 検証失敗
         Plugin->>MkDocs: raise MermaidConfigError
     end
 
-    Plugin->>Utils: setup_logger()
+    Note over Plugin: verboseモード判定
+    alt verboseモードでない
+        Plugin->>Plugin: log_level = "INFO", config_dict["log_level"] = "WARNING"
+    else verboseモード
+        Plugin->>Plugin: log_level = self.config["log_level"]
+    end
+
+    Plugin->>Utils: setup_logger(__name__, log_level)
     Utils-->>Plugin: logger
 
+    Plugin->>Plugin: _should_be_enabled(self.config)
+    Note over Plugin: enabled_if_env環境変数チェック含む
     alt プラグイン無効
+        Plugin->>Plugin: logger.info("Plugin is disabled")
         Plugin-->>MkDocs: return config
     end
 
-    Plugin->>Proc: new MermaidProcessor(config)
+    Plugin->>Proc: new MermaidProcessor(config_dict)
+    Proc->>Utils: setup_logger(__name__, config["log_level"])
+    Proc->>Proc: MarkdownProcessor(config)
+    Proc->>Proc: MermaidImageGenerator(config)
     Proc-->>Plugin: processorインスタンス
 
+    Plugin->>Plugin: logger.info("Plugin initialized successfully")
     Plugin-->>MkDocs: 初期化完了
 ```
 
