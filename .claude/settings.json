@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(similarity-py:*)",
+      "Bash(python3:*)",
+      "Bash(make:*)",
+      "Bash(echo $PATH)",
+      "Bash(sudo apt:*)",
+      "Bash(snap list:*)",
+      "Bash(ls:*)",
+      "Bash(source ~/.bashrc)",
+      "Bash(npm:*)",
+      "Bash(export:*)",
+      "Bash(ENABLE_PDF_EXPORT=1 uv run mkdocs build)",
+      "Bash(mmdc:*)",
+      "Bash(node:*)",
+      "Bash(npx mmdc:*)",
+      "Bash(rm:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": []
+  }
+}
