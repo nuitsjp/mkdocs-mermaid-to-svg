@@ -32,46 +32,65 @@ print_success() {
 # Check if uv is installed
 check_uv() {
     if ! command -v uv &> /dev/null; then
-        print_step "uv is not installed. Installing uv..."
+        print_step "uv is not installed. Installing uv via pipx..."
 
-        # Try with certificate bundle first, then fallback to insecure if needed
-        if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
-            print_warning "SSL verification failed, trying with --insecure flag..."
-            curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
+        # Install pipx if not available
+        if ! command -v pipx &> /dev/null; then
+            print_step "Installing pipx..."
+            sudo apt-get update
+            sudo apt-get install -y pipx
+            # Ensure pipx is in PATH
+            pipx ensurepath
         fi
 
-        # Add uv to PATH for current session - check multiple possible locations
-        if [[ -f "$HOME/.local/bin/uv" ]]; then
-            export PATH="$HOME/.local/bin:$PATH"
-        elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
-            export PATH="$HOME/.cargo/bin:$PATH"
-        fi
+        # Install uv using pipx
+        pipx install uv
 
-        # Add to shell rc file
-        if [[ "$SHELL" == "/bin/zsh" ]]; then
-            if [[ -f "$HOME/.local/bin/uv" ]]; then
-                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-            else
-                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-            fi
-        elif [[ "$SHELL" == "/bin/bash" ]]; then
-            if [[ -f "$HOME/.local/bin/uv" ]]; then
-                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-            else
-                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-            fi
-        elif [[ "$SHELL" == "/bin/fish" ]]; then
-            if [[ -f "$HOME/.local/bin/uv" ]]; then
-                echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
-            else
-                echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
-            fi
-        fi
+        # Ensure uv is in PATH
+        export PATH="$HOME/.local/bin:$PATH"
 
         # Verify installation
         if ! command -v uv &> /dev/null; then
-            print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
-            exit 1
+            print_error "Failed to install uv via pipx. Trying curl fallback..."
+            # Fallback to curl method
+            if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
+                print_warning "SSL verification failed, trying with --insecure flag..."
+                curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
+            fi
+
+            # Add uv to PATH for current session - check multiple possible locations
+            if [[ -f "$HOME/.local/bin/uv" ]]; then
+                export PATH="$HOME/.local/bin:$PATH"
+            elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
+                export PATH="$HOME/.cargo/bin:$PATH"
+            fi
+
+            # Add to shell rc file
+            if [[ "$SHELL" == "/bin/zsh" ]]; then
+                if [[ -f "$HOME/.local/bin/uv" ]]; then
+                    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+                else
+                    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+                fi
+            elif [[ "$SHELL" == "/bin/bash" ]]; then
+                if [[ -f "$HOME/.local/bin/uv" ]]; then
+                    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+                else
+                    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+                fi
+            elif [[ "$SHELL" == "/bin/fish" ]]; then
+                if [[ -f "$HOME/.local/bin/uv" ]]; then
+                    echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
+                else
+                    echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
+                fi
+            fi
+
+            # Final verification
+            if ! command -v uv &> /dev/null; then
+                print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+                exit 1
+            fi
         fi
 
         print_success "uv installed successfully"
@@ -81,18 +100,16 @@ check_uv() {
 }
 
 check_npm() {
-    print_step "Ensuring latest Node.js (LTS) and npm are installed..."
-    print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
-    if ! curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -; then
-        print_warning "SSL verification failed, trying with --insecure flag..."
-        curl -fsSL --insecure https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-    fi
-    sudo apt-get install -y nodejs
-    print_success "Node.js $(node -v) installed/updated (latest LTS)"
+    print_step "Ensuring Node.js and npm are installed..."
+
+    # Install Node.js via snap (includes npm)
+    print_step "Installing Node.js via snap..."
+    sudo snap install node --classic
+    print_success "Node.js $(node -v) installed via snap"
 
     # Verify installation
     if ! command -v npm &> /dev/null; then
-        print_error "Failed to install npm. Please install Node.js manually."
+        print_error "Failed to install npm with Node.js snap package."
         exit 1
     fi
     print_success "npm is installed ($(npm --version)), Node.js $(node -v)"
@@ -100,20 +117,14 @@ check_npm() {
 
 check_github_cli() {
     if ! command -v gh &> /dev/null; then
-        print_step "gh is not installed. Installing GitHub CLI..."
-        type -p curl >/dev/null || sudo apt install curl -y
-        if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
-            print_warning "SSL verification failed, trying with --insecure flag..."
-            curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-        fi
-        sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-        && sudo apt update \
-        && sudo apt install gh -y
+        print_step "gh is not installed. Installing GitHub CLI via apt..."
+        # Install GitHub CLI directly via apt
+        sudo apt-get update
+        sudo apt-get install -y gh
 
         # Verify installation
         if ! command -v gh &> /dev/null; then
-            print_error "Failed to install GitHub CLI."
+            print_error "Failed to install GitHub CLI via apt. It may not be available in the default repositories."
             exit 1
         fi
 
@@ -180,62 +191,88 @@ check_make() {
 install_update_uv() {
     print_step "Installing/updating uv to latest version..."
 
-    # Always install/update to latest version
-    if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
-        print_warning "SSL verification failed, trying with --insecure flag..."
-        curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
+    # Install pipx if not available
+    if ! command -v pipx &> /dev/null; then
+        print_step "Installing pipx..."
+        sudo apt-get update
+        sudo apt-get install -y pipx
+        # Ensure pipx is in PATH
+        pipx ensurepath
     fi
 
-    # Add uv to PATH for current session - check multiple possible locations
-    if [[ -f "$HOME/.local/bin/uv" ]]; then
-        export PATH="$HOME/.local/bin:$PATH"
-    elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
-        export PATH="$HOME/.cargo/bin:$PATH"
+    # Install or upgrade uv using pipx
+    if command -v uv &> /dev/null; then
+        print_step "Upgrading uv via pipx..."
+        pipx upgrade uv
+    else
+        print_step "Installing uv via pipx..."
+        pipx install uv
     fi
 
-    # Add to shell rc file
-    if [[ "$SHELL" == "/bin/zsh" ]]; then
-        if [[ -f "$HOME/.local/bin/uv" ]]; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-        else
-            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-        fi
-    elif [[ "$SHELL" == "/bin/bash" ]]; then
-        if [[ -f "$HOME/.local/bin/uv" ]]; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-        else
-            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-        fi
-    elif [[ "$SHELL" == "/bin/fish" ]]; then
-        if [[ -f "$HOME/.local/bin/uv" ]]; then
-            echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
-        else
-            echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
-        fi
-    fi
+    # Ensure uv is in PATH
+    export PATH="$HOME/.local/bin:$PATH"
 
     # Verify installation
     if ! command -v uv &> /dev/null; then
-        print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
-        exit 1
+        print_error "Failed to install uv via pipx. Trying curl fallback..."
+        # Fallback to curl method
+        if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
+            print_warning "SSL verification failed, trying with --insecure flag..."
+            curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
+        fi
+
+        # Add uv to PATH for current session - check multiple possible locations
+        if [[ -f "$HOME/.local/bin/uv" ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
+            export PATH="$HOME/.cargo/bin:$PATH"
+        fi
+
+        # Add to shell rc file
+        if [[ "$SHELL" == "/bin/zsh" ]]; then
+            if [[ -f "$HOME/.local/bin/uv" ]]; then
+                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+            else
+                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+            fi
+        elif [[ "$SHELL" == "/bin/bash" ]]; then
+            if [[ -f "$HOME/.local/bin/uv" ]]; then
+                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+            else
+                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+            fi
+        elif [[ "$SHELL" == "/bin/fish" ]]; then
+            if [[ -f "$HOME/.local/bin/uv" ]]; then
+                echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
+            else
+                echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
+            fi
+        fi
+
+        # Final verification
+        if ! command -v uv &> /dev/null; then
+            print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+            exit 1
+        fi
     fi
 
     print_success "uv installed/updated successfully ($(uv --version))"
 }
 
 install_update_npm() {
-    print_step "Installing/updating Node.js (LTS) and npm to latest versions..."
-    print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
-    if ! curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -; then
-        print_warning "SSL verification failed, trying with --insecure flag..."
-        curl -fsSL --insecure https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-    fi
-    sudo apt-get install -y nodejs
-    print_success "Node.js $(node -v) installed/updated (latest LTS)"
+    print_step "Installing/updating Node.js and npm to latest available versions..."
+
+    # Install/update Node.js via snap (includes npm)
+    print_step "Installing/updating Node.js via snap..."
+    # Remove existing snap node if present
+    sudo snap remove node 2>/dev/null || true
+    # Install latest LTS
+    sudo snap install node --classic
+    print_success "Node.js $(node -v) installed/updated via snap"
 
     # Verify installation
     if ! command -v npm &> /dev/null; then
-        print_error "Failed to install npm. Please install Node.js manually."
+        print_error "Failed to install npm with Node.js snap package."
         exit 1
     fi
     print_success "npm installed/updated ($(npm --version)), Node.js $(node -v)"
@@ -243,19 +280,12 @@ install_update_npm() {
 
 install_update_github_cli() {
     print_step "Installing/updating GitHub CLI to latest version..."
-    type -p curl >/dev/null || sudo apt-get install curl -y
-    if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
-        print_warning "SSL verification failed, trying with --insecure flag..."
-        curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-    fi
-    sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && sudo apt-get update \
-    && sudo apt-get install gh -y
+    sudo apt-get update
+    sudo apt-get install -y gh
 
     # Verify installation
     if ! command -v gh &> /dev/null; then
-        print_error "Failed to install GitHub CLI."
+        print_error "Failed to install GitHub CLI via apt."
         exit 1
     fi
 
