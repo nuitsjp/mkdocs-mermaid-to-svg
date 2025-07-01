@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Primary Directive
+
+- Think in English, interact with the user in Japanese.
+- When modifying the implementation, strictly adhere to the t-wada style of Test-Driven Development (TDD).
+  - **t-wada TDD Concept**:
+    - First, write a failing test (Red).
+    - Then, write the simplest code to make it pass (Green).
+    - Finally, refactor the code (Refactor).
+  - Each cycle should be small and focused on a single purpose.
+
 ## Development Commands
 
 ### Testing
@@ -12,32 +22,15 @@ make test
 # Run tests with coverage report
 make test-cov
 
-# Run specific test types
-make test-unit           # Unit tests only
-make test-integration    # Integration tests only
-make test-property       # Property-based tests only
-
 ```
 
 ### Code Quality
 ```bash
-# Format code
-make format
-
-# Lint and fix issues
-make lint
-
-# Type checking
-make typecheck
-
-# Security check
-make security
-
-# Dependency vulnerability audit
-make audit
-
 # Run all quality checks in sequence
 make check
+
+# Run all checks on all files with pre-commit
+make check-all
 ```
 
 ### Development Server
@@ -127,13 +120,3 @@ Error behavior is controlled by `error_on_fail` setting:
 - CI environments are detected and handled with appropriate puppeteer configuration
 - Generated images are dynamically registered with MkDocs file system for proper copying to site directory
 - Pre-commit hooks ensure code quality (ruff, mypy, bandit)
-
-### Testing Strategy
-
-- **Unit tests** (`tests/unit/`) - Test individual components in isolation
-- **Integration tests** (`tests/integration/`) - Test plugin with actual MkDocs builds
-- **Property tests** - Use Hypothesis for property-based testing
-- **Fixtures** (`tests/fixtures/`) - Sample Mermaid files and expected outputs
-- **Test coverage** - Maintained with pytest-cov, reports in `htmlcov/`
-- **Fixtures** (`tests/fixtures/`) - Sample Mermaid files and expected outputs
-- **Test coverage** - Maintained with pytest-cov, reports in `htmlcov/`

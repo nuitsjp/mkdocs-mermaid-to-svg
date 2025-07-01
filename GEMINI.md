@@ -1,224 +1,122 @@
 # GEMINI.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Gemini when working with code in this repository.
 
-## Project Overview
+## Primary Directive
 
-**mkdocs-mermaid-to-image** is a MkDocs plugin that converts Mermaid.js diagrams in Markdown documents into static images (PNG/SVG) during the build process. This enables compatibility with PDF output plugins like `mkdocs-with-pdf` and provides offline diagram viewing capabilities.
+- Think in English, interact with the user in Japanese.
+- When modifying the implementation, strictly adhere to the t-wada style of Test-Driven Development (TDD).
+  - **t-wada TDD Concept**:
+    - First, write a failing test (Red).
+    - Then, write the simplest code to make it pass (Green).
+    - Finally, refactor the code (Refactor).
+  - Each cycle should be small and focused on a single purpose.
 
-**Key Features:**
-- Converts Mermaid diagrams to static images at build time
-- Supports all Mermaid diagram types (flowcharts, sequence, class diagrams, etc.)
-- Full PDF export compatibility with MkDocs PDF generators
-- Themeable diagrams with customizable output formats
-- Intelligent caching system for efficient builds
-- Comprehensive error handling with graceful degradation
+## Development Commands
 
-## Architecture Overview
-
-**MkDocs Plugin Integration:**
-- Implements `BasePlugin` with MkDocs lifecycle hooks
-- **plugin.py**: Main plugin class (`MermaidToImagePlugin`) with configuration management
-- **processor.py**: Core processing engine that orchestrates diagram conversion
-- **markdown_processor.py**: Parses Markdown and identifies Mermaid blocks
-- **image_generator.py**: Handles image generation via Mermaid CLI
-- **mermaid_block.py**: Data structures for Mermaid diagram representation
-- **config.py**: Plugin configuration schema and validation
-- **utils.py**: Logging, file operations, and utility functions
-- **exceptions.py**: Custom exception hierarchy
-
-**Processing Flow:**
-1. `on_config` hook validates plugin configuration
-2. `on_page_markdown` hook processes each page's Markdown content
-3. Mermaid blocks are extracted and converted to images
-4. Original Mermaid syntax is replaced with image references
-5. Generated images are cached for subsequent builds
-
-## Technology Stack
-
-- **Language**: Python 3.9+
-- **Core Dependencies**: MkDocs ≥1.4.0, mkdocs-material ≥8.0.0
-- **Image Processing**: Pillow ≥8.0.0, numpy ≥1.20.0
-- **External Dependency**: Node.js with `@mermaid-js/mermaid-cli` (mmdc command)
-- **Package Management**: uv (modern Python package manager)
-- **Code Quality**: ruff (linting/formatting), mypy (strict type checking)
-- **Testing**: pytest with hypothesis for property-based testing
-- **Automation**: pre-commit hooks, GitHub Actions CI/CD
-
-## Development Environment Setup
-
-**Quick Setup:**
+### Testing
 ```bash
-make setup  # Automated setup via scripts/setup.sh
+# Run tests with short traceback format
+make test
+
+# Run tests with coverage report
+make test-cov
+
 ```
 
-**Manual Setup:**
+### Code Quality
 ```bash
-# Install dependencies
-uv sync --all-extras
+# Run all quality checks in sequence
+make check
 
-# Install pre-commit hooks
-uv run pre-commit install
-
-# Verify Node.js and Mermaid CLI
-node --version
-npx mmdc --version
+# Run all checks on all files with pre-commit
+make check-all
 ```
 
-## Common Development Commands
-
-**Testing:**
+### Development Server
 ```bash
-make test                    # Run all tests
-make test-unit              # Unit tests only
-make test-integration       # Integration tests only
-make test-cov               # With coverage report
+# Start MkDocs development server with hot reload
+uv run mkdocs serve
+
+# Build documentation site
+uv run mkdocs build
 ```
 
-**Code Quality:**
-```bash
-make format                 # Format code (ruff format)
-make lint                   # Lint and auto-fix (ruff check --fix)
-make typecheck              # Type checking (mypy --strict)
-make security               # Security scan (bandit)
-make audit                  # Dependency vulnerability check
-make check                  # Run all quality checks sequentially
-```
+## Project Architecture
 
-**Development Server:**
-```bash
-uv run mkdocs serve         # Start development server
-uv run mkdocs build         # Build documentation
-```
+This is a MkDocs plugin that converts Mermaid diagrams to static images (PNG/SVG) during the build process, enabling PDF output and offline viewing.
 
-**Dependencies:**
-```bash
-uv add package_name         # Add runtime dependency
-uv add --dev dev_package    # Add development dependency
-uv sync --all-extras        # Sync all dependencies
-```
+### Core Components
 
-## Plugin-Specific Development Considerations
+- **`plugin.py`** - Main MkDocs plugin class (`MermaidToImagePlugin`)
+  - Handles MkDocs lifecycle hooks (`on_config`, `on_files`, `on_page_markdown`, `on_post_build`)
+  - Manages plugin state and mode detection (serve vs build)
+  - Integrates with MkDocs file system
 
-**1. Multi-Runtime Environment:**
-- Requires both Python (≥3.9) and Node.js (≥16) environments
-- Mermaid CLI (`mmdc`) must be globally available via npm
-- Cross-platform compatibility for Windows/Unix paths
+- **`processor.py`** - Page processing orchestrator (`MermaidProcessor`)
+  - Coordinates markdown processing and image generation
+  - Handles batch processing of Mermaid blocks per page
 
-**2. MkDocs Plugin Lifecycle:**
-- Hook implementation: `on_config`, `on_page_markdown`
-- Configuration validation via `config_options` schema
-- Error handling must not break MkDocs build process
+- **`markdown_processor.py`** - Markdown parsing and transformation (`MarkdownProcessor`)
+  - Extracts Mermaid code blocks using regex patterns
+  - Replaces Mermaid blocks with image tags
+  - Preserves attributes and handles relative paths
 
-**3. Image Generation Challenges:**
-- Headless browser dependencies (Puppeteer via Mermaid CLI)
-- Temporary file management and cleanup
-- Cache invalidation strategies
-- Theme consistency across diagram types
+- **`image_generator.py`** - Image generation via Mermaid CLI (`MermaidImageGenerator`)
+  - Executes `@mermaid-js/mermaid-cli` (mmdc) subprocess
+  - Handles CI environment configuration (puppeteer sandboxing)
+  - Manages temporary files and cleanup
 
-**4. Testing Strategy:**
-- **Unit Tests** (`tests/unit/`): Individual component testing
-- **Integration Tests** (`tests/integration/`): End-to-end MkDocs integration
-- **Property Tests** (`tests/property/`): Hypothesis-generated test cases
-- **Fixtures** (`tests/fixtures/`): Sample Mermaid files and expected outputs
+- **`config.py`** - Configuration schema and validation (`MermaidPluginConfig`, `ConfigManager`)
+  - Validates plugin settings from `mkdocs.yml`
+  - Provides type-safe configuration access
 
-## Configuration
+### Processing Flow
 
-**Plugin Configuration Schema (config.py):**
-```python
-# Key configuration options
-image_format: 'png' | 'svg'          # Output format
-theme: 'default' | 'dark' | 'forest' | 'neutral'
-cache_enabled: bool                   # Enable/disable caching
-output_dir: str                       # Image output directory
-```
+1. **Plugin Initialization** (`on_config`):
+   - Validates configuration via `ConfigManager`
+   - Sets up logging based on verbose mode
+   - Checks `enabled_if_env` environment variable for conditional activation
+   - Creates `MermaidProcessor` instance
 
-**Testing Plugin with MkDocs:**
-```yaml
-# mkdocs.yml
-plugins:
-  - mermaid-to-image:
-      image_format: 'png'
-      theme: 'default'
-      cache_enabled: true
-```
+2. **Page Processing** (`on_page_markdown`):
+   - Skips processing in serve mode (development)
+   - Extracts Mermaid blocks from markdown
+   - Generates images for each block via Mermaid CLI
+   - Replaces blocks with image references
+   - Registers generated images with MkDocs file system
 
-## Code Quality Standards
+3. **Image Generation**:
+   - Creates temporary `.mmd` files with Mermaid code
+   - Builds `mmdc` command with configuration options
+   - Handles CI environments with puppeteer `--no-sandbox`
+   - Cleans up temporary files
 
-**Type Checking:**
-- mypy in strict mode with comprehensive type hints
-- All public APIs must have complete type annotations
-- Use `from __future__ import annotations` for forward references
+### Key Configuration Options
 
-**Testing Requirements:**
-- Minimum 90% code coverage
-- Test naming convention: `test_<scenario>_<expected_result>`
-- Property-based testing for input validation
-- Integration tests with real MkDocs builds
+- **`enabled_if_env`** - Enable plugin only when environment variable is set (useful for PDF builds)
+- **`output_dir`** - Directory for generated images (default: `assets/images`)
+- **`image_format`** - Output format: `png` or `svg`
+- **`theme`** - Mermaid theme: `default`, `dark`, `forest`, `neutral`
+- **`error_on_fail`** - Whether to stop build on image generation failure
+- **`cache_enabled`** - Enable image caching for performance
 
-**Error Handling:**
-- Custom exception hierarchy in `exceptions.py`
-- Graceful degradation when image generation fails
-- Detailed error messages with resolution suggestions
-- Logging at appropriate levels (DEBUG, INFO, WARNING, ERROR)
+### Error Handling
 
-## Troubleshooting
+The plugin uses a structured exception hierarchy:
+- **`MermaidConfigError`** - Configuration validation errors (stops build)
+- **`MermaidCLIError`** - Mermaid CLI execution errors
+- **`MermaidImageError`** - Image file generation/validation errors
+- **`MermaidFileError`** - File system operation errors
 
-**Common Issues:**
+Error behavior is controlled by `error_on_fail` setting:
+- `true` - Stop build on any error
+- `false` - Log errors and continue (skip failed diagrams)
 
-1. **Mermaid CLI not found:**
-   ```bash
-   npm install -g @mermaid-js/mermaid-cli
-   ```
+### Development Notes
 
-2. **Puppeteer/Chromium issues:**
-   ```bash
-   # Linux: Install dependencies
-   apt-get install -y libgtk-3-0 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libasound2 libpangocairo-1.0-0 libatk1.0-0
-   ```
-
-3. **Pre-commit failures:**
-   ```bash
-   uv run pre-commit clean
-   uv run pre-commit install
-   ```
-
-## GitHub Operations
-
-**Pull Request Creation:**
-```bash
-make pr TITLE="Feature: Add new theme support" BODY="Description" LABEL="enhancement"
-```
-
-**Issue Creation:**
-```bash
-make issue TITLE="Bug: Image generation fails" BODY="Details" LABEL="bug"
-```
-
-**Branch Naming:**
-- Features: `feature/theme-support`
-- Bugs: `fix/image-generation-error`
-- Docs: `docs/update-readme`
-
-## Performance Considerations
-
-- Image generation is CPU-intensive (headless browser rendering)
-- Caching system reduces repeated generation overhead
-- Large diagrams may require increased timeout values
-- Consider parallel processing for multiple diagrams
-
-## Entry Point
-
-The plugin is registered via setuptools entry point:
-```python
-# pyproject.toml
-[project.entry-points."mkdocs.plugins"]
-mermaid-to-image = "mkdocs_mermaid_to_image.plugin:MermaidToImagePlugin"
-```
-
-## Documentation
-
-- **docs/**: MkDocs documentation (self-documenting via the plugin)
-- **README.md**: Installation and basic usage
-- **docs/development.md**: Detailed development guide
-- **docs/architecture.md**: Technical architecture details
+- Plugin automatically detects serve mode (`mkdocs serve`) and skips image processing for faster development
+- Use `--verbose` flag for detailed debug logging
+- CI environments are detected and handled with appropriate puppeteer configuration
+- Generated images are dynamically registered with MkDocs file system for proper copying to site directory
+- Pre-commit hooks ensure code quality (ruff, mypy, bandit)
