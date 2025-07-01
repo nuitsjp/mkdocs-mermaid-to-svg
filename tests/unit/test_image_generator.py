@@ -26,7 +26,10 @@ try:
 except ImportError:
     PILLOW_AVAILABLE = False
 
-from mkdocs_mermaid_to_image.exceptions import MermaidCLIError
+from mkdocs_mermaid_to_image.exceptions import (
+    MermaidCLIError,
+    MermaidImageError,
+)
 from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
 
 
@@ -351,7 +354,7 @@ class TestMermaidImageGenerator:
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_generate_with_error_on_fail_true(
-        self, mock_command_available, basic_config
+        self, mock_command_available, basic_config, tmp_path
     ):
         """error_on_fail=True時に例外が発生するかテスト"""
         basic_config["error_on_fail"] = True
@@ -359,16 +362,22 @@ class TestMermaidImageGenerator:
 
         generator = MermaidImageGenerator(basic_config)
 
+        # Create a real temp file path
+        temp_file = tmp_path / "temp.mmd"
+
         with patch("subprocess.run") as mock_subprocess:
             mock_subprocess.return_value = Mock(returncode=1, stderr="Error message")
 
             with (
                 patch("builtins.open", create=True),
-                patch("mkdocs_mermaid_to_image.image_generator.get_temp_file_path"),
+                patch(
+                    "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                ) as mock_temp_path,
                 patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
                 patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
                 pytest.raises(MermaidCLIError),
             ):
+                mock_temp_path.return_value = str(temp_file)
                 generator.generate("invalid", "/tmp/output.png", basic_config)
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
@@ -397,7 +406,7 @@ class TestMermaidImageGenerator:
             mock_temp_path.return_value = str(temp_file)
             mock_exists.return_value = False  # Output file does not exist
 
-            with pytest.raises(MermaidCLIError, match="Image not created"):
+            with pytest.raises(MermaidImageError, match="Image not created"):
                 generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
@@ -451,7 +460,9 @@ class TestMermaidImageGenerator:
             mock_subprocess.side_effect = Exception("Unexpected error")
             mock_temp_path.return_value = str(temp_file)
 
-            with pytest.raises(MermaidCLIError, match="Error generating image"):
+            with pytest.raises(
+                MermaidImageError, match="Unexpected error generating image"
+            ):
                 generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
 
     @pytest.mark.parametrize(

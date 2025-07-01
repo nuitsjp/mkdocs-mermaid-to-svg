@@ -23,6 +23,7 @@ import pytest  # Pythonのテストフレームワーク
 
 # テスト対象のConfigManagerクラスをインポート
 from mkdocs_mermaid_to_image.config import ConfigManager
+from mkdocs_mermaid_to_image.exceptions import MermaidConfigError, MermaidFileError
 
 
 class TestConfigManager:
@@ -106,7 +107,7 @@ class TestConfigManager:
         }
 
         with pytest.raises(
-            ValueError, match="Width and height must be positive integers"
+            MermaidConfigError, match="Width and height must be positive integers"
         ):
             ConfigManager.validate_config(invalid_config)
 
@@ -120,7 +121,7 @@ class TestConfigManager:
         }
 
         with pytest.raises(
-            ValueError, match="Width and height must be positive integers"
+            MermaidConfigError, match="Width and height must be positive integers"
         ):
             ConfigManager.validate_config(invalid_config)
 
@@ -133,7 +134,7 @@ class TestConfigManager:
             "puppeteer_config": None,
         }
 
-        with pytest.raises(ValueError, match="Scale must be a positive number"):
+        with pytest.raises(MermaidConfigError, match="Scale must be a positive number"):
             ConfigManager.validate_config(invalid_config)
 
     def test_validate_config_missing_css_file(self):
@@ -145,7 +146,7 @@ class TestConfigManager:
             "puppeteer_config": None,
         }
 
-        with pytest.raises(FileNotFoundError, match="CSS file not found"):
+        with pytest.raises(MermaidFileError, match="CSS file not found"):
             ConfigManager.validate_config(invalid_config)
 
     def test_validate_config_missing_puppeteer_config(self):
@@ -157,7 +158,7 @@ class TestConfigManager:
             "puppeteer_config": "/nonexistent/config.json",
         }
 
-        with pytest.raises(FileNotFoundError, match="Puppeteer config file not found"):
+        with pytest.raises(MermaidFileError, match="Puppeteer config file not found"):
             ConfigManager.validate_config(invalid_config)
 
     def test_validate_config_with_existing_files(self):

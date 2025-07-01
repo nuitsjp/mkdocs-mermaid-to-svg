@@ -2,7 +2,7 @@ import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
 
-from .exceptions import MermaidCLIError
+from .exceptions import MermaidCLIError, MermaidFileError, MermaidImageError
 from .logging_config import get_logger
 from .utils import (
     clean_temp_file,
@@ -47,39 +47,97 @@ class MermaidImageGenerator:
             )
 
             if result.returncode != 0:
-                error_msg = f"Mermaid CLI failed: {result.stderr}"
-                self.logger.error(error_msg)
-                if self.config["error_on_fail"]:
-                    raise MermaidCLIError(error_msg)
-                return False
+                return self._handle_command_failure(result, cmd)
 
             if not Path(output_path).exists():
-                error_msg = f"Image not created: {output_path}"
-                self.logger.error(error_msg)
-                if self.config["error_on_fail"]:
-                    raise MermaidCLIError(error_msg) from None
-                return False
+                return self._handle_missing_output(output_path, mermaid_code)
 
             self.logger.info(f"Generated image: {output_path}")
             return True
 
+        except (MermaidCLIError, MermaidImageError):
+            # カスタム例外はそのまま再発生
+            raise
         except subprocess.TimeoutExpired:
-            error_msg = "Mermaid CLI execution timed out"
-            self.logger.error(error_msg)
-            if self.config["error_on_fail"]:
-                raise MermaidCLIError(error_msg) from None
-            return False
-
+            return self._handle_timeout_error(cmd)
+        except (FileNotFoundError, OSError, PermissionError) as e:
+            return self._handle_file_error(e, output_path)
         except Exception as e:
-            error_msg = f"Error generating image: {e!s}"
-            self.logger.error(error_msg)
-            if self.config["error_on_fail"]:
-                raise MermaidCLIError(error_msg) from e
-            return False
-
+            return self._handle_unexpected_error(e, output_path, mermaid_code)
         finally:
             if temp_file:
                 clean_temp_file(temp_file)
+
+    def _handle_command_failure(
+        self, result: subprocess.CompletedProcess[str], cmd: list[str]
+    ) -> bool:
+        """mmdcコマンド実行失敗時の処理"""
+        error_msg = f"Mermaid CLI failed: {result.stderr}"
+        self.logger.error(error_msg)
+        if self.config["error_on_fail"]:
+            raise MermaidCLIError(
+                error_msg,
+                command=" ".join(cmd),
+                return_code=result.returncode,
+                stderr=result.stderr,
+            )
+        return False
+
+    def _handle_missing_output(self, output_path: str, mermaid_code: str) -> bool:
+        """出力ファイルが生成されなかった場合の処理"""
+        error_msg = f"Image not created: {output_path}"
+        self.logger.error(error_msg)
+        if self.config["error_on_fail"]:
+            raise MermaidImageError(
+                error_msg,
+                image_format=self.config.get("image_format", "png"),
+                image_path=output_path,
+                mermaid_content=mermaid_code,
+                suggestion="Check Mermaid syntax and CLI configuration",
+            ) from None
+        return False
+
+    def _handle_timeout_error(self, cmd: list[str]) -> bool:
+        """タイムアウト時の処理"""
+        error_msg = "Mermaid CLI execution timed out"
+        self.logger.error(error_msg)
+        if self.config["error_on_fail"]:
+            raise MermaidCLIError(
+                error_msg,
+                command=" ".join(cmd),
+                stderr="Process timed out after 30 seconds",
+            ) from None
+        return False
+
+    def _handle_file_error(self, e: Exception, output_path: str) -> bool:
+        """ファイルシステムエラー時の処理"""
+        error_msg = f"File system error during image generation: {e!s}"
+        self.logger.error(error_msg)
+        if self.config["error_on_fail"]:
+            raise MermaidFileError(
+                error_msg,
+                file_path=output_path,
+                operation="write",
+                suggestion="Check file permissions and ensure output "
+                "directory exists",
+            ) from e
+        return False
+
+    def _handle_unexpected_error(
+        self, e: Exception, output_path: str, mermaid_code: str
+    ) -> bool:
+        """予期しないエラー時の処理"""
+        error_msg = f"Unexpected error generating image: {e!s}"
+        self.logger.error(error_msg)
+        if self.config["error_on_fail"]:
+            raise MermaidImageError(
+                error_msg,
+                image_format=self.config.get("image_format", "png"),
+                image_path=output_path,
+                mermaid_content=mermaid_code,
+                suggestion="Check Mermaid diagram syntax and CLI configuration",
+            ) from e
+        return False
 
     def _build_mmdc_command(
         self, input_file: str, output_file: str, config: dict[str, Any]

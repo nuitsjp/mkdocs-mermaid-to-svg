@@ -1,6 +1,7 @@
 import re
 from typing import Any
 
+from .exceptions import MermaidParsingError
 from .logging_config import get_logger
 from .mermaid_block import MermaidBlock
 
@@ -68,7 +69,11 @@ class MarkdownProcessor:
         page_url: str = "",
     ) -> str:
         if len(blocks) != len(image_paths):
-            raise ValueError("Number of blocks and image paths must match")
+            raise MermaidParsingError(
+                "Number of blocks and image paths must match",
+                source_file=page_file,
+                mermaid_code=f"Expected {len(blocks)} images, got {len(image_paths)}",
+            )
 
         sorted_blocks = sorted(
             zip(blocks, image_paths), key=lambda x: x[0].start_pos, reverse=True

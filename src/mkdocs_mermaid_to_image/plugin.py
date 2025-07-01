@@ -10,7 +10,12 @@ if TYPE_CHECKING:
     from mkdocs.structure.files import Files
 
 from .config import ConfigManager
-from .exceptions import MermaidConfigError, MermaidPreprocessorError
+from .exceptions import (
+    MermaidConfigError,
+    MermaidFileError,
+    MermaidPreprocessorError,
+    MermaidValidationError,
+)
 from .logging_config import get_logger
 from .processor import MermaidProcessor
 from .utils import clean_generated_images
@@ -59,7 +64,29 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
 
             logger.info("Mermaid preprocessor plugin initialized successfully")
 
+        except (MermaidConfigError, MermaidFileError) as e:
+            logger = get_logger(__name__)
+            logger.error(f"Configuration error: {e!s}")
+            raise
+        except FileNotFoundError as e:
+            logger = get_logger(__name__)
+            logger.error(f"Required file not found: {e!s}")
+            raise MermaidFileError(
+                f"Required file not found during plugin initialization: {e!s}",
+                operation="read",
+                suggestion="Ensure all required files exist",
+            ) from e
+        except (OSError, PermissionError) as e:
+            logger = get_logger(__name__)
+            logger.error(f"File system error: {e!s}")
+            raise MermaidFileError(
+                f"File system error during plugin initialization: {e!s}",
+                operation="access",
+                suggestion="Check file permissions and disk space",
+            ) from e
         except Exception as e:
+            logger = get_logger(__name__)
+            logger.error(f"Unexpected error during plugin initialization: {e!s}")
             raise MermaidConfigError(f"Plugin configuration error: {e!s}") from e
 
         return config
@@ -138,6 +165,28 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
                 raise
             return markdown
 
+        except (FileNotFoundError, OSError, PermissionError) as e:
+            logger = get_logger(__name__)
+            logger.error(f"File system error processing {page.file.src_path}: {e!s}")
+            if self.config["error_on_fail"]:
+                raise MermaidFileError(
+                    f"File system error processing {page.file.src_path}: {e!s}",
+                    file_path=page.file.src_path,
+                    operation="process",
+                    suggestion="Check file permissions and ensure output "
+                    "directory exists",
+                ) from e
+            return markdown
+        except ValueError as e:
+            logger = get_logger(__name__)
+            logger.error(f"Validation error processing {page.file.src_path}: {e!s}")
+            if self.config["error_on_fail"]:
+                raise MermaidValidationError(
+                    f"Validation error processing {page.file.src_path}: {e!s}",
+                    validation_type="page_processing",
+                    invalid_value=page.file.src_path,
+                ) from e
+            return markdown
         except Exception as e:
             logger = get_logger(__name__)
             logger.error(f"Unexpected error processing {page.file.src_path}: {e!s}")

@@ -12,6 +12,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from mkdocs_mermaid_to_image.exceptions import MermaidParsingError
 from mkdocs_mermaid_to_image.markdown_processor import MarkdownProcessor
 from mkdocs_mermaid_to_image.mermaid_block import MermaidBlock
 
@@ -207,7 +208,7 @@ graph TD
         image_paths = ["/path/to/test.png"]  # Only one path for two blocks
 
         with pytest.raises(
-            ValueError, match="Number of blocks and image paths must match"
+            MermaidParsingError, match="Number of blocks and image paths must match"
         ):
             processor.replace_blocks_with_images(
                 markdown, blocks, image_paths, "test.md"

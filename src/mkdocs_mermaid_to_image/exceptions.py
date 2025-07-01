@@ -84,3 +84,80 @@ class MermaidParsingError(MermaidPreprocessorError):
             else mermaid_code,
         }
         super().__init__(message, details)
+
+
+class MermaidFileError(MermaidPreprocessorError):
+    def __init__(
+        self,
+        message: str,
+        file_path: str | None = None,
+        operation: str | None = None,
+        suggestion: str | None = None,
+    ) -> None:
+        """Initialize file operation error with context.
+
+        Args:
+            message: Human-readable error message
+            file_path: Path to the file that caused the error
+            operation: The file operation that failed (read, write, create, etc.)
+            suggestion: Suggested fix for the file error
+        """
+        details: dict[str, str | int | None] = {
+            "file_path": file_path,
+            "operation": operation,
+            "suggestion": suggestion,
+        }
+        super().__init__(message, details)
+
+
+class MermaidValidationError(MermaidPreprocessorError):
+    def __init__(
+        self,
+        message: str,
+        validation_type: str | None = None,
+        invalid_value: str | None = None,
+        expected_format: str | None = None,
+    ) -> None:
+        """Initialize validation error with context.
+
+        Args:
+            message: Human-readable error message
+            validation_type: Type of validation that failed
+            invalid_value: The value that failed validation
+            expected_format: Expected format or pattern
+        """
+        details: dict[str, str | int | None] = {
+            "validation_type": validation_type,
+            "invalid_value": invalid_value,
+            "expected_format": expected_format,
+        }
+        super().__init__(message, details)
+
+
+class MermaidImageError(MermaidPreprocessorError):
+    def __init__(
+        self,
+        message: str,
+        image_format: str | None = None,
+        image_path: str | None = None,
+        mermaid_content: str | None = None,
+        suggestion: str | None = None,
+    ) -> None:
+        """Initialize image generation error with context.
+
+        Args:
+            message: Human-readable error message
+            image_format: Target image format (png, svg, etc.)
+            image_path: Path where image should be generated
+            mermaid_content: Mermaid diagram content that failed to render
+            suggestion: Suggested fix for the image generation error
+        """
+        details: dict[str, str | int | None] = {
+            "image_format": image_format,
+            "image_path": image_path,
+            "mermaid_content": mermaid_content[:200] + "..."
+            if mermaid_content and len(mermaid_content) > 200
+            else mermaid_content,
+            "suggestion": suggestion,
+        }
+        super().__init__(message, details)

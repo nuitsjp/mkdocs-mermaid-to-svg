@@ -3,6 +3,8 @@ from typing import Any
 
 from mkdocs.config import config_options
 
+from .exceptions import MermaidConfigError, MermaidFileError
+
 
 class ConfigManager:
     @staticmethod
@@ -91,13 +93,28 @@ class ConfigManager:
         required_keys = ["width", "height", "scale"]
         for key in required_keys:
             if key not in config:
-                raise ValueError(f"Required configuration key '{key}' is missing")
+                raise MermaidConfigError(
+                    f"Required configuration key '{key}' is missing",
+                    config_key=key,
+                    suggestion=f"Add '{key}' to your plugin configuration",
+                )
 
         if config["width"] <= 0 or config["height"] <= 0:
-            raise ValueError("Width and height must be positive integers")
+            raise MermaidConfigError(
+                "Width and height must be positive integers",
+                config_key="width/height",
+                config_value=f"width={config['width']}, height={config['height']}",
+                suggestion="Set width and height to positive integer values "
+                "(e.g., width: 800, height: 600)",
+            )
 
         if config["scale"] <= 0:
-            raise ValueError("Scale must be a positive number")
+            raise MermaidConfigError(
+                "Scale must be a positive number",
+                config_key="scale",
+                config_value=config["scale"],
+                suggestion="Set scale to a positive number (e.g., scale: 1.0)",
+            )
 
         # オプションパラメータのチェック（存在する場合のみ）
         if (
@@ -105,15 +122,25 @@ class ConfigManager:
             and config["css_file"]
             and not Path(config["css_file"]).exists()
         ):
-            raise FileNotFoundError(f"CSS file not found: {config['css_file']}")
+            raise MermaidFileError(
+                f"CSS file not found: {config['css_file']}",
+                file_path=config["css_file"],
+                operation="read",
+                suggestion="Ensure the CSS file exists or remove the "
+                "css_file configuration",
+            )
 
         if (
             "puppeteer_config" in config
             and config["puppeteer_config"]
             and not Path(config["puppeteer_config"]).exists()
         ):
-            raise FileNotFoundError(
-                f"Puppeteer config file not found: {config['puppeteer_config']}"
+            raise MermaidFileError(
+                f"Puppeteer config file not found: {config['puppeteer_config']}",
+                file_path=config["puppeteer_config"],
+                operation="read",
+                suggestion="Ensure the Puppeteer config file exists or "
+                "remove the puppeteer_config configuration",
             )
 
         return True
