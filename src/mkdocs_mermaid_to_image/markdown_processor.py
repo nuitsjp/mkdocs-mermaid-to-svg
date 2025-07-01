@@ -1,8 +1,8 @@
 import re
 from typing import Any
 
-from .mermaid_block import MermaidBlock
 from .logging_config import get_logger
+from .mermaid_block import MermaidBlock
 
 
 class MarkdownProcessor:

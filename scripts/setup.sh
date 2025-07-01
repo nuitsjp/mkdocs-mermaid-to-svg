@@ -44,83 +44,168 @@ print_success() {
 # Check if uv is installed
 check_uv() {
     if ! command -v uv &> /dev/null; then
-        print_error "uv is not installed."
-        echo "Install it with: curl -LsSf https://astral.sh/uv/install.sh | sh"
-        exit 1
+        print_step "uv is not installed. Installing uv..."
+
+        # Try with certificate bundle first, then fallback to insecure if needed
+        if ! curl -LsSf https://astral.sh/uv/install.sh | sh; then
+            print_warning "SSL verification failed, trying with --insecure flag..."
+            curl -LsSf --insecure https://astral.sh/uv/install.sh | sh
+        fi
+
+        # Add uv to PATH for current session - check multiple possible locations
+        if [[ -f "$HOME/.local/bin/uv" ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        elif [[ -f "$HOME/.cargo/bin/uv" ]]; then
+            export PATH="$HOME/.cargo/bin:$PATH"
+        fi
+
+        # Add to shell rc file
+        if [[ "$SHELL" == "/bin/zsh" ]]; then
+            if [[ -f "$HOME/.local/bin/uv" ]]; then
+                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+            else
+                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+            fi
+        elif [[ "$SHELL" == "/bin/bash" ]]; then
+            if [[ -f "$HOME/.local/bin/uv" ]]; then
+                echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+            else
+                echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+            fi
+        elif [[ "$SHELL" == "/bin/fish" ]]; then
+            if [[ -f "$HOME/.local/bin/uv" ]]; then
+                echo 'set -gx PATH $HOME/.local/bin $PATH' >> ~/.config/fish/config.fish
+            else
+                echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
+            fi
+        fi
+
+        # Verify installation
+        if ! command -v uv &> /dev/null; then
+            print_error "Failed to install uv. Please install manually with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+            exit 1
+        fi
+
+        print_success "uv installed successfully"
+    else
+        print_success "uv is already installed ($(uv --version))"
     fi
 }
 
 check_npm() {
     if ! command -v npm &> /dev/null; then
-        print_error "npm is not installed."
+        print_step "npm is not installed. Installing Node.js and npm..."
+
         # if macos, use nodebrew
         if [[ "$OSTYPE" == "darwin"* ]]; then
             print_step "Use nodebrew to install Node.js"
             if ! command -v nodebrew &> /dev/null; then
                 print_step "Install nodebrew"
+                if ! command -v brew &> /dev/null; then
+                    print_error "Homebrew is not installed. Please install Homebrew first."
+                    exit 1
+                fi
                 brew install nodebrew
                 echo "export PATH=$HOME/.nodebrew/current/bin:$PATH" >> $rc_file
-                source $rc_file
+                export PATH="$HOME/.nodebrew/current/bin:$PATH"
             fi
             nodebrew install stable
             nodebrew use stable
             print_success "Node.js installed"
         elif [[ "$OSTYPE" == "linux"* ]]; then
-            print_step "Use n to install Node.js"
-            if ! command -v n &> /dev/null; then
-                print_step "Install n"
-                sudo apt update
-                sudo apt install -y nodejs npm
-                sudo npm install n -g
-                n stable
-                sudo apt purge -y nodejs npm
-                sudo apt autoremove -y
+            print_step "Installing Node.js via NodeSource repository..."
+            if ! curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -; then
+                print_warning "SSL verification failed, trying with --insecure flag..."
+                curl -fsSL --insecure https://deb.nodesource.com/setup_lts.x | sudo -E bash -
             fi
-            n stable
+            sudo apt-get install -y nodejs
             print_success "Node.js installed"
         else
             print_error "Unsupported OS. Please install Node.js manually."
+            exit 1
         fi
-        exit 1
+
+        # Verify installation
+        if ! command -v npm &> /dev/null; then
+            print_error "Failed to install npm. Please install Node.js manually."
+            exit 1
+        fi
+
+        print_success "npm installed successfully ($(npm --version))"
+    else
+        print_success "npm is already installed ($(npm --version))"
     fi
 }
 
 check_github_cli() {
     if ! command -v gh &> /dev/null; then
-        print_error "gh is not installed."
-        print_step "Install gh"
+        print_step "gh is not installed. Installing GitHub CLI..."
         if [[ "$OSTYPE" == "darwin"* ]]; then
+            if ! command -v brew &> /dev/null; then
+                print_error "Homebrew is not installed. Please install Homebrew first."
+                exit 1
+            fi
             brew install gh
-            gh auth login
         elif [[ "$OSTYPE" == "linux"* ]]; then
             type -p curl >/dev/null || sudo apt install curl -y
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-            && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+            if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
+                print_warning "SSL verification failed, trying with --insecure flag..."
+                curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            fi
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
             && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
             && sudo apt update \
-            && sudo apt install gh -y \
-            && gh auth login
+            && sudo apt install gh -y
+        else
+            print_error "Unsupported OS for automatic gh installation."
+            exit 1
         fi
-        print_success "gh installed"
+
+        # Verify installation
+        if ! command -v gh &> /dev/null; then
+            print_error "Failed to install GitHub CLI."
+            exit 1
+        fi
+
+        print_success "GitHub CLI installed successfully"
+        print_step "Please run 'gh auth login' to authenticate with GitHub after setup completes."
+    else
+        print_success "GitHub CLI is already installed ($(gh --version | head -n1))"
     fi
 }
 
 check_claude_code() {
-    print_step "Installing Claude Code..."
-    npm i -g @anthropic-ai/claude-code
-    print_success "Claude Code installed"
-    print_step "Checking Claude Code..."
-    claude --version
-    print_success "Claude Code checked"
+    if ! command -v claude &> /dev/null; then
+        print_step "Installing Claude Code..."
+        # WSL環境でWindowsとして誤認識される問題を回避
+        export NODE_ENV=production
+        export TERM=xterm-256color
+        unset WINDIR
+
+        # Claude Codeのインストールを試行
+        if npm i -g @anthropic-ai/claude-code; then
+            print_success "Claude Code installed"
+            print_step "Run 'claude auth' to authenticate after setup completes"
+        else
+            print_warning "Claude Code installation failed. This might be due to environment detection issues."
+            print_step "You can try installing manually later with:"
+            echo "  npm i -g @anthropic-ai/claude-code"
+            print_step "If the issue persists, check: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview#check-system-requirements"
+        fi
+    else
+        print_success "Claude Code is already installed ($(claude --version))"
+    fi
 }
 
 check_gemini_cli() {
-    print_step "Installing Gemini CLI..."
-    npm install -g @google/gemini-cli
-    print_success "Gemini CLI installed"
-    print_step "Checking Gemini CLI..."
-    gemini --version
-    print_success "Gemini CLI checked"
+    if ! command -v gemini &> /dev/null; then
+        print_step "Installing Gemini CLI..."
+        npm install -g @google/gemini-cli
+        print_success "Gemini CLI installed"
+        print_step "Run 'gemini auth' to authenticate after setup completes"
+    else
+        print_success "Gemini CLI is already installed ($(gemini --version))"
+    fi
 }
 
 check_mermaid_cli() {
@@ -133,6 +218,29 @@ check_mermaid_cli() {
     fi
 }
 
+# Check if make is installed
+check_make() {
+    if ! command -v make &> /dev/null; then
+        print_step "make is not installed. Installing make..."
+        if [[ "$OSTYPE" == "linux"* ]]; then
+            sudo apt-get update
+            sudo apt-get install -y make
+            print_success "make installed successfully"
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+            if ! command -v brew &> /dev/null; then
+                print_error "Homebrew is not installed. Please install Homebrew first."
+                exit 1
+            fi
+            brew install make
+            print_success "make installed successfully"
+        else
+            print_error "Unsupported OS. Please install make manually."
+            exit 1
+        fi
+    else
+        print_success "make is already installed ($(make --version | head -n1))"
+    fi
+}
 
 # Setup Python environment
 setup_python() {
@@ -242,6 +350,7 @@ main() {
     echo
 
     # Check prerequisites
+    check_make
     check_uv
     check_npm
     check_claude_code
@@ -264,7 +373,10 @@ main() {
     echo "✨ Setup complete!"
     echo
     echo "Next steps:"
-    echo "1. Authorize Claude Code and Gemini CLI"
+    echo "1. Authenticate with services:"
+    echo "   gh auth login         # GitHub CLI authentication"
+    echo "   claude auth           # Claude Code authentication"
+    echo "   gemini auth           # Gemini CLI authentication"
     echo "2. Initialize project via \`/initialize-project\` via Claude Code"
     echo "3. Set up branch protection (optional):"
     echo "   gh repo view --web  # Open in browser to configure"

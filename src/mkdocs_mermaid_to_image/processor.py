@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Any
 
 from .image_generator import MermaidImageGenerator
-from .markdown_processor import MarkdownProcessor
 from .logging_config import get_logger
+from .markdown_processor import MarkdownProcessor
 
 
 class MermaidProcessor:

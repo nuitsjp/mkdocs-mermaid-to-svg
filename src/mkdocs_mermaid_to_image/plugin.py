@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 import sys
@@ -10,8 +9,8 @@ from mkdocs.plugins import BasePlugin
 
 from .config import ConfigManager, MermaidPluginConfig
 from .exceptions import MermaidConfigError, MermaidPreprocessorError
-from .processor import MermaidProcessor
 from .logging_config import get_logger
+from .processor import MermaidProcessor
 from .utils import clean_generated_images
 
 
@@ -77,10 +76,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
 
             # verboseモードでない場合は、INFOレベルに設定
             if not self.is_verbose_mode:
-                log_level = "INFO"
                 config_dict["log_level"] = "WARNING"  # 下位モジュールは詳細ログを抑制
-            else:
-                log_level = self.config["log_level"]
 
             logger = get_logger(__name__)
 
@@ -173,9 +169,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
 
         except Exception as e:
             logger = get_logger(__name__)
-            logger.error(
-                f"Unexpected error processing {page.file.src_path}: {e!s}"
-            )
+            logger.error(f"Unexpected error processing {page.file.src_path}: {e!s}")
             if self.config["error_on_fail"]:
                 raise MermaidPreprocessorError(f"Unexpected error: {e!s}") from e
             return markdown
@@ -207,9 +201,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
         # 生成した画像の総数をINFOレベルで出力
         if self.generated_images:
             logger = get_logger(__name__)
-            logger.info(
-                f"Generated {len(self.generated_images)} Mermaid images total"
-            )
+            logger.info(f"Generated {len(self.generated_images)} Mermaid images total")
 
         # 生成画像のクリーンアップ
         if self.config.get("cleanup_generated_images", False) and self.generated_images:

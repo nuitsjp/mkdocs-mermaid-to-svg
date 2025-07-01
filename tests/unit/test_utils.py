@@ -9,7 +9,6 @@ Python未経験者へのヒント：
 """
 
 import contextlib
-import logging
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch

@@ -168,7 +168,7 @@ sequenceDiagram
     participant Utils
 
     MkDocs->>Plugin: on_config(config)
-    
+
     Note over Plugin: config_dict = dict(self.config)
     Plugin->>CfgMgr: validate_config(config_dict)
     CfgMgr-->>Plugin: 検証結果
@@ -211,7 +211,7 @@ sequenceDiagram
     participant Plugin as MermaidToImagePlugin
 
     MkDocs->>Plugin: on_files(files, config)
-    
+
     alt プラグイン無効 or processorなし
         Plugin-->>MkDocs: files (処理なし)
     end
@@ -233,11 +233,11 @@ sequenceDiagram
     participant ImgGen as MermaidImageGenerator
 
     MkDocs->>Plugin: on_page_markdown(markdown, page, ...)
-    
+
     alt プラグイン無効
         Plugin-->>MkDocs: markdown
     end
-    
+
     alt serveモードの場合
         Plugin-->>MkDocs: markdown (スキップ)
     end
@@ -256,7 +256,7 @@ sequenceDiagram
         Block->>ImgGen: generate(code, output_path, config)
         ImgGen-->>Block: success: bool
         Block-->>Proc: success: bool
-        
+
         alt 成功
             Proc->>Proc: image_pathsに追加
             Proc->>Proc: successful_blocksに追加
@@ -340,12 +340,12 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):
 # src/mkdocs_mermaid_to_image/plugin.py
 def _should_be_enabled(self, config: MermaidPluginConfig) -> bool:
     enabled_if_env = config.get("enabled_if_env")
-    
+
     if enabled_if_env is not None:
         # 環境変数の存在と値をチェック
         env_value = os.environ.get(enabled_if_env)
         return env_value is not None and env_value.strip() != ""
-    
+
     # 通常のenabled設定に従う
     return config.get("enabled", True)
 ```

@@ -164,19 +164,19 @@ def create_performance_context(
 
 def get_logger(name: str) -> logging.Logger:
     """統一ロガーファクトリー - 全モジュールが使用する標準ロガー取得関数
-    
+
     Args:
         name: ロガー名（通常は__name__を使用）
-        
+
     Returns:
         設定済みのロガーインスタンス
     """
     # 標準のPythonロギングパターンを使用
     logger = logging.getLogger(name)
-    
+
     # プラグインロギングがセットアップされていない場合は初期化
     root_logger = logging.getLogger("mkdocs_mermaid_to_image")
     if not root_logger.handlers:
         setup_plugin_logging()
-    
+
     return logger
