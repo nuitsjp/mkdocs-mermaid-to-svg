@@ -1,4 +1,4 @@
-# MkDocs Mermaid to Image Plugin - アーキテクチャ設計
+# アーキテクチャ設計
 
 ## 概要
 
