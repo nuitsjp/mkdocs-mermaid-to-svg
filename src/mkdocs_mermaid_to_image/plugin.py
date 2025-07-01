@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import sys
@@ -10,7 +11,8 @@ from mkdocs.plugins import BasePlugin
 from .config import ConfigManager, MermaidPluginConfig
 from .exceptions import MermaidConfigError, MermaidPreprocessorError
 from .processor import MermaidProcessor
-from .utils import clean_generated_images, setup_logger
+from .logging_config import get_logger
+from .utils import clean_generated_images
 
 
 class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-untyped-call]
@@ -50,7 +52,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
     def __init__(self) -> None:
         super().__init__()
         self.processor: Optional[MermaidProcessor] = None
-        self.logger: Optional[Any] = None
+        self.logger: Optional[logging.Logger] = None
         self.generated_images: list[str] = []
         self.files: Optional[Any] = None  # MkDocsのFilesオブジェクトを保持
 
@@ -81,7 +83,7 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             else:
                 log_level = self.config["log_level"]
 
-            self.logger = setup_logger(__name__, log_level)
+            self.logger = get_logger(__name__)
 
             if not self._should_be_enabled(self.config):
                 if self.logger:

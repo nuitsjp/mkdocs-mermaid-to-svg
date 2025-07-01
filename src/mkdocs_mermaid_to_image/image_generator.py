@@ -3,19 +3,19 @@ from pathlib import Path
 from typing import Any
 
 from .exceptions import MermaidCLIError
+from .logging_config import get_logger
 from .utils import (
     clean_temp_file,
     ensure_directory,
     get_temp_file_path,
     is_command_available,
-    setup_logger,
 )
 
 
 class MermaidImageGenerator:
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
-        self.logger = setup_logger(__name__, config.get("log_level", "INFO"))
+        self.logger = get_logger(__name__)
         self._validate_dependencies()
 
     def _validate_dependencies(self) -> None:

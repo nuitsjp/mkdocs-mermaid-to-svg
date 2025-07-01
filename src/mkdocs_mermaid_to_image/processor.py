@@ -3,13 +3,13 @@ from typing import Any
 
 from .image_generator import MermaidImageGenerator
 from .markdown_processor import MarkdownProcessor
-from .utils import setup_logger
+from .logging_config import get_logger
 
 
 class MermaidProcessor:
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
-        self.logger = setup_logger(__name__, config.get("log_level", "INFO"))
+        self.logger = get_logger(__name__)
 
         self.markdown_processor = MarkdownProcessor(config)
         self.image_generator = MermaidImageGenerator(config)

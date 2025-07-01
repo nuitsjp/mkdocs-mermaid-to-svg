@@ -11,7 +11,6 @@ from mkdocs_mermaid_to_image.processor import MermaidProcessor
 from mkdocs_mermaid_to_image.utils import (
     generate_image_filename,
     is_command_available,
-    setup_logger,
 )
 
 
@@ -80,8 +79,8 @@ def test_utils():
     assert filename.endswith(".png")
     assert "test_mermaid_0_" in filename
 
-    logger = setup_logger("test", "INFO")
-    assert logger is not None
+    # setup_logger was removed as part of logging unification
+    # Testing logger functionality is now covered in test_logging_config.py
 
     result = is_command_available("python3")
     assert result is True

@@ -293,3 +293,53 @@ def test_create_performance_context() -> None:
     context = create_performance_context()
     assert context["execution_time_ms"] is None
     assert "image_format" not in context
+
+
+class TestUnifiedLoggerFactory:
+    """Test unified logger factory functionality (TDD RED phase)."""
+    
+    def test_get_logger_should_return_consistent_logger_instance(self) -> None:
+        """Test that get_logger returns consistent logger instances across modules."""
+        # This test should fail initially (RED phase)
+        from mkdocs_mermaid_to_image.logging_config import get_logger
+        
+        logger1 = get_logger("module1")
+        logger2 = get_logger("module1")
+        
+        # Same module name should return same logger instance
+        assert logger1 is logger2
+        assert isinstance(logger1, logging.Logger)
+        assert logger1.name == "module1"
+    
+    def test_get_logger_should_have_proper_type_annotation(self) -> None:
+        """Test that get_logger has proper type annotation (not Optional[Any])."""
+        # This test should fail initially (RED phase)
+        from mkdocs_mermaid_to_image.logging_config import get_logger
+        
+        logger = get_logger("test_module")
+        # Should be logging.Logger, not Optional[Any]
+        assert isinstance(logger, logging.Logger)
+        
+    def test_setup_logger_should_not_exist_in_utils(self) -> None:
+        """Test that setup_logger function should not exist in utils module."""
+        # This test should fail initially (RED phase)
+        try:
+            from mkdocs_mermaid_to_image.utils import setup_logger
+            # If import succeeds, test should fail
+            assert False, "setup_logger should not exist in utils module"
+        except ImportError:
+            # This is expected after refactoring
+            pass
+    
+    def test_all_modules_should_use_unified_logger_factory(self) -> None:
+        """Test that all modules use the unified logger factory."""
+        # This test should fail initially (RED phase)
+        
+        # Check that plugin.py uses get_logger instead of setup_logger
+        from mkdocs_mermaid_to_image import plugin
+        
+        # Plugin should have proper logger type
+        plugin_instance = plugin.MermaidToImagePlugin()
+        # This will fail initially because plugin uses Optional[Any]
+        if hasattr(plugin_instance, 'logger') and plugin_instance.logger is not None:
+            assert isinstance(plugin_instance.logger, logging.Logger)

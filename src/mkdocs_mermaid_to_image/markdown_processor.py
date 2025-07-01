@@ -2,13 +2,13 @@ import re
 from typing import Any
 
 from .mermaid_block import MermaidBlock
-from .utils import setup_logger
+from .logging_config import get_logger
 
 
 class MarkdownProcessor:
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
-        self.logger = setup_logger(__name__, config.get("log_level", "INFO"))
+        self.logger = get_logger(__name__)
 
     def extract_mermaid_blocks(self, markdown_content: str) -> list[MermaidBlock]:
         blocks = []

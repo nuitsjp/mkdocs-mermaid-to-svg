@@ -8,34 +8,6 @@ from shutil import which
 from .logging_config import get_plugin_logger
 
 
-def setup_logger(name: str, log_level: str = "INFO") -> logging.Logger:
-    """プラグイン用のロガーを設定する"""
-    # メインロガーを取得
-    logger = logging.getLogger(name)
-
-    # 既存のハンドラをクリア
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
-
-    # ハンドラを追加
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    # ログレベルを設定
-    level = getattr(logging, log_level.upper())
-    logger.setLevel(level)
-    handler.setLevel(level)
-
-    # 親ロガーへの伝播を無効にして重複を避ける
-    logger.propagate = False
-
-    return logger
-
-
 def generate_image_filename(
     page_file: str, block_index: int, mermaid_code: str, image_format: str
 ) -> str:

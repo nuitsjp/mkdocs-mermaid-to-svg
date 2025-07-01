@@ -21,41 +21,11 @@ from mkdocs_mermaid_to_image.utils import (
     get_relative_path,
     get_temp_file_path,
     is_command_available,
-    setup_logger,
 )
 
 
 class TestUtilityFunctions:
     """ユーティリティ関数のテストクラス"""
-
-    def test_setup_logger(self):
-        """setup_logger関数がLoggerインスタンスを正しく返すかテスト"""
-        logger = setup_logger("test_logger", "DEBUG")
-
-        # Loggerの型・名前・レベル・ハンドラ数を確認
-        assert isinstance(logger, logging.Logger)
-        assert logger.name == "test_logger"
-        assert logger.level == logging.DEBUG
-        assert len(logger.handlers) > 0
-
-    def test_setup_logger_default_level(self):
-        """ログレベル省略時はINFOになるかテスト"""
-        logger = setup_logger("test_logger_default")
-
-        assert isinstance(logger, logging.Logger)
-        assert logger.level == logging.INFO
-
-    def test_setup_logger_existing_logger(self):
-        """同じ名前のLoggerを2回作ってもハンドラが増えないかテスト"""
-        # 1回目のLogger作成
-        logger1 = setup_logger("existing_logger", "DEBUG")
-        initial_handlers = len(logger1.handlers)
-
-        # 2回目のLogger作成（ハンドラ数が増えないことを確認）
-        logger2 = setup_logger("existing_logger", "INFO")
-
-        assert logger1 is logger2
-        assert len(logger2.handlers) == initial_handlers
 
     def test_generate_image_filename(self):
         """画像ファイル名が正しく生成されるかテスト"""

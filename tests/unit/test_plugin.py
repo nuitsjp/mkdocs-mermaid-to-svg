@@ -75,7 +75,7 @@ class TestMermaidToImagePlugin:
 
         with (
             patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor"),
-            patch("mkdocs_mermaid_to_image.plugin.setup_logger") as mock_logger,
+            patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_logger,
         ):
             mock_logger.return_value = Mock()
             result = plugin.on_config(mock_config)
@@ -104,7 +104,7 @@ class TestMermaidToImagePlugin:
             "log_level": "INFO",
         }
 
-        with patch("mkdocs_mermaid_to_image.plugin.setup_logger") as mock_logger:
+        with patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
             result = plugin.on_config(mock_config)
             assert result == mock_config

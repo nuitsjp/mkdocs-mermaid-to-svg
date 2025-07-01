@@ -67,7 +67,7 @@ class TestMinimalMkDocsConfig:
             # プロセッサ初期化をモック
             with (
                 patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor"),
-                patch("mkdocs_mermaid_to_image.plugin.setup_logger"),
+                patch("mkdocs_mermaid_to_image.plugin.get_logger"),
             ):
                 # on_config が正常に実行されることを確認
                 result = plugin.on_config(mock_mkdocs_config)
