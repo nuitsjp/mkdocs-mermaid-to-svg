@@ -6,6 +6,8 @@ An MkDocs plugin to convert Mermaid charts to images.
 
 This plugin finds Mermaid code blocks and replaces them with images. This is useful for formats that don't support JavaScript, like PDF.
 
+- [Documents](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
+
 ## Requirements
 
 This plugin requires a Mermaid execution engine. Please install one of the following:
