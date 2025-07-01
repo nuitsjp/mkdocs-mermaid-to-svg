@@ -24,7 +24,7 @@ class ConfigManager:
             ),
             (
                 "image_format",
-                config_options.Choice(["png", "svg"], default="png"),
+                config_options.Choice(["png", "svg"], default="svg"),
             ),
             (
                 "mermaid_config",

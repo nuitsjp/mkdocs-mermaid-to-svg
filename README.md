@@ -1,198 +1,58 @@
-# MkDocs Mermaid to Image Plugin
+# mkdocs-mermaid-to-image
 
-[![PyPI version](https://badge.fury.io/py/mkdocs-mermaid-to-image.svg)](https://badge.fury.io/py/mkdocs-mermaid-to-image)
-[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org/downloads/)
-[![MkDocs](https://img.shields.io/badge/mkdocs-1.4+-green.svg)](https://mkdocs.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nuitsjp/mkdocs-mermaid-to-image/blob/main/LICENSE)
+[![PyPI - Python Version][python-image]][pypi-link]
 
-**MkDocs環境でMermaidダイアグラムを静的画像として事前レンダリングし、PDF出力に対応させるプラグインです。**
+An MkDocs plugin to convert Mermaid charts to images.
 
-## 概要
+This plugin finds Mermaid code blocks and replaces them with images. This is useful for formats that don't support JavaScript, like PDF.
 
-このプラグインは、MkDocsドキュメント内のMermaidダイアグラムを事前に静的画像（PNG/SVG）に変換し、ドキュメントビルド時に画像として埋め込むことで、PDF出力やオフライン表示を可能にします。
+## Requirements
 
-- [Documents](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
+This plugin requires a Mermaid execution engine. Please install one of the following:
 
-### 主な特徴
+-   [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
+-   [Node.js](https://nodejs.org/) with [Puppeteer](https://pptr.dev/)
 
-- 🖼️ **静的画像変換**: MermaidダイアグラムをPNG/SVG画像として事前レンダリング
-- 📄 **PDF出力対応**: mkdocs-with-pdfなどのPDF生成プラグインと完全互換
-- 🎨 **テーマサポート**: default, dark, forest, neutralテーマに対応
-- ⚡ **高速ビルド**: キャッシュ機能による効率的なビルド処理
-- 🔧 **豊富な設定**: 画像サイズ、フォーマット、テーマなど詳細な設定が可能
-- 🛠️ **エラーハンドリング**: 詳細なログとエラー処理による安定動作
+## Setup
 
-### サポートするダイアグラム
-
-フローチャート、シーケンス図、クラス図、状態図、ER図、ユーザージャーニー、ガントチャート、円グラフ、Git図など、Mermaid.jsがサポートする全ての図表タイプ
-
-## 必要条件
-
-- **Python**: 3.9以上
-- **MkDocs**: 1.4.0以上
-- **Node.js**: Mermaid CLI (`@mermaid-js/mermaid-cli`) の実行に必要
-
-## インストール
-
-### 1. Mermaid CLIのインストール
-
-```bash
-npm install -g @mermaid-js/mermaid-cli
-```
-
-### 2. プラグインのインストール
+Install the plugin using pip:
 
 ```bash
 pip install mkdocs-mermaid-to-image
 ```
 
-## 設定
-
-### 最小構成（推奨）
-
-プラグインは適切なデフォルト値を持っているため、最小構成で動作可能です：
+Activate the plugin in `mkdocs.yml`:
 
 ```yaml
 plugins:
+  - search
   - mermaid-to-image
 ```
 
-### 基本設定
+> **Note:** If you have no `plugins` entry in your config file yet, you'll likely also want to add the `search` plugin. MkDocs enables it by default if there is no `plugins` entry set, but now you have to enable it explicitly.
 
-必要に応じて設定をカスタマイズできます：
+## Options
+
+You can customize the plugin's behavior in `mkdocs.yml`:
 
 ```yaml
 plugins:
   - mermaid-to-image:
-      enabled: true          # デフォルト: true
-      output_dir: assets/images  # デフォルト: assets/images
-      theme: default         # デフォルト: default
-      image_format: png      # デフォルト: png
+      mermaid_cli_path: /path/to/your/mmdc
+      image_format: "svg"
+      mermaid_config:
+        theme: "default"
 ```
 
-### PDF出力との組み合わせ
+-   `mermaid_cli_path`:
+    -   Defaults to `None`.
+    -   Path to the `mmdc` executable. If not provided, the plugin will search for it in the system's `PATH`.
+-   `image_format`:
+    -   Defaults to `svg`.
+    -   The output format for the generated images. Can be `svg` or `png`.
+-   `mermaid_config`:
+    -   Defaults to `None`.
+    -   A dictionary of options to pass to Mermaid for rendering. See the [Mermaid documentation](https://mermaid.js.org/config/schema-docs/config.html) for available options.
 
-**PDF生成時のみMermaidダイアグラムを画像化したい場合**は、`enabled_if_env`オプションを使用して環境変数による制御を行います：
-
-```yaml
-plugins:
-  - search
-  - mermaid-to-image:
-      enabled_if_env: ENABLE_PDF_EXPORT  # 環境変数が設定されている場合のみ有効化
-  - to-pdf:
-      cover_subtitle: 'Project Documentation'
-      output_path: docs.pdf
-```
-
-**使用方法：**
-
-```bash
-# 通常のHTMLビルド（Mermaidはブラウザで表示）
-mkdocs build
-
-# PDF生成時のみ画像化してビルド
-ENABLE_PDF_EXPORT=1 mkdocs build
-```
-
-この設定により：
-- **HTMLビルド時**: Mermaidダイアグラムはブラウザ上でJavaScriptによって動的レンダリング
-- **PDF生成時**: 事前に静的画像として変換されPDFに正しく出力
-
-**注意**: 環境変数は値が設定されていれば（`0`、`false`等でも）プラグインが有効化されます。完全に未設定か空文字列の場合のみ無効化されます。
-
-### 完全な設定例
-
-```yaml
-site_name: My Documentation
-theme:
-  name: material
-
-plugins:
-  - search
-  - mermaid-to-image:
-      # 基本設定
-      enabled: true
-      enabled_if_env: ENABLE_PDF_EXPORT  # 環境変数による制御（オプション）
-      output_dir: assets/images
-      image_format: png  # png or svg
-
-      # Mermaid設定
-      theme: default  # default, dark, forest, neutral
-      background_color: white
-
-      # 画像サイズ
-      width: 800
-      height: 600
-      scale: 1.0
-
-      # パフォーマンス
-      cache_enabled: true
-      cache_dir: .mermaid_cache
-
-      # エラーハンドリング
-      error_on_fail: false
-      log_level: INFO
-
-      # 高度な設定
-      mmdc_path: mmdc  # Mermaid CLIのパス
-      css_file: null   # カスタムCSSファイル
-      puppeteer_config: null  # Puppeteer設定ファイル
-
-markdown_extensions:
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-```
-
-## 使用方法
-
-### 1. Markdownでの記述
-
-ドキュメント内でMermaidダイアグラムを記述：
-
-````markdown
-```mermaid
-graph TD
-    A[開始] --> B[処理]
-    B --> C[終了]
-```
-````
-
-### 2. ビルド実行
-
-```bash
-mkdocs build
-```
-
-### 3. 結果
-
-- 元のMermaidコードが画像タグに置換されます
-- 画像ファイルが`assets/images/`ディレクトリに生成されます
-
-**変換前:**
-```markdown
-```mermaid
-graph TD
-    A[開始] --> B[処理]
-```
-```
-
-**変換後:**
-```html
-<img alt="Mermaid Diagram" src="assets/images/page_mermaid_0_hash.png" />
-```
-
-## ライセンス
-
-このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
-
-## 謝辞
-
-このプロジェクトが存在するのは、下記のプロダクトのおかげです。ありがとうございます。
-
-- [MkDocs](https://mkdocs.org/) - 静的サイトジェネレーター
-- [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) - 美しいテーマ
-- [Mermaid.js](https://mermaid.js.org/) - ダイアグラム記法
-- [mermaid-cli](https://github.com/mermaid-js/mermaid-cli) - コマンドライン画像生成
-- [discus0434/python-template-for-claude-code](https://github.com/discus0434/python-template-for-claude-code) - このプロジェクトのベースとなった高品質なPythonテンプレート（作成者: [discus0434](https://github.com/discus0434)）
+[pypi-link]: https://pypi.org/project/mkdocs-mermaid-to-image/
+[python-image]: https://img.shields.io/pypi/pyversions/mkdocs-mermaid-to-image?logo=python&logoColor=aaaaaa&labelColor=333333

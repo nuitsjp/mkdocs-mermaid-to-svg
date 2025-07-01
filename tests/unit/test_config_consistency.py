@@ -57,7 +57,7 @@ class TestConfigConsistency:
         expected_types_and_defaults = {
             "enabled": (bool, True),
             "output_dir": (str, "assets/images"),
-            "image_format": (str, "png"),
+            "image_format": (str, "svg"),
             "mmdc_path": (str, "mmdc"),
             "theme": (str, "default"),
             "background_color": (str, "white"),

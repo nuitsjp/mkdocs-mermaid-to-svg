@@ -10,7 +10,7 @@ plugins:
       enabled: true              # デフォルト: true
       enabled_if_env: "ENABLE_PDF_EXPORT"  # 環境変数による制御（オプション）
       output_dir: "assets/images" # デフォルト: "assets/images"
-      image_format: "png"        # "png" または "svg" (デフォルト: "png")
+      image_format: "svg"        # "png" または "svg" (デフォルト: "svg")
       theme: "default"           # "default", "dark", "forest", "neutral"
       width: 800                 # デフォルト: 800
       height: 600                # デフォルト: 600

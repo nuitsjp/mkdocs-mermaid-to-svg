@@ -40,7 +40,7 @@ class TestPluginDefaults:
         expected_defaults = {
             "enabled": True,
             "output_dir": "assets/images",
-            "image_format": "png",
+            "image_format": "svg",
             "mmdc_path": "mmdc",
             "theme": "default",
             "background_color": "white",
