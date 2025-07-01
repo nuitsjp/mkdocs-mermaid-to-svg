@@ -12,18 +12,6 @@ NC='\033[0m' # No Color
 DEFAULT_PROJECT_NAME=$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]' | tr '-' '_')
 PYTHON_VERSION="3.12"
 
-# Detect shell and set rc_file
-rc_file="~/.bashrc"
-if [[ "$SHELL" == "/bin/zsh" ]]; then
-    rc_file=~/.zshrc
-elif [[ "$SHELL" == "/bin/bash" ]]; then
-    rc_file=~/.bashrc
-elif [[ "$SHELL" == "/bin/fish" ]]; then
-    rc_file=~/.config/fish/config.fish
-else
-    print_error "Failed to detect shell. Please set rc_file manually."
-fi
-
 # Functions
 print_step() {
     echo -e "${GREEN}==>${NC} $1"
@@ -94,30 +82,13 @@ check_uv() {
 
 check_npm() {
     print_step "Ensuring latest Node.js (LTS) and npm are installed..."
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        print_step "Use nodebrew to install/update latest Node.js LTS"
-        if ! command -v nodebrew &> /dev/null; then
-            print_step "Install nodebrew"
-            if ! command -v brew &> /dev/null; then
-                print_error "Homebrew is not installed. Please install Homebrew first."
-                exit 1
-            fi
-            brew install nodebrew
-            echo "export PATH=$HOME/.nodebrew/current/bin:$PATH" >> $rc_file
-            export PATH="$HOME/.nodebrew/current/bin:$PATH"
-        fi
-        nodebrew install-binary stable || nodebrew install stable
-        nodebrew use stable
-        print_success "Node.js $(node -v) installed/updated (latest LTS)"
-    elif [[ "$OSTYPE" == "linux"* ]]; then
-        print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-        sudo apt-get install -y nodejs
-        print_success "Node.js $(node -v) installed/updated (latest LTS)"
-    else
-        print_error "Unsupported OS. Please install Node.js 18以上 manually."
-        exit 1
+    print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
+    if ! curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -; then
+        print_warning "SSL verification failed, trying with --insecure flag..."
+        curl -fsSL --insecure https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     fi
+    sudo apt-get install -y nodejs
+    print_success "Node.js $(node -v) installed/updated (latest LTS)"
 
     # Verify installation
     if ! command -v npm &> /dev/null; then
@@ -130,26 +101,15 @@ check_npm() {
 check_github_cli() {
     if ! command -v gh &> /dev/null; then
         print_step "gh is not installed. Installing GitHub CLI..."
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            if ! command -v brew &> /dev/null; then
-                print_error "Homebrew is not installed. Please install Homebrew first."
-                exit 1
-            fi
-            brew install gh
-        elif [[ "$OSTYPE" == "linux"* ]]; then
-            type -p curl >/dev/null || sudo apt install curl -y
-            if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
-                print_warning "SSL verification failed, trying with --insecure flag..."
-                curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            fi
-            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-            && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-            && sudo apt update \
-            && sudo apt install gh -y
-        else
-            print_error "Unsupported OS for automatic gh installation."
-            exit 1
+        type -p curl >/dev/null || sudo apt install curl -y
+        if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
+            print_warning "SSL verification failed, trying with --insecure flag..."
+            curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
         fi
+        sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && sudo apt update \
+        && sudo apt install gh -y
 
         # Verify installation
         if ! command -v gh &> /dev/null; then
@@ -206,25 +166,12 @@ check_mermaid_cli() {
     fi
 }
 
-# Check if make is installed
 check_make() {
     if ! command -v make &> /dev/null; then
         print_step "make is not installed. Installing make..."
-        if [[ "$OSTYPE" == "linux"* ]]; then
-            sudo apt-get update
-            sudo apt-get install -y make
-            print_success "make installed successfully"
-        elif [[ "$OSTYPE" == "darwin"* ]]; then
-            if ! command -v brew &> /dev/null; then
-                print_error "Homebrew is not installed. Please install Homebrew first."
-                exit 1
-            fi
-            brew install make
-            print_success "make installed successfully"
-        else
-            print_error "Unsupported OS. Please install make manually."
-            exit 1
-        fi
+        sudo apt-get update
+        sudo apt-get install -y make
+        print_success "make installed successfully"
     else
         print_success "make is already installed ($(make --version | head -n1))"
     fi
@@ -278,31 +225,13 @@ install_update_uv() {
 
 install_update_npm() {
     print_step "Installing/updating Node.js (LTS) and npm to latest versions..."
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        print_step "Using nodebrew to install/update latest Node.js LTS"
-        if ! command -v nodebrew &> /dev/null; then
-            print_step "Installing nodebrew"
-            if ! command -v brew &> /dev/null; then
-                print_error "Homebrew is not installed. Please install Homebrew first."
-                exit 1
-            fi
-            brew install nodebrew
-            echo "export PATH=$HOME/.nodebrew/current/bin:$PATH" >> $rc_file
-            export PATH="$HOME/.nodebrew/current/bin:$PATH"
-        fi
-        # Always install/update to latest stable
-        nodebrew install-binary stable || nodebrew install stable
-        nodebrew use stable
-        print_success "Node.js $(node -v) installed/updated (latest LTS)"
-    elif [[ "$OSTYPE" == "linux"* ]]; then
-        print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-        sudo apt-get install -y nodejs
-        print_success "Node.js $(node -v) installed/updated (latest LTS)"
-    else
-        print_error "Unsupported OS. Please install Node.js 18以上 manually."
-        exit 1
+    print_step "Installing/updating latest Node.js LTS via NodeSource repository..."
+    if ! curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -; then
+        print_warning "SSL verification failed, trying with --insecure flag..."
+        curl -fsSL --insecure https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     fi
+    sudo apt-get install -y nodejs
+    print_success "Node.js $(node -v) installed/updated (latest LTS)"
 
     # Verify installation
     if ! command -v npm &> /dev/null; then
@@ -314,27 +243,15 @@ install_update_npm() {
 
 install_update_github_cli() {
     print_step "Installing/updating GitHub CLI to latest version..."
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        if ! command -v brew &> /dev/null; then
-            print_error "Homebrew is not installed. Please install Homebrew first."
-            exit 1
-        fi
-        # Always install/update to latest
-        brew install gh || brew upgrade gh
-    elif [[ "$OSTYPE" == "linux"* ]]; then
-        type -p curl >/dev/null || sudo apt-get install curl -y
-        if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
-            print_warning "SSL verification failed, trying with --insecure flag..."
-            curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-        fi
-        sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-        && sudo apt-get update \
-        && sudo apt-get install gh -y
-    else
-        print_error "Unsupported OS for automatic gh installation."
-        exit 1
+    type -p curl >/dev/null || sudo apt-get install curl -y
+    if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg; then
+        print_warning "SSL verification failed, trying with --insecure flag..."
+        curl -fsSL --insecure https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
     fi
+    sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && sudo apt-get update \
+    && sudo apt-get install gh -y
 
     # Verify installation
     if ! command -v gh &> /dev/null; then
@@ -385,55 +302,47 @@ install_update_mermaid_cli() {
 
 install_update_make() {
     print_step "Installing/updating make..."
-    if [[ "$OSTYPE" == "linux"* ]]; then
-        sudo apt-get install -y make
-        print_success "make installed/updated successfully"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        if ! command -v brew &> /dev/null; then
-            print_error "Homebrew is not installed. Please install Homebrew first."
-            exit 1
-        fi
-        brew install make || brew upgrade make
-        print_success "make installed/updated successfully"
-    else
-        print_error "Unsupported OS. Please install make manually."
-        exit 1
-    fi
+    sudo apt-get install -y make
+    print_success "make installed/updated successfully"
     print_success "make is available ($(make --version | head -n1))"
 }
 
-# Update system packages once at the beginning
 update_system_packages() {
-    if [[ "$OSTYPE" == "linux"* ]]; then
-        print_step "Updating system packages..."
-        sudo apt-get update
-        print_success "System packages updated"
-    fi
+    print_step "Updating system packages..."
+    sudo apt-get update
+    print_success "System packages updated"
 }
 
 install_update_cargo() {
     print_step "Installing/updating Rust and Cargo to latest version..."
 
-    # Always install/update to latest version
-    if ! curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
-        print_warning "SSL verification failed, trying with --insecure flag..."
-        curl --proto '=https' --tlsv1.2 -sSf --insecure https://sh.rustup.rs | sh -s -- -y
+    # Try apt first on Linux for better SSL compatibility
+    print_step "Installing Rust and Cargo via apt package manager..."
+    if sudo apt-get install -y cargo rustc; then
+        print_success "Rust/Cargo installed via apt package manager"
+    else
+        print_warning "apt installation failed, trying rustup installer..."
+        # Fallback to rustup installer with SSL fallback
+        if ! curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; then
+            print_warning "SSL verification failed, trying with --insecure flag..."
+            curl --proto '=https' --tlsv1.2 -sSf --insecure https://sh.rustup.rs | sh -s -- -y
+        fi
+
+        # Source cargo environment for rustup installation
+        source "$HOME/.cargo/env" 2>/dev/null || true
+        export PATH="$HOME/.cargo/bin:$PATH"
+
+        # Add to shell rc file for rustup installation
+        if [[ "$SHELL" == "/bin/zsh" ]]; then
+            echo 'source "$HOME/.cargo/env"' >> ~/.zshrc
+        elif [[ "$SHELL" == "/bin/bash" ]]; then
+            echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
+        elif [[ "$SHELL" == "/bin/fish" ]]; then
+            echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
+        fi
     fi
 
-    # Source cargo environment
-    source "$HOME/.cargo/env" 2>/dev/null || true
-    export PATH="$HOME/.cargo/bin:$PATH"
-
-    # Add to shell rc file
-    if [[ "$SHELL" == "/bin/zsh" ]]; then
-        echo 'source "$HOME/.cargo/env"' >> ~/.zshrc
-    elif [[ "$SHELL" == "/bin/bash" ]]; then
-        echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
-    elif [[ "$SHELL" == "/bin/fish" ]]; then
-        echo 'set -gx PATH $HOME/.cargo/bin $PATH' >> ~/.config/fish/config.fish
-    fi
-
-    # Update to latest stable if already installed
+    # Update to latest stable if rustup is available (for rustup installations)
     if command -v rustup &> /dev/null; then
         rustup update stable
         rustup default stable
@@ -441,7 +350,7 @@ install_update_cargo() {
 
     # Verify installation
     if ! command -v cargo &> /dev/null; then
-        print_error "Failed to install Rust/Cargo. Please install manually with: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        print_error "Failed to install Rust/Cargo. Please install manually."
         exit 1
     fi
 
@@ -534,18 +443,10 @@ test_mkdocs() {
     fi
 }
 
-# 日本語フォントのインストール
 install_japanese_fonts() {
     print_step "Installing/updating Japanese fonts..."
-    if [[ "$OSTYPE" == "linux"* ]]; then
-        sudo apt-get install -y fonts-noto-cjk fonts-ipafont-gothic fonts-ipafont-mincho fonts-noto-color-emoji
-        print_success "Japanese fonts installed/updated (Noto, IPA)"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install --cask font-noto-sans-cjk font-noto-serif-cjk font-ipaexfont || brew upgrade --cask font-noto-sans-cjk font-noto-serif-cjk font-ipaexfont
-        print_success "Japanese fonts installed/updated (Noto, IPAex)"
-    else
-        print_warning "Unsupported OS for automatic Japanese font installation. Please install manually."
-    fi
+    sudo apt-get install -y fonts-noto-cjk fonts-ipafont-gothic fonts-ipafont-mincho fonts-noto-color-emoji
+    print_success "Japanese fonts installed/updated (Noto, IPA)"
 }
 
 # Main setup flow
@@ -562,10 +463,10 @@ main() {
     install_update_cargo
     install_update_uv
     install_update_npm
-    # install_update_claude_code
-    install_update_gemini_cli
     install_update_mermaid_cli
     install_update_github_cli
+    install_update_claude_code
+    install_update_gemini_cli
 
     # Install/update Japanese fonts
     install_japanese_fonts
