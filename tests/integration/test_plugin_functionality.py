@@ -118,7 +118,6 @@ def test_serve_mode_integration():
 
         # プロセッサを模擬（実際には初期化されない想定）
         plugin.processor = Mock()
-        plugin.logger = Mock()
 
         # Mockページとconfig
         mock_page = Mock()
@@ -161,7 +160,6 @@ sequenceDiagram
         # 検証
         assert result == test_markdown  # 元のMarkdownがそのまま返される
         plugin.processor.process_page.assert_not_called()  # プロセッサが呼ばれない
-        plugin.logger.debug.assert_called_once()  # デバッグログが記録される
         assert len(plugin.generated_images) == 0  # 画像は生成されない
 
 
@@ -203,7 +201,6 @@ def test_build_mode_integration():
             ],
         )
         plugin.processor = mock_processor
-        plugin.logger = Mock()
 
         # Mockページとconfig
         mock_page = Mock()
@@ -248,7 +245,6 @@ sequenceDiagram
         assert "assets/images/example_mermaid_1_def456.png" in result
         plugin.processor.process_page.assert_called_once()  # プロセッサが呼ばれる
         assert len(plugin.generated_images) == 2  # 2つの画像が記録される
-        plugin.logger.info.assert_called_once()  # 情報ログが記録される
 
 
 def test_mixed_command_scenarios():

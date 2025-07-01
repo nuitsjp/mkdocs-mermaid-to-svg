@@ -52,7 +52,6 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
     def __init__(self) -> None:
         super().__init__()
         self.processor: Optional[MermaidProcessor] = None
-        self.logger: Optional[logging.Logger] = None
         self.generated_images: list[str] = []
         self.files: Optional[Any] = None  # MkDocsのFilesオブジェクトを保持
 
@@ -83,17 +82,15 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             else:
                 log_level = self.config["log_level"]
 
-            self.logger = get_logger(__name__)
+            logger = get_logger(__name__)
 
             if not self._should_be_enabled(self.config):
-                if self.logger:
-                    self.logger.info("Mermaid preprocessor plugin is disabled")
+                logger.info("Mermaid preprocessor plugin is disabled")
                 return config
 
             self.processor = MermaidProcessor(config_dict)
 
-            if self.logger:
-                self.logger.info("Mermaid preprocessor plugin initialized successfully")
+            logger.info("Mermaid preprocessor plugin initialized successfully")
 
         except Exception as e:
             raise MermaidConfigError(f"Plugin configuration error: {e!s}") from e
@@ -158,8 +155,9 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             self._register_generated_images_to_files(image_paths, docs_dir, config)
 
             # 画像を生成した場合、常にINFOレベルでログを出力
-            if image_paths and self.logger:
-                self.logger.info(
+            if image_paths:
+                logger = get_logger(__name__)
+                logger.info(
                     f"Generated {len(image_paths)} Mermaid diagrams for "
                     f"{page.file.src_path}"
                 )
@@ -167,17 +165,17 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             return modified_content
 
         except MermaidPreprocessorError as e:
-            if self.logger:
-                self.logger.error(f"Error processing {page.file.src_path}: {e!s}")
+            logger = get_logger(__name__)
+            logger.error(f"Error processing {page.file.src_path}: {e!s}")
             if self.config["error_on_fail"]:
                 raise
             return markdown
 
         except Exception as e:
-            if self.logger:
-                self.logger.error(
-                    f"Unexpected error processing {page.file.src_path}: {e!s}"
-                )
+            logger = get_logger(__name__)
+            logger.error(
+                f"Unexpected error processing {page.file.src_path}: {e!s}"
+            )
             if self.config["error_on_fail"]:
                 raise MermaidPreprocessorError(f"Unexpected error: {e!s}") from e
             return markdown
@@ -189,16 +187,16 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             return markdown
 
         if self.is_serve_mode:
-            if self.logger:
-                self.logger.debug(
-                    f"Skipping Mermaid image generation in serve mode for "
-                    f"{page.file.src_path}"
-                )
+            logger = get_logger(__name__)
+            logger.debug(
+                f"Skipping Mermaid image generation in serve mode for "
+                f"{page.file.src_path}"
+            )
             return markdown
 
         # デバッグログを追加
-        if self.logger:
-            self.logger.debug(f"Processing page: {page.file.src_path}")
+        logger = get_logger(__name__)
+        logger.debug(f"Processing page: {page.file.src_path}")
 
         return self._process_mermaid_diagrams(markdown, page, config)
 
@@ -207,21 +205,23 @@ class MermaidToImagePlugin(BasePlugin[MermaidPluginConfig]):  # type: ignore[no-
             return
 
         # 生成した画像の総数をINFOレベルで出力
-        if self.generated_images and self.logger:
-            self.logger.info(
+        if self.generated_images:
+            logger = get_logger(__name__)
+            logger.info(
                 f"Generated {len(self.generated_images)} Mermaid images total"
             )
 
         # 生成画像のクリーンアップ
         if self.config.get("cleanup_generated_images", False) and self.generated_images:
-            clean_generated_images(self.generated_images, self.logger)
+            logger = get_logger(__name__)
+            clean_generated_images(self.generated_images, logger)
 
         if not self.config["cache_enabled"]:
             cache_dir = self.config["cache_dir"]
             if Path(cache_dir).exists():
                 shutil.rmtree(cache_dir)
-                if self.logger:
-                    self.logger.debug(f"Cleaned up cache directory: {cache_dir}")
+                logger = get_logger(__name__)
+                logger.debug(f"Cleaned up cache directory: {cache_dir}")
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
         if not self._should_be_enabled(self.config):

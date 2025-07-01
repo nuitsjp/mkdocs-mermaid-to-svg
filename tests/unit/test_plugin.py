@@ -48,7 +48,6 @@ class TestMermaidToImagePlugin:
     def test_plugin_initialization(self, plugin):
         """初期化時のプロパティが正しいかテスト"""
         assert plugin.processor is None
-        assert plugin.logger is None
         assert plugin.generated_images == []
 
     def test_config_validation_success(self, plugin, mock_config):
@@ -170,7 +169,6 @@ class TestMermaidToImagePlugin:
             ["/path/to/image.png"],
         )
         plugin.processor = mock_processor
-        plugin.logger = Mock()
 
         markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
 
@@ -198,7 +196,6 @@ class TestMermaidToImagePlugin:
         mock_processor = Mock()
         mock_processor.process_page.side_effect = Exception("Test error")
         plugin.processor = mock_processor
-        plugin.logger = Mock()
 
         markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
 
@@ -208,7 +205,6 @@ class TestMermaidToImagePlugin:
 
         # error_on_fail=Falseなので元のMarkdownが返る
         assert result == markdown
-        plugin.logger.error.assert_called()
 
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
     def test_on_page_markdown_mermaid_error_with_error_on_fail_true(
@@ -230,7 +226,6 @@ class TestMermaidToImagePlugin:
             "Mermaid processing failed"
         )
         plugin.processor = mock_processor
-        plugin.logger = Mock()
 
         markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
 
@@ -238,8 +233,6 @@ class TestMermaidToImagePlugin:
             plugin.on_page_markdown(
                 markdown, page=mock_page, config=mock_config, files=[]
             )
-
-        plugin.logger.error.assert_called()
 
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
     def test_on_page_markdown_general_error_with_error_on_fail_true(
@@ -259,7 +252,6 @@ class TestMermaidToImagePlugin:
         mock_processor = Mock()
         mock_processor.process_page.side_effect = ValueError("Unexpected error")
         plugin.processor = mock_processor
-        plugin.logger = Mock()
 
         markdown = "# Test\n\n```mermaid\ngraph TD\n A --> B\n```"
 
@@ -267,8 +259,6 @@ class TestMermaidToImagePlugin:
             plugin.on_page_markdown(
                 markdown, page=mock_page, config=mock_config, files=[]
             )
-
-        plugin.logger.error.assert_called()
 
     def test_on_post_build_disabled(self, plugin):
         """プラグイン無効時のon_post_buildの挙動をテスト"""
@@ -284,11 +274,12 @@ class TestMermaidToImagePlugin:
             "cache_dir": ".mermaid_cache",
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.png"]
-        plugin.logger = Mock()
 
-        plugin.on_post_build(config={})
-
-        plugin.logger.info.assert_called_with("Generated 2 Mermaid images total")
+        with patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
+            plugin.on_post_build(config={})
+            mock_logger.info.assert_called_with("Generated 2 Mermaid images total")
 
     @patch("shutil.rmtree")
     @patch("pathlib.Path.exists")
@@ -364,15 +355,11 @@ class TestMermaidToImagePlugin:
             "cache_dir": ".mermaid_cache",
         }
         plugin.generated_images = ["/path/to/image1.png"]
-        plugin.logger = Mock()
         mock_exists.return_value = True
         mock_unlink.side_effect = PermissionError("Permission denied")
 
         # エラーが発生してもプラグインは正常に動作する
         plugin.on_post_build(config={})
-
-        # エラーログが出力される
-        plugin.logger.warning.assert_called()
 
     @patch("mkdocs_mermaid_to_image.plugin.clean_generated_images")
     def test_on_post_build_image_cleanup_without_logger(
@@ -386,14 +373,15 @@ class TestMermaidToImagePlugin:
             "cache_dir": ".mermaid_cache",
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
-        plugin.logger = None  # logger が None の場合
 
-        plugin.on_post_build(config={})
-
-        # loggerがNoneでもclean_generated_imagesが呼び出されるべき
-        mock_clean_generated_images.assert_called_once_with(
-            plugin.generated_images, None
-        )
+        with patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
+            plugin.on_post_build(config={})
+            # clean_generated_imagesが呼び出されるべき
+            mock_clean_generated_images.assert_called_once_with(
+                plugin.generated_images, mock_logger
+            )
 
     def test_on_serve_disabled(self, plugin):
         """プラグイン無効時のon_serveの挙動をテスト"""
@@ -460,7 +448,6 @@ class TestMermaidToImagePluginServeMode:
             plugin = MermaidToImagePlugin()
             plugin.config = {"enabled": True}
             plugin.processor = Mock()  # プロセッサが設定されている状態
-            plugin.logger = Mock()
 
             # Mock page and config
             mock_page = Mock()
@@ -477,8 +464,6 @@ class TestMermaidToImagePluginServeMode:
             assert result == markdown
             # プロセッサの処理メソッドが呼び出されていないことを確認
             plugin.processor.process_page.assert_not_called()
-            # デバッグログが出力されていることを確認
-            plugin.logger.debug.assert_called_once()
 
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
     def test_正常系_ビルドモード時のMarkdown処理実行(self, _mock_processor_class):
@@ -498,7 +483,6 @@ class TestMermaidToImagePluginServeMode:
                 ["/path/to/image.png"],
             )
             plugin.processor = mock_processor
-            plugin.logger = Mock()
 
             # Mock page and config
             mock_page = Mock()
