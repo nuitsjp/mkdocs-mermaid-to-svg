@@ -1,7 +1,7 @@
 name: Publish Package
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }-release}
   cancel-in-progress: true
 
 on:
