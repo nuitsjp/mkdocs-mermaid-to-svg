@@ -143,14 +143,14 @@ graph TD
 ### 通常のビルド
 
 ```bash
-mkdocs build    # 静的サイト生成（画像変換実行）
-mkdocs serve    # 開発サーバー（画像変換スキップ）
+uv run mkdocs build    # 静的サイト生成（画像変換実行）
+uv run mkdocs serve    # 開発サーバー（画像変換スキップ）
 ```
 
 ### ログレベル指定
 
 ```bash
-mkdocs build --verbose  # 詳細ログ
+uv run mkdocs build --verbose  # 詳細ログ
 ```
 
 環境変数でログレベルを制御することも可能：

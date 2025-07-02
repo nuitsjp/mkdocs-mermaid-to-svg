@@ -1,4 +1,4 @@
-.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all check-security benchmark profile setup pr issue clean install-dev
+.PHONY: help test test-cov test-unit test-property test-integration format lint typecheck security audit check check-all check-security benchmark profile setup pr issue clean install-dev serve build build-pdf mmdc-version mmdc-version-npx
 
 # デフォルトターゲット
 help:
@@ -22,6 +22,11 @@ help:
 	@echo "  check        - 品質チェック（format + lint + typecheck）"
 	@echo "  check-security - セキュリティチェック（security + audit）"
 	@echo "  check-all    - 完全チェック（pre-commitフック全実行）"
+	@echo "  serve        - MkDocs開発サーバー起動"
+	@echo "  build        - MkDocsドキュメントビルド"
+	@echo "  build-pdf    - PDF生成付きMkDocsビルド"
+	@echo "  mmdc-version - Mermaid CLIバージョン確認"
+	@echo "  mmdc-version-npx - npx経由でMermaid CLIバージョン確認"
 	@echo "  pr           - PR作成 (TITLE=\"タイトル\" BODY=\"本文\" [LABEL=\"ラベル\"])"
 	@echo "  issue        - イシュー作成 (TITLE=\"タイトル\" BODY=\"本文\" [LABEL=\"ラベル\"])"
 	@echo "  clean        - キャッシュファイルの削除"
@@ -126,6 +131,23 @@ issue:
 	else \
 		gh issue create --title "$$GH_ISSUE_TITLE" --body "$$GH_ISSUE_BODY"; \
 	fi
+
+# MkDocsコマンド
+serve:
+	uv run mkdocs serve
+
+build:
+	uv run mkdocs build
+
+build-pdf:
+	ENABLE_PDF_EXPORT=1 uv run mkdocs build
+
+# Mermaid CLIコマンド
+mmdc-version:
+	mmdc --version
+
+mmdc-version-npx:
+	npx mmdc --version
 
 # クリーンアップ
 clean:

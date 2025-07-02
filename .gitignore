@@ -3,6 +3,7 @@ _version.py
 
 # Python
 __pycache__/
+.benchmarks
 *.py[cod]
 *$py.class
 *.so
