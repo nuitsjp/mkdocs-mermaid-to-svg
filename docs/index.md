@@ -105,5 +105,5 @@ make check-all  # 品質 + セキュリティの完全チェック
 #### PDF生成テスト
 
 ```bash
-ENABLE_PDF_EXPORT=1 uv run mkdocs build
+make build-pdf
 ```
