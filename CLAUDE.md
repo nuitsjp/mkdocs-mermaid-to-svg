@@ -7,9 +7,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Think in English, interact with the user in Japanese.
 - When modifying the implementation, strictly adhere to the t-wada style of Test-Driven Development (TDD).
   - **t-wada TDD Concept**:
-    - First, write a failing test (Red).
-    - Then, write the simplest code to make it pass (Green).
-    - Finally, refactor the code (Refactor).
+    1. 1st Issue
+        1. First, write a failing test (Red).
+        2. Then, write the simplest code to make it pass (Green).
+        3. Finally, refactor the code (Refactor).
+    2. 2nd Issue
+        1. First, write a failing test (Red).
+        2. Then, write the simplest code to make it pass (Green).
+        3. Finally, refactor the code (Refactor).
   - Each cycle should be small and focused on a single purpose.
 
 ## Development Commands
