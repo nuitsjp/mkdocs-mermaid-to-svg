@@ -19,7 +19,9 @@
       "Bash(uv run pytest:*)",
       "Bash(grep:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }
