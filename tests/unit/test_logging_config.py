@@ -36,27 +36,7 @@ class TestStructuredFormatter:
         )
 
         formatted = formatter.format(record)
-        assert "level=INFO" in formatted
-        assert "logger=test.logger" in formatted
-        assert "message=Test message" in formatted
-        assert "timestamp=" in formatted
-
-    def test_format_with_caller_info(self) -> None:
-        """Test formatting with caller information."""
-        formatter = StructuredFormatter(include_caller=True)
-        record = logging.LogRecord(
-            name="test.logger",
-            level=logging.ERROR,
-            pathname="/path/to/file.py",
-            lineno=42,
-            msg="Error message",
-            args=(),
-            exc_info=None,
-            func="test_function",
-        )
-
-        formatted = formatter.format(record)
-        assert "caller=file.py:test_function:42" in formatted
+        assert formatted == "[mkdocs-mermaid-to-image] INFO: Test message"
 
     def test_format_with_context(self) -> None:
         """Test formatting with context information."""
@@ -73,8 +53,11 @@ class TestStructuredFormatter:
         record.context = {"key1": "value1", "key2": "value2"}
 
         formatted = formatter.format(record)
-        assert "key1=value1" in formatted
-        assert "key2=value2" in formatted
+        expected = (
+            "[mkdocs-mermaid-to-image] INFO: Context message "
+            "(key1=value1 key2=value2)"
+        )
+        assert formatted == expected
 
     def test_format_with_exception(self) -> None:
         """Test formatting with exception information."""
@@ -96,29 +79,12 @@ class TestStructuredFormatter:
             )
 
         formatted = formatter.format(record)
-        assert "exception=" in formatted
-        assert "ValueError" in formatted
-
-    def test_format_without_pathname_attribute(self) -> None:
-        """Test formatting when record has no pathname attribute."""
-        formatter = StructuredFormatter(include_caller=True)
-        record = logging.LogRecord(
-            name="test.logger",
-            level=logging.INFO,
-            pathname="/path/to/file.py",
-            lineno=42,
-            msg="Test message",
-            args=(),
-            exc_info=None,
-            funcName="test_function",
+        expected_start = (
+            "[mkdocs-mermaid-to-image] ERROR: Exception occurred\n"
+            "Traceback (most recent call last):"
         )
-
-        # Remove the pathname attribute to test hasattr check
-        delattr(record, "pathname")
-
-        formatted = formatter.format(record)
-        # When pathname attribute doesn't exist, caller info should not be included
-        assert "caller=" not in formatted
+        assert formatted.startswith(expected_start)
+        assert "ValueError: Test exception" in formatted
 
     def test_format_with_non_dict_context(self) -> None:
         """Test formatting when context is not a dict."""
@@ -135,8 +101,7 @@ class TestStructuredFormatter:
         record.context = "not a dict"
 
         formatted = formatter.format(record)
-        # Should not contain context key=value pairs since context is not a dict
-        assert "=" in formatted  # Only timestamp=, level=, etc.
+        assert formatted == "[mkdocs-mermaid-to-image] INFO: Context message"
 
 
 class TestSetupPluginLogging:

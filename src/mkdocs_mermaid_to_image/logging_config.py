@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -19,52 +18,22 @@ class StructuredFormatter(logging.Formatter):
         self.include_caller = include_caller
 
     def format(self, record: logging.LogRecord) -> str:
-        log_entry: dict[str, Any] = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-        }
+        logger_name = "mkdocs-mermaid-to-image"
+        level_name = record.levelname
+        message = record.getMessage()
 
-        if self.include_caller and hasattr(record, "pathname"):
-            log_entry["caller"] = {
-                "filename": Path(record.pathname).name,
-                "function": record.funcName,
-                "line": record.lineno,
-            }
+        log_string = f"[{logger_name}] {level_name}: {message}"
 
         if hasattr(record, "context"):
             context = getattr(record, "context", None)
-            if context:
-                log_entry["context"] = context
+            if context and isinstance(context, dict):
+                context_str = " ".join([f"{k}={v}" for k, v in context.items()])
+                log_string += f" ({context_str})"
 
         if record.exc_info:
-            log_entry["exception"] = self.formatException(record.exc_info)
+            log_string += "\n" + self.formatException(record.exc_info)
 
-        parts = [f"timestamp={log_entry['timestamp']}"]
-        parts.append(f"level={log_entry['level']}")
-        parts.append(f"logger={log_entry['logger']}")
-
-        if "caller" in log_entry:
-            caller = log_entry["caller"]
-            if isinstance(caller, dict):
-                filename = caller.get("filename", "")
-                function = caller.get("function", "")
-                line = caller.get("line", "")
-                parts.append(f"caller={filename}:{function}:{line}")
-
-        parts.append(f"message={log_entry['message']}")
-
-        if "context" in log_entry:
-            context = log_entry["context"]
-            if isinstance(context, dict):
-                for key, value in context.items():
-                    parts.append(f"{key}={value}")
-
-        if "exception" in log_entry:
-            parts.append(f"exception={log_entry['exception']}")
-
-        return " ".join(parts)
+        return log_string
 
 
 def setup_plugin_logging(
