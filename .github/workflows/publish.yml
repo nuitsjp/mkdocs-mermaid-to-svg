@@ -1,5 +1,20 @@
 name: Publish Package
 
+# このワークフローはPythonパッケージのリリースを自動化します
+#
+# バージョン管理の仕組み:
+# - プロジェクトではhatch-vcsを使用してGitタグからバージョンを動的に生成
+# - pyproject.tomlで設定: [tool.hatch.version] source = "vcs"
+# - タグ形式: release-1.2.3 から 1.2.3 を抽出
+#
+# リリースタイプ:
+# 1. 本番リリース: release-* タグでトリガー → PyPIにリリース + GitHub Release作成
+# 2. テストリリース: 手動実行 → TestPyPIにリリース
+#
+# GitHub Releaseの名前問題の対策:
+# - 本番リリース時はタグから直接バージョンを抽出（タグ: release-1.2.3 → 1.2.3）
+# - パッケージからの取得ではhatch-vcsのタイミング問題により正しく取得できない場合があるため
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-release
   cancel-in-progress: true
@@ -80,12 +95,54 @@ jobs:
       - name: Build package
         run: uv build
 
+      # バージョン取得の仕組み:
+      # - 本番リリース時: Gitタグから直接バージョンを抽出（release-1.2.3 -> 1.2.3）
+      # - テストリリース時: hatch-vcsで生成されたパッケージからバージョンを取得
+      #
+      # hatch-vcsは pyproject.toml で設定されており、Gitタグからバージョンを自動生成します:
+      # [tool.hatch.version]
+      # source = "vcs"
+      # raw-options = { local_scheme = "no-local-version" }
+      #
+      # パッケージビルド時にhatch-vcsがタグを検出してバージョンファイルを生成するため、
+      # PyPIリリースは正しいバージョンになりますが、GitHub Release名には
+      # パッケージから取得したバージョンではなく、タグから直接抽出したバージョンを使用します。
       - name: Get version
         id: version
         run: |
-          VERSION=$(uv run python -c "import mkdocs_mermaid_to_image; print(mkdocs_mermaid_to_image.__version__)")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Package version: $VERSION"
+          if [[ "${{ needs.determine-release-type.outputs.is-production }}" == "true" ]]; then
+            # 本番リリース時: タグ名から直接バージョンを抽出
+            # release-1.2.3 -> 1.2.3 の変換を行う
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#release-}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Version extracted from tag: $VERSION"
+            echo "Tag name: ${{ github.ref_name }}"
+          else
+            # テストリリース時: hatch-vcsで生成されたパッケージからバージョンを取得
+            VERSION=$(uv run python -c "import mkdocs_mermaid_to_image; print(mkdocs_mermaid_to_image.__version__)")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Version from package (hatch-vcs): $VERSION"
+          fi
+
+      # デバッグ情報: バージョン取得の詳細ログ
+      - name: Debug version information
+        run: |
+          echo "=== Version Debug Information ==="
+          echo "GitHub event: ${{ github.event_name }}"
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub ref_name: ${{ github.ref_name }}"
+          echo "Is production: ${{ needs.determine-release-type.outputs.is-production }}"
+          echo "Release type: ${{ needs.determine-release-type.outputs.release-type }}"
+          echo "Final version: ${{ steps.version.outputs.version }}"
+          if [[ "${{ needs.determine-release-type.outputs.is-production }}" == "true" ]]; then
+            echo "Tag-based version extraction: ${GITHUB_REF_NAME#release-}"
+          fi
+          echo "Package version (hatch-vcs):"
+          uv run python -c "import mkdocs_mermaid_to_image; print(f'  {mkdocs_mermaid_to_image.__version__}')" || echo "  Package not available"
+          echo "Version file content:"
+          cat src/mkdocs_mermaid_to_image/_version.py 2>/dev/null || echo "  Version file not found"
+          echo "================================="
 
       - name: Validate package
         run: |
