@@ -10,7 +10,10 @@ Python未経験者へのヒント：
 
 from unittest.mock import Mock, patch
 
-from mkdocs_mermaid_to_image.mermaid_block import MermaidBlock
+from mkdocs_mermaid_to_image.mermaid_block import (
+    MermaidBlock,
+    _calculate_relative_path_prefix,
+)
 
 
 class TestMermaidBlock:
@@ -136,8 +139,8 @@ class TestMermaidBlock:
             "/home/user/docs/assets/images/test.png", "development/page.md"
         )
 
-        # 新しい実装では常にassets/images/filename.pngを使用
-        assert result == "![Mermaid Diagram](assets/images/test.png)"
+        # サブディレクトリのページからは相対パスで参照する
+        assert result == "![Mermaid Diagram](../assets/images/test.png)"
 
     def test_get_filename(self):
         """ファイル名生成のテスト"""
@@ -172,25 +175,80 @@ class TestMermaidBlock:
         assert merged_config["width"] == 800  # 元の設定のまま
         assert merged_config["height"] == 600  # 元の設定のまま
 
+    def test_get_image_markdown_subdirectory_relative_path(self):
+        """サブディレクトリのページで適切な相対パスが生成されることをテスト（失敗予定）"""
+        block = MermaidBlock("graph TD\n A --> B", 0, 20)
+
+        # appendix/mkdocs-architecture.md のようなサブディレクトリのページの場合
+        result = block.get_image_markdown(
+            "/home/user/docs/assets/images/test.svg", "appendix/mkdocs-architecture.md"
+        )
+
+        # サブディレクトリのページからは ../assets/images/ で参照する必要がある
+        assert result == "![Mermaid Diagram](../assets/images/test.svg)"
+
+    def test_get_image_markdown_deep_subdirectory_relative_path(self):
+        """深いサブディレクトリのページで適切な相対パスが生成されることをテスト（失敗予定）"""
+        block = MermaidBlock("graph TD\n A --> B", 0, 20)
+
+        # docs/guide/advanced/tutorial.md のような深いサブディレクトリのページの場合
+        result = block.get_image_markdown(
+            "/home/user/docs/assets/images/test.svg", "docs/guide/advanced/tutorial.md"
+        )
+
+        # 3階層深いページからは ../../../assets/images/ で参照する必要がある
+        assert result == "![Mermaid Diagram](../../../assets/images/test.svg)"
+
     def test_get_image_markdown_depth_edge_cases(self):
         """ページ深度計算のエッジケースをテスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
 
-        # Empty page URL case
+        # Root level page case
+        result = block.get_image_markdown("/path/to/image.png", "page.md", page_url="")
+        assert "assets/images/image.png" in result  # Root page, no depth prefix
+
+        # Root level with index
         result = block.get_image_markdown(
-            "/path/to/image.png", "/path/to/page.md", page_url=""
+            "/path/to/image.png", "index.md", page_url="/"
         )
         assert "assets/images/image.png" in result  # Root page, no depth prefix
 
-        # Page URL with only slash
+        # Path object test - relative path calculation based on file path
         result = block.get_image_markdown(
-            "/path/to/image.png", "/path/to/page.md", page_url="/"
+            "/path/to/image.png",
+            "docs/guide/index.md",
+            page_url="docs/guide/index.html",
         )
-        assert "assets/images/image.png" in result  # Root page, no depth prefix
+        # docs/guide/index.md は2階層深いので ../../ が付く
+        assert "../../assets/images/image.png" in result
 
-        # Page URL with .html extension (should be excluded from depth calculation)
-        result = block.get_image_markdown(
-            "/path/to/image.png", "/path/to/page.md", page_url="docs/guide/index.html"
-        )
-        # 新しい実装では相対パス計算を行わず、常にassets/images/filename.pngを使用
-        assert "assets/images/image.png" in result
+
+class TestCalculateRelativePathPrefix:
+    """_calculate_relative_path_prefix関数のテストクラス"""
+
+    def test_root_level_page(self):
+        """ルートレベルのページで空文字列が返されることをテスト"""
+        assert _calculate_relative_path_prefix("index.md") == ""
+        assert _calculate_relative_path_prefix("README.md") == ""
+
+    def test_single_level_subdirectory(self):
+        """1階層のサブディレクトリで正しいプレフィックスが返されることをテスト"""
+        assert _calculate_relative_path_prefix("appendix/file.md") == "../"
+        assert _calculate_relative_path_prefix("docs/index.md") == "../"
+
+    def test_deep_subdirectory(self):
+        """深いサブディレクトリで正しいプレフィックスが返されることをテスト"""
+        assert _calculate_relative_path_prefix("docs/guide/tutorial.md") == "../../"
+        assert _calculate_relative_path_prefix("a/b/c/d/file.md") == "../../../../"
+
+    def test_empty_page_file(self):
+        """空のページファイルで空文字列が返されることをテスト"""
+        assert _calculate_relative_path_prefix("") == ""
+
+    def test_path_normalization(self):
+        """パスの正規化が正しく動作することをテスト"""
+        # 通常のフォワードスラッシュパス
+        assert _calculate_relative_path_prefix("docs/guide/file.md") == "../../"
+
+        # 重複スラッシュは自動的に正規化される
+        assert _calculate_relative_path_prefix("docs//guide///file.md") == "../../"

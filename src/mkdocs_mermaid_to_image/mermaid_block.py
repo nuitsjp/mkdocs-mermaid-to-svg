@@ -5,6 +5,30 @@ from typing import Any
 from .utils import generate_image_filename
 
 
+def _calculate_relative_path_prefix(page_file: str) -> str:
+    """ページファイルパスから適切な相対パスプレフィックスを計算する
+
+    Args:
+        page_file: ページファイルのパス（例: "appendix/mkdocs-architecture.md"）
+
+    Returns:
+        相対パスプレフィックス（例: "../" or "../../../"）
+    """
+    if not page_file:
+        return ""
+
+    page_path = Path(page_file)
+    # ディレクトリの深さを計算（ファイル名を除く）
+    depth = len(page_path.parent.parts)
+
+    # ルートレベル（深さ0）の場合は相対パス不要
+    if depth == 0:
+        return ""
+    else:
+        # 各階層に対して "../" を追加
+        return "../" * depth
+
+
 class MermaidBlock:
     def __init__(
         self,
@@ -52,12 +76,11 @@ class MermaidBlock:
     ) -> str:
         image_path_obj = Path(image_path)
 
-        # Use image filename for the assets/images path
-        image_site_path = f"assets/images/{image_path_obj.name}"
+        # 相対パスプレフィックスを計算
+        relative_prefix = _calculate_relative_path_prefix(page_file)
 
-        # MkDocsの内部リンク解決に合わせて、直接のパスを使用
-        # 相対パス計算を行わずに、直接assets/images/ファイル名を使用
-        relative_image_path = image_site_path
+        # 相対パス付きで画像パスを構築
+        relative_image_path = f"{relative_prefix}assets/images/{image_path_obj.name}"
 
         image_markdown = f"![Mermaid Diagram]({relative_image_path})"
 

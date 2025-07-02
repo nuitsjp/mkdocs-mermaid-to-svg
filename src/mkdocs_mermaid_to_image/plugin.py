@@ -106,17 +106,50 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
 
         for image_path in image_paths:
             image_file_path = Path(image_path)
-            if image_file_path.exists():
+            if not image_file_path.exists():
+                self.logger.warning(
+                    f"Generated image file does not exist: {image_path}"
+                )
+                continue
+
+            try:
                 # docs_dirからの相対パスを計算
                 rel_path = image_file_path.relative_to(docs_dir)
-                # ファイルオブジェクトを作成してFilesに追加
+                rel_path_str = str(rel_path)
+
+                # 既存のファイルを効率的に検索して削除（重複回避）
+                self._remove_existing_file_by_path(rel_path_str)
+
+                # 新しいファイルオブジェクトを作成してFilesに追加
                 file_obj = File(
-                    str(rel_path),
+                    rel_path_str,
                     str(docs_dir),
                     str(config["site_dir"]),
                     use_directory_urls=config.get("use_directory_urls", True),
                 )
                 self.files.append(file_obj)
+
+            except ValueError as e:
+                self.logger.error(f"Error processing image path {image_path}: {e}")
+                continue
+
+    def _remove_existing_file_by_path(self, src_path: str) -> bool:
+        """指定されたsrc_pathを持つファイルを削除する
+
+        Args:
+            src_path: 削除するファイルのsrc_path
+
+        Returns:
+            削除されたファイルがあればTrue、なければFalse
+        """
+        if self.files is None:
+            return False
+
+        for file_obj in self.files:
+            if file_obj.src_path == src_path:
+                self.files.remove(file_obj)
+                return True
+        return False
 
     def _process_mermaid_diagrams(
         self, markdown: str, page: Any, config: Any

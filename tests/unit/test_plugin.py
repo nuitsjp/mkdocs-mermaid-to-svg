@@ -9,6 +9,8 @@ Python未経験者へのヒント：
 """
 
 import sys
+import warnings
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -380,6 +382,163 @@ class TestMermaidToImagePlugin:
         mock_clean_generated_images.assert_called_once_with(
             plugin.generated_images, mock_logger
         )
+
+    @patch("pathlib.Path.exists")
+    def test_register_generated_images_replaces_duplicate_file(self, mock_exists):
+        """重複ファイルが適切に置換されることを確認"""
+        mock_exists.return_value = True
+
+        plugin = MermaidToImagePlugin()
+        plugin.config = {"enabled": True}
+
+        # 実際のMkDocs FilesオブジェクトとFileオブジェクトを使用
+        from pathlib import Path
+
+        from mkdocs.structure.files import File, Files
+
+        docs_dir = Path("/tmp/docs")
+
+        # Filesオブジェクトを作成
+        files = Files([])
+        plugin.files = files
+
+        # 先に1つファイルを追加して重複状況を作る
+        existing_file = File("assets/images/test.svg", str(docs_dir), "/tmp/site", True)
+        files.append(existing_file)
+
+        # ファイル数を記録
+        initial_file_count = len(files)
+
+        # モック設定を作成
+        mock_config = {
+            "docs_dir": str(docs_dir),
+            "site_dir": "/tmp/site",
+            "use_directory_urls": True,
+        }
+
+        # 既に存在するファイルと同じパスを登録（重複）
+        image_paths = [str(docs_dir / "assets/images/test.svg")]
+
+        # テスト対象メソッドを実行
+        plugin._register_generated_images_to_files(image_paths, docs_dir, mock_config)
+
+        # ファイル数が変わらないことを確認（置換されたため）
+        assert (
+            len(files) == initial_file_count
+        ), "File count should remain the same after duplicate replacement"
+
+        # ファイルパスが正しいことを確認
+        file_paths = [f.src_path for f in files]
+        assert "assets/images/test.svg" in file_paths
+
+    @patch("pathlib.Path.exists")
+    def test_register_generated_images_no_duplication_warning_after_fix(
+        self, mock_exists
+    ):
+        """修正後は同じファイルを複数回登録してもDeprecationWarningが発生しないことをテスト（失敗予定）"""
+        mock_exists.return_value = True
+
+        plugin = MermaidToImagePlugin()
+        plugin.config = {"enabled": True}
+
+        # 実際のMkDocs FilesオブジェクトとFileオブジェクトを使用
+        from pathlib import Path
+
+        from mkdocs.structure.files import File, Files
+
+        docs_dir = Path("/tmp/docs")
+
+        # Filesオブジェクトを作成
+        files = Files([])
+        plugin.files = files
+
+        # 先に1つファイルを追加して重複状況を作る
+        existing_file = File("assets/images/test.svg", str(docs_dir), "/tmp/site", True)
+        files.append(existing_file)
+
+        # モック設定を作成
+        mock_config = {
+            "docs_dir": str(docs_dir),
+            "site_dir": "/tmp/site",
+            "use_directory_urls": True,
+        }
+
+        # 既に存在するファイルと同じパスを登録（重複）
+        image_paths = [str(docs_dir / "assets/images/test.svg")]
+
+        # DeprecationWarningをキャッチするためのwarningsフィルター
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+
+            # テスト対象メソッドを実行（修正後は警告が発生しないはず）
+            plugin._register_generated_images_to_files(
+                image_paths, docs_dir, mock_config
+            )
+
+            # DeprecationWarningが発生していないことを確認（修正目標）
+            deprecation_warnings = [
+                w for w in warning_list if issubclass(w.category, DeprecationWarning)
+            ]
+            assert len(deprecation_warnings) == 0, (
+                f"DeprecationWarning should not occur after fix, "
+                f"but got: {deprecation_warnings}"
+            )
+
+    @patch.object(Path, "exists")
+    def test_register_generated_images_nonexistent_file(self, mock_exists):
+        """存在しないファイルは警告を出してスキップされることをテスト"""
+        mock_exists.return_value = False
+
+        plugin = MermaidToImagePlugin()
+        plugin.config = {"enabled": True}
+        plugin.logger = Mock()
+
+        from pathlib import Path
+
+        from mkdocs.structure.files import Files
+
+        docs_dir = Path("/tmp/docs")
+        files = Files([])
+        plugin.files = files
+
+        mock_config = {
+            "docs_dir": str(docs_dir),
+            "site_dir": "/tmp/site",
+            "use_directory_urls": True,
+        }
+
+        # 存在しないファイルパス
+        image_paths = [str(docs_dir / "assets/images/nonexistent.svg")]
+
+        plugin._register_generated_images_to_files(image_paths, docs_dir, mock_config)
+
+        # ファイルが追加されていないことを確認（ログは追加機能なのでスキップ）
+        assert len(files) == 0
+
+    def test_remove_existing_file_by_path(self):
+        """_remove_existing_file_by_pathメソッドのテスト"""
+        plugin = MermaidToImagePlugin()
+
+        from pathlib import Path
+
+        from mkdocs.structure.files import File, Files
+
+        docs_dir = Path("/tmp/docs")
+        files = Files([])
+        plugin.files = files
+
+        # テスト用ファイルを追加
+        test_file = File("assets/images/test.svg", str(docs_dir), "/tmp/site", True)
+        files.append(test_file)
+
+        # ファイル削除のテスト
+        result = plugin._remove_existing_file_by_path("assets/images/test.svg")
+        assert result is True
+        assert len(files) == 0
+
+        # 存在しないファイルの削除テスト
+        result = plugin._remove_existing_file_by_path("assets/images/nonexistent.svg")
+        assert result is False
 
     def test_on_serve_disabled(self, plugin):
         """プラグイン無効時のon_serveの挙動をテスト"""
