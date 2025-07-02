@@ -31,13 +31,6 @@ print_success() {
 
 # Install/update functions - unified package management
 
-install_update_make() {
-    print_step "Installing/updating build tools..."
-    sudo apt-get install -y build-essential make
-    print_success "Build tools installed/updated successfully"
-    print_success "make is available ($(make --version | head -n1))"
-}
-
 install_update_uv() {
     print_step "Installing/updating uv to latest version..."
 
@@ -178,28 +171,6 @@ setup_mermaid_local() {
     fi
 }
 
-update_system_packages() {
-    print_step "Updating system packages..."
-    sudo apt-get update
-    print_success "System packages updated"
-}
-
-install_update_cargo() {
-    print_step "Installing/updating Rust and Cargo to latest version..."
-
-    # Install Rust and Cargo via apt package manager
-    print_step "Installing Rust and Cargo via apt package manager..."
-    sudo apt-get install -y cargo rustc build-essential
-
-    # Verify installation
-    if ! command -v cargo &> /dev/null; then
-        print_error "Failed to install Rust/Cargo via apt. Please install manually."
-        exit 1
-    fi
-
-    print_success "Rust/Cargo installed/updated successfully ($(cargo --version))"
-}
-
 install_update_similarity_py() {
     print_step "Installing/updating similarity-py to latest version..."
 
@@ -338,12 +309,6 @@ test_mkdocs() {
     fi
 }
 
-install_japanese_fonts() {
-    print_step "Installing/updating Japanese fonts..."
-    sudo apt-get install -y fonts-noto-cjk fonts-ipafont-gothic fonts-ipafont-mincho fonts-noto-color-emoji
-    print_success "Japanese fonts installed/updated (Noto, IPA)"
-}
-
 # Main setup flow
 main() {
     echo "🚀 MkDocs Mermaid to Image Plugin Setup"
@@ -351,16 +316,16 @@ main() {
     echo
 
     # === SYSTEM PREPARATION ===
-    # Update package repositories once at the beginning
-    update_system_packages
+    sudo apt-get update
 
     # === PACKAGE INSTALLATION (by package manager) ===
 
     # APT packages: System tools and development dependencies
-    install_update_make          # build-essential, make (development tools)
-    install_update_cargo         # cargo, rustc (Rust toolchain)
-    install_update_github_cli    # gh (GitHub CLI)
-    install_japanese_fonts       # fonts-noto-cjk, fonts-ipafont-* (CJK font support)
+    sudo apt-get install -y build-essential make        # build-essential, make (development tools)
+    sudo apt-get install -y cargo rustc build-essential # cargo, rustc (Rust toolchain)
+    sudo apt-get install -y gh                          # gh (GitHub CLI)
+    sudo apt-get install -y fonts-noto-cjk fonts-ipafont-gothic fonts-ipafont-mincho fonts-noto-color-emoji
+                                                        # fonts-noto-cjk, fonts-ipafont-* (CJK font support)
     install_puppeteer_dependencies # Puppeteer Chrome browser dependencies
 
     # SNAP packages: Modern tools with latest versions
