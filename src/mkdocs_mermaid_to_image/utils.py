@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
 from shutil import which
@@ -122,7 +123,18 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 
 
 def is_command_available(command: str) -> bool:
-    """Check if a command is available, handling complex commands like 'npx mmdc'"""
+    """Check if a command is available and working by executing version check
+
+    This function performs two checks:
+    1. First checks if the base command exists using 'which'
+    2. Then executes the command with version flags to verify it works
+
+    Args:
+        command: Command string to check (e.g., 'mmdc' or 'npx mmdc')
+
+    Returns:
+        True if command exists and works, False otherwise
+    """
     if not command:
         return False
 
@@ -131,9 +143,62 @@ def is_command_available(command: str) -> bool:
     if not command_parts:
         return False
 
-    # For commands like "npx mmdc", check if "npx" is available
+    # For commands like "npx mmdc", check if "npx" is available first
     base_command = command_parts[0]
-    return which(base_command) is not None
+    if which(base_command) is None:
+        return False
+
+    # Now actually try to execute the command to verify it works
+    logger = get_logger(__name__)
+    logger.debug(f"Checking if command '{command}' is working...")
+
+    return _verify_command_execution(command_parts, command, logger)
+
+
+def _verify_command_execution(
+    command_parts: list[str], command: str, logger: logging.Logger
+) -> bool:
+    """Verify that a command can be executed successfully
+
+    Args:
+        command_parts: Split command parts list
+        command: Original command string for logging
+        logger: Logger instance
+
+    Returns:
+        True if any version check succeeds, False otherwise
+    """
+    # Try version check first, fallback to help if needed
+    version_flags = ["--version", "-v", "--help"]
+
+    for flag in version_flags:
+        try:
+            version_cmd = [*command_parts, flag]
+            result = subprocess.run(  # nosec B603
+                version_cmd, capture_output=True, text=True, timeout=5, check=False
+            )
+
+            # If command executes successfully (return code 0 or 1 for help commands)
+            if result.returncode in [0, 1]:
+                logger.debug(
+                    f"Command '{command}' is available and working "
+                    f"(verified with '{flag}', exit code: {result.returncode})"
+                )
+                return True
+
+        except subprocess.TimeoutExpired:
+            logger.debug(f"Command '{command}' timed out during '{flag}' check")
+            continue
+        except (FileNotFoundError, OSError) as e:
+            logger.debug(f"Command '{command}' execution failed with '{flag}': {e}")
+            continue
+        except Exception as e:
+            logger.debug(f"Unexpected error checking '{command}' with '{flag}': {e}")
+            continue
+
+    # If all version checks failed, command is not working
+    logger.debug(f"Command '{command}' exists but is not working properly")
+    return False
 
 
 def clean_generated_images(

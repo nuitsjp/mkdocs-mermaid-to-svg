@@ -150,6 +150,80 @@ class TestUtilityFunctions:
         assert result is False
         mock_which.assert_called_once_with("nonexistent-command")
 
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    @patch("subprocess.run")
+    def test_is_command_available_with_version_check_success(
+        self, mock_run, mock_which
+    ):
+        """コマンドが存在し、バージョン確認も成功する場合のテスト"""
+        mock_which.return_value = "/usr/bin/mmdc"
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "mmdc version 10.0.0"
+
+        result = is_command_available("mmdc")
+        assert result is True
+        mock_which.assert_called_once_with("mmdc")
+        mock_run.assert_called_once()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    @patch("subprocess.run")
+    def test_is_command_available_with_version_check_failure(
+        self, mock_run, mock_which
+    ):
+        """コマンドは存在するがバージョン確認に失敗する場合のテスト"""
+        mock_which.return_value = "/usr/bin/mmdc"
+        mock_run.return_value.returncode = 2  # 失敗ケース（0,1以外）
+        mock_run.return_value.stderr = "Command not found"
+
+        result = is_command_available("mmdc")
+        assert result is False
+        mock_which.assert_called_once_with("mmdc")
+        # 複数のバージョンコマンドを試すため、複数回呼ばれる
+        assert mock_run.call_count >= 1
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    @patch("subprocess.run")
+    def test_is_command_available_npx_command_success(self, mock_run, mock_which):
+        """npx mmdcのような複合コマンドが正常動作する場合のテスト"""
+        mock_which.return_value = "/usr/bin/npx"
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "mmdc version 10.0.0"
+
+        result = is_command_available("npx mmdc")
+        assert result is True
+        mock_which.assert_called_once_with("npx")
+        mock_run.assert_called_once()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    @patch("subprocess.run")
+    def test_is_command_available_npx_command_package_not_found(
+        self, mock_run, mock_which
+    ):
+        """npxは存在するがパッケージが見つからない場合のテスト"""
+        mock_which.return_value = "/usr/bin/npx"
+        mock_run.return_value.returncode = 2  # 失敗ケース（0,1以外）
+        mock_run.return_value.stderr = "Package mmdc not found"
+
+        result = is_command_available("npx mmdc")
+        assert result is False
+        mock_which.assert_called_once_with("npx")
+        assert mock_run.call_count >= 1
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    @patch("subprocess.run")
+    def test_is_command_available_timeout_error(self, mock_run, mock_which):
+        """コマンド実行がタイムアウトする場合のテスト"""
+        import subprocess
+
+        mock_which.return_value = "/usr/bin/mmdc"
+        mock_run.side_effect = subprocess.TimeoutExpired("mmdc", 5)
+
+        result = is_command_available("mmdc")
+        assert result is False
+        mock_which.assert_called_once_with("mmdc")
+        # 複数のバージョンコマンドを試すため、複数回呼ばれる
+        assert mock_run.call_count >= 1
+
     def test_clean_temp_file_empty_path(self):
         """空のパスが渡された場合の早期リターンをテスト"""
         # Line 53: if not file_path: return
