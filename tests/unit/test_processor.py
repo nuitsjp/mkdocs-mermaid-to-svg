@@ -249,3 +249,68 @@ graph TD
 
         assert result_content == markdown
         assert len(result_paths) == 0
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_process_page_with_unexpected_error_error_on_fail(
+        self, mock_command_available, basic_config
+    ):
+        """error_on_fail=Trueで予期しないエラーが発生した場合に例外が発生するかテスト"""
+        mock_command_available.return_value = True
+        # error_on_fail=Trueに設定
+        config_with_error_on_fail = basic_config.copy()
+        config_with_error_on_fail["error_on_fail"] = True
+        processor = MermaidProcessor(config_with_error_on_fail)
+
+        # 予期しないエラーが発生するブロックをモック
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "test_0_abc123.png"
+        mock_block.generate_image.side_effect = RuntimeError("Unexpected error")
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```"""
+
+        # MermaidPreprocessorError例外が発生することを期待
+        from mkdocs_mermaid_to_image.exceptions import MermaidPreprocessorError
+
+        with pytest.raises(MermaidPreprocessorError) as exc_info:
+            processor.process_page("test.md", markdown, "/output")
+
+        assert "Unexpected error processing block 0 in test.md" in str(exc_info.value)
+        assert "Unexpected error" in str(exc_info.value)
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_process_page_with_unexpected_error_no_error_on_fail(
+        self, mock_command_available, basic_config
+    ):
+        """error_on_fail=Falseで予期しないエラーが発生した場合はcontinueするかテスト"""
+        mock_command_available.return_value = True
+        # error_on_fail=Falseに設定（デフォルト）
+        processor = MermaidProcessor(basic_config)
+
+        # 予期しないエラーが発生するブロックをモック
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "test_0_abc123.png"
+        mock_block.generate_image.side_effect = ValueError("Unexpected value error")
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```"""
+
+        # 例外は発生せず、元のmarkdownが返る
+        result_content, result_paths = processor.process_page(
+            "test.md", markdown, "/output"
+        )
+
+        assert result_content == markdown
+        assert len(result_paths) == 0
