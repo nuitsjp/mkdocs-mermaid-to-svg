@@ -184,3 +184,68 @@ graph TD
             processor.process_page("test.md", markdown, "/output")
 
         assert "Image generation failed for block 0 in test.md" in str(exc_info.value)
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_process_page_with_filesystem_error_error_on_fail(
+        self, mock_command_available, basic_config
+    ):
+        """error_on_fail=Trueでファイルシステムエラーが発生した場合に例外が発生するかテスト"""
+        mock_command_available.return_value = True
+        # error_on_fail=Trueに設定
+        config_with_error_on_fail = basic_config.copy()
+        config_with_error_on_fail["error_on_fail"] = True
+        processor = MermaidProcessor(config_with_error_on_fail)
+
+        # ファイルシステムエラーが発生するブロックをモック
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "test_0_abc123.png"
+        mock_block.generate_image.side_effect = PermissionError("Permission denied")
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```"""
+
+        # MermaidFileError例外が発生することを期待
+        from mkdocs_mermaid_to_image.exceptions import MermaidFileError
+
+        with pytest.raises(MermaidFileError) as exc_info:
+            processor.process_page("test.md", markdown, "/output")
+
+        assert "File system error processing block 0 in test.md" in str(exc_info.value)
+        assert "Permission denied" in str(exc_info.value)
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_process_page_with_filesystem_error_no_error_on_fail(
+        self, mock_command_available, basic_config
+    ):
+        """error_on_fail=Falseでファイルシステムエラーが発生した場合はcontinueするかテスト"""
+        mock_command_available.return_value = True
+        # error_on_fail=Falseに設定（デフォルト）
+        processor = MermaidProcessor(basic_config)
+
+        # ファイルシステムエラーが発生するブロックをモック
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "test_0_abc123.png"
+        mock_block.generate_image.side_effect = FileNotFoundError("File not found")
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```"""
+
+        # 例外は発生せず、元のmarkdownが返る
+        result_content, result_paths = processor.process_page(
+            "test.md", markdown, "/output"
+        )
+
+        assert result_content == markdown
+        assert len(result_paths) == 0
