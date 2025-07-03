@@ -33,7 +33,13 @@ help:
 
 # セットアップ
 setup:
-	chmod +x scripts/setup.sh && ./scripts/setup.sh
+ifeq ($(OS),Windows_NT)
+	@echo "Running setup for Windows..."
+	@powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
+else
+	@echo "Running setup for Linux/macOS..."
+	@chmod +x scripts/setup.sh && ./scripts/setup.sh
+endif
 
 install-dev:
 	uv pip install -e .
