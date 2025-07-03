@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     1. 1st Issue
         1. First, write a failing test (Red).
             - make test
+            - make check-all
         2. Then, write the simplest code to make it pass (Green).
             - make test-cov
             - make check-all
@@ -17,6 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     2. 2nd Issue
         1. First, write a failing test (Red).
             - make test
+            - make check-all
         2. Then, write the simplest code to make it pass (Green).
             - make test-cov
             - make check-all
