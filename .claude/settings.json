@@ -2,13 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(similarity-py:*)",
+      "Bash(python:*)",
       "Bash(python3:*)",
       "Bash(make:*)",
       "Bash(echo $PATH)",
-      "Bash(sudo apt:*)",
       "Bash(snap list:*)",
       "Bash(ls:*)",
-      "Bash(source ~/.bashrc)",
       "Bash(npm:*)",
       "Bash(export:*)",
       "Bash(ENABLE_PDF_EXPORT=1 uv run mkdocs build)",
@@ -17,11 +16,13 @@
       "Bash(npx mmdc:*)",
       "Bash(rm:*)",
       "Bash(uv run pytest:*)",
+      "Bash(uv run ruff check:*)",
       "Bash(grep:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
       "Bash(find:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(ruff check:*)"
     ],
     "deny": []
   }

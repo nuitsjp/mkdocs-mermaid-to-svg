@@ -303,3 +303,116 @@ graph TD
         # 重い画像生成処理がスキップされる
         plugin.processor.process_page.assert_not_called()
         assert len(plugin.generated_images) == 0  # 画像生成なし
+
+
+def test_pdf_generation_with_cached_command():
+    """キャッシュ機能を使ったPDF生成統合テスト
+
+    このテストは以下を検証します：
+    1. MermaidImageGeneratorのクラスレベルコマンドキャッシュが正常に動作すること
+    2. 複数のインスタンス間でコマンド解決結果が共有されること
+    3. PDFとSVG両方の形式で画像生成が成功すること
+    4. キャッシュヒット時にis_command_availableが追加呼び出しされないこと
+    """
+    import tempfile
+    from pathlib import Path
+
+    from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
+
+    # キャッシュをクリア
+    MermaidImageGenerator.clear_command_cache()
+
+    with patch(
+        "mkdocs_mermaid_to_image.image_generator.is_command_available"
+    ) as mock_cmd:
+        mock_cmd.return_value = True
+
+        with patch("subprocess.run") as mock_subprocess:
+            mock_subprocess.return_value = Mock(returncode=0, stderr="")
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+
+                # PDF生成用の設定
+                pdf_config = {
+                    "mmdc_path": "mmdc",
+                    "theme": "default",
+                    "background_color": "white",
+                    "width": 800,
+                    "height": 600,
+                    "scale": 1.0,
+                    "css_file": None,
+                    "puppeteer_config": None,
+                    "mermaid_config": None,
+                    "error_on_fail": False,
+                    "log_level": "INFO",
+                }
+
+                # SVG生成用の設定
+                svg_config = pdf_config.copy()
+                svg_config["image_format"] = "svg"
+
+                # 複数の画像ジェネレータを作成（PDFとSVG）
+                pdf_generator1 = MermaidImageGenerator(pdf_config)
+                svg_generator1 = MermaidImageGenerator(svg_config)
+                pdf_generator2 = MermaidImageGenerator(pdf_config)
+                svg_generator2 = MermaidImageGenerator(svg_config)
+
+                # キャッシュが効いているかチェック
+                # 同じコマンドパスなので、is_command_availableは1回だけ呼ばれるはず
+                assert (
+                    mock_cmd.call_count == 1
+                ), f"キャッシュ有効時は1回だけチェック。実際{mock_cmd.call_count}回"
+                assert (
+                    MermaidImageGenerator.get_cache_size() == 1
+                ), "キャッシュには1つのエントリがあるはず"
+
+                # 画像生成テスト（モック環境）
+                with (
+                    patch("pathlib.Path.exists") as mock_exists,
+                    patch(
+                        "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                    ) as mock_temp,
+                    patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+                    patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+                    patch("builtins.open", create=True),
+                ):
+                    # テンポラリファイルパス
+                    mock_temp.return_value = str(temp_path / "temp.mmd")
+
+                    # 出力ファイルの存在をシミュレート（常にTrueを返す）
+                    mock_exists.return_value = True
+
+                    # PDF用画像生成
+                    pdf_output = str(temp_path / "diagram.png")
+                    result1 = pdf_generator1.generate(
+                        "graph TD\nA --> B", pdf_output, pdf_config
+                    )
+                    assert result1 is True, "PDF用PNG生成が成功するはず"
+
+                    # SVG用画像生成
+                    svg_output = str(temp_path / "diagram.svg")
+                    result2 = svg_generator1.generate(
+                        "graph TD\nA --> B", svg_output, svg_config
+                    )
+                    assert result2 is True, "SVG生成が成功するはず"
+
+                    # 2回目の生成（キャッシュ効果をテスト）
+                    result3 = pdf_generator2.generate(
+                        "graph TD\nC --> D",
+                        str(temp_path / "diagram2.png"),
+                        pdf_config,
+                    )
+                    assert result3 is True, "2回目のPDF用PNG生成が成功するはず"
+
+                    result4 = svg_generator2.generate(
+                        "graph TD\nC --> D",
+                        str(temp_path / "diagram2.svg"),
+                        svg_config,
+                    )
+                    assert result4 is True, "2回目のSVG生成が成功するはず"
+
+                    # is_command_availableが追加で呼ばれていないか確認
+                    assert (
+                        mock_cmd.call_count == 1
+                    ), "キャッシュヒット時は追加チェック不要"

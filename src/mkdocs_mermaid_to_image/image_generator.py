@@ -4,7 +4,7 @@ import os
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from .exceptions import MermaidCLIError, MermaidFileError, MermaidImageError
 from .logging_config import get_logger
@@ -17,20 +17,46 @@ from .utils import (
 
 
 class MermaidImageGenerator:
+    # Class-level command cache for performance optimization
+    _command_cache: ClassVar[dict[str, str]] = {}
+
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
         self.logger = get_logger(__name__)
         self._resolved_mmdc_command: str | None = None
         self._validate_dependencies()
 
+    @classmethod
+    def clear_command_cache(cls) -> None:
+        """Clear the command cache (useful for testing)."""
+        cls._command_cache.clear()
+
+    @classmethod
+    def get_cache_size(cls) -> int:
+        """Get the current cache size."""
+        return len(cls._command_cache)
+
     def _validate_dependencies(self) -> None:
         """Validate and resolve the mmdc command with fallback support."""
         primary_command = self.config["mmdc_path"]
 
+        # Check cache first
+        if primary_command in self._command_cache:
+            self._resolved_mmdc_command = self._command_cache[primary_command]
+            self.logger.debug(
+                f"Using cached mmdc command: {self._resolved_mmdc_command} "
+                f"(cache size: {len(self._command_cache)})"
+            )
+            return
+
         # Try primary command first
         if is_command_available(primary_command):
             self._resolved_mmdc_command = primary_command
-            self.logger.debug(f"Using primary mmdc command: {primary_command}")
+            self._command_cache[primary_command] = primary_command
+            self.logger.debug(
+                f"Using primary mmdc command: {primary_command} "
+                f"(cached for future use)"
+            )
             return
 
         # Determine fallback command
@@ -45,9 +71,10 @@ class MermaidImageGenerator:
         # Try fallback command
         if is_command_available(fallback_command):
             self._resolved_mmdc_command = fallback_command
+            self._command_cache[primary_command] = fallback_command
             self.logger.info(
                 f"Primary command '{primary_command}' not found, "
-                f"using fallback: {fallback_command}"
+                f"using fallback: {fallback_command} (cached for future use)"
             )
             return
 

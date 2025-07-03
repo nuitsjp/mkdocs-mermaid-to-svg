@@ -57,6 +57,10 @@ class TestMermaidProcessor:
         self, mock_command_available, basic_config
     ):
         """Mermaid CLIが見つからない場合に例外が発生するかテスト"""
+        # キャッシュをクリアして独立したテストにする
+        from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
+
+        MermaidImageGenerator.clear_command_cache()
         mock_command_available.return_value = False
         with pytest.raises(MermaidCLIError):
             MermaidProcessor(basic_config)

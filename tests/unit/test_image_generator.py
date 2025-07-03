@@ -75,6 +75,8 @@ class TestMermaidImageGenerator:
         self, mock_command_available, basic_config
     ):
         """Mermaid CLIが見つからない場合に例外が発生するかテスト"""
+        # キャッシュをクリアして独立したテストにする
+        MermaidImageGenerator.clear_command_cache()
         mock_command_available.return_value = False
         with pytest.raises(MermaidCLIError):
             MermaidImageGenerator(basic_config)
@@ -1066,3 +1068,211 @@ class TestMermaidImageGenerator:
 
         except Exception as e:
             return False, f"Text comparison error: {e!s}"
+
+    # TDD Red phase: Command cache tests
+    def test_command_cache_shared_across_instances(self):
+        """複数インスタンス間でのコマンドキャッシュ共有テスト（成功するテスト）"""
+        # 各テストケースで独立してキャッシュをクリア
+        MermaidImageGenerator.clear_command_cache()
+
+        with patch(
+            "mkdocs_mermaid_to_image.image_generator.is_command_available"
+        ) as mock_cmd:
+            mock_cmd.return_value = True
+
+            basic_config = {
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "css_file": None,
+                "puppeteer_config": None,
+                "mermaid_config": None,
+                "error_on_fail": False,
+                "log_level": "INFO",
+            }
+
+            # 1st instance
+            generator1 = MermaidImageGenerator(basic_config)
+
+            # 2nd instance
+            generator2 = MermaidImageGenerator(basic_config)
+
+            # キャッシュが存在するなら、is_command_availableは1度だけ呼ばれるはず
+            assert (
+                mock_cmd.call_count == 1
+            ), "キャッシュが有効なら、コマンドチェックは1回だけ実行されるはず"
+
+            # 両方のインスタンスが同じ解決済みコマンドを持つはず
+            assert (
+                generator1._resolved_mmdc_command == generator2._resolved_mmdc_command
+            )
+
+            # クラスレベルのキャッシュが存在するはず
+            assert hasattr(MermaidImageGenerator, "_command_cache")
+            assert MermaidImageGenerator.get_cache_size() > 0
+
+    def test_command_cache_hit_performance(self):
+        """キャッシュヒット時の性能テスト（成功するテスト）"""
+        # 各テストケースで独立してキャッシュをクリア
+        MermaidImageGenerator.clear_command_cache()
+
+        with patch(
+            "mkdocs_mermaid_to_image.image_generator.is_command_available"
+        ) as mock_cmd:
+            mock_cmd.return_value = True
+
+            basic_config = {
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "css_file": None,
+                "puppeteer_config": None,
+                "mermaid_config": None,
+                "error_on_fail": False,
+                "log_level": "INFO",
+            }
+
+            # 10個のインスタンスを作成
+            generators = []
+            for _i in range(10):
+                generators.append(MermaidImageGenerator(basic_config))
+
+            # キャッシュが有効なら、is_command_availableは1回だけ呼ばれるはず
+            assert (
+                mock_cmd.call_count == 1
+            ), f"キャッシュ有効時は1回だけチェック。実際{mock_cmd.call_count}回"
+
+    def test_command_cache_invalidation_on_config_change(self):
+        """設定変更時のキャッシュクリアテスト（成功するテスト）"""
+        # 各テストケースで独立してキャッシュをクリア
+        MermaidImageGenerator.clear_command_cache()
+
+        with patch(
+            "mkdocs_mermaid_to_image.image_generator.is_command_available"
+        ) as mock_cmd:
+            mock_cmd.return_value = True
+
+            basic_config1 = {
+                "mmdc_path": "mmdc",
+                "theme": "default",
+                "background_color": "white",
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "css_file": None,
+                "puppeteer_config": None,
+                "mermaid_config": None,
+                "error_on_fail": False,
+                "log_level": "INFO",
+            }
+
+            basic_config2 = {
+                "mmdc_path": "npx mmdc",  # 異なるコマンドパス
+                "theme": "default",
+                "background_color": "white",
+                "width": 800,
+                "height": 600,
+                "scale": 1.0,
+                "css_file": None,
+                "puppeteer_config": None,
+                "mermaid_config": None,
+                "error_on_fail": False,
+                "log_level": "INFO",
+            }
+
+            # 1st instance with first config
+            MermaidImageGenerator(basic_config1)
+
+            # 2nd instance with different config
+            MermaidImageGenerator(basic_config2)
+
+            # 異なるコマンドパスなので、それぞれ別々にキャッシュされるはず
+            assert (
+                mock_cmd.call_count == 2
+            ), f"異なるコマンドパスは別々チェック。実際{mock_cmd.call_count}回"
+            assert (
+                MermaidImageGenerator.get_cache_size() == 2
+            ), "キャッシュには2つのエントリがあるはず"
+
+            # 3rd instance with first config again (should hit cache)
+            MermaidImageGenerator(basic_config1)
+
+            # キャッシュヒットするので、追加のコマンドチェックは不要
+            assert (
+                mock_cmd.call_count == 2
+            ), f"キャッシュヒット時は追加チェック不要。実際は{mock_cmd.call_count}回"
+
+    def test_different_mmdc_paths_separate_cache(self):
+        """異なるコマンドパスの個別キャッシュテスト（成功するテスト）"""
+        # 各テストケースで独立してキャッシュをクリア
+        MermaidImageGenerator.clear_command_cache()
+
+        with patch(
+            "mkdocs_mermaid_to_image.image_generator.is_command_available"
+        ) as mock_cmd:
+            mock_cmd.return_value = True
+
+            # 異なるコマンドパスを持つ3つの設定
+            configs = [
+                {
+                    "mmdc_path": "mmdc",
+                    "theme": "default",
+                    "background_color": "white",
+                    "width": 800,
+                    "height": 600,
+                    "scale": 1.0,
+                    "css_file": None,
+                    "puppeteer_config": None,
+                    "mermaid_config": None,
+                    "error_on_fail": False,
+                    "log_level": "INFO",
+                },
+                {
+                    "mmdc_path": "npx mmdc",
+                    "theme": "default",
+                    "background_color": "white",
+                    "width": 800,
+                    "height": 600,
+                    "scale": 1.0,
+                    "css_file": None,
+                    "puppeteer_config": None,
+                    "mermaid_config": None,
+                    "error_on_fail": False,
+                    "log_level": "INFO",
+                },
+                {
+                    "mmdc_path": "/usr/local/bin/mmdc",
+                    "theme": "default",
+                    "background_color": "white",
+                    "width": 800,
+                    "height": 600,
+                    "scale": 1.0,
+                    "css_file": None,
+                    "puppeteer_config": None,
+                    "mermaid_config": None,
+                    "error_on_fail": False,
+                    "log_level": "INFO",
+                },
+            ]
+
+            generators = []
+            for config in configs:
+                generators.append(MermaidImageGenerator(config))
+
+            # 3つの異なるコマンドパスなので、3回チェックされるはず
+            assert (
+                mock_cmd.call_count == 3
+            ), f"3つの異なるコマンドパスは別々チェック。実際{mock_cmd.call_count}回"
+            assert (
+                MermaidImageGenerator.get_cache_size() == 3
+            ), "キャッシュには3つのエントリがあるはず"
+
+            # 各コマンドパスがキャッシュに含まれているはず
+            for config in configs:
+                assert config["mmdc_path"] in MermaidImageGenerator._command_cache
