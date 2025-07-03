@@ -63,6 +63,7 @@ class MermaidImageGenerator:
     ) -> bool:
         temp_file = None
         puppeteer_config_file = None
+        mermaid_config_file = None
 
         try:
             temp_file = get_temp_file_path(".mmd")
@@ -72,7 +73,7 @@ class MermaidImageGenerator:
 
             ensure_directory(str(Path(output_path).parent))
 
-            cmd, puppeteer_config_file = self._build_mmdc_command(
+            cmd, puppeteer_config_file, mermaid_config_file = self._build_mmdc_command(
                 temp_file, output_path, config
             )
 
@@ -106,6 +107,8 @@ class MermaidImageGenerator:
                 clean_temp_file(temp_file)
             if puppeteer_config_file:
                 clean_temp_file(puppeteer_config_file)
+            if mermaid_config_file:
+                clean_temp_file(mermaid_config_file)
 
     def _handle_command_failure(
         self, result: subprocess.CompletedProcess[str], cmd: list[str]
@@ -177,9 +180,43 @@ class MermaidImageGenerator:
             ) from e
         return False
 
+    def _create_mermaid_config_file(self) -> str | None:
+        """Create a temporary Mermaid configuration file for PDF compatibility.
+
+        Returns the path to the config file, or None if no config needed.
+        """
+        mermaid_config = self.config.get("mermaid_config")
+
+        # If mermaid_config is a string (file path), use it directly
+        if isinstance(mermaid_config, str):
+            return mermaid_config
+
+        # If mermaid_config is a dict, create a temporary file
+        if isinstance(mermaid_config, dict):
+            config_to_write = mermaid_config
+        else:
+            # Provide default PDF-compatible configuration
+            config_to_write = {
+                "htmlLabels": False,
+                "flowchart": {"htmlLabels": False},
+                "class": {"htmlLabels": False},
+            }
+
+        try:
+            # Create temporary config file
+            config_file = get_temp_file_path(".json")
+            with Path(config_file).open("w", encoding="utf-8") as f:
+                json.dump(config_to_write, f, indent=2)
+
+            self.logger.debug(f"Created Mermaid config file: {config_file}")
+            return config_file
+        except Exception as e:
+            self.logger.warning(f"Failed to create Mermaid config file: {e}")
+            return None
+
     def _build_mmdc_command(
         self, input_file: str, output_file: str, config: dict[str, Any]
-    ) -> tuple[list[str], str | None]:
+    ) -> tuple[list[str], str | None, str | None]:
         # Use the resolved command from initialization
         if not self._resolved_mmdc_command:
             raise MermaidCLIError("Mermaid CLI command not properly resolved")
@@ -204,6 +241,11 @@ class MermaidImageGenerator:
             "-s",
             str(config.get("scale", self.config["scale"])),
         ]
+
+        # Add Mermaid configuration file for PDF compatibility
+        mermaid_config_file = self._create_mermaid_config_file()
+        if mermaid_config_file:
+            cmd.extend(["-c", mermaid_config_file])
 
         # Add puppeteer config for proper browser handling
         puppeteer_config_file = None
@@ -247,7 +289,4 @@ class MermaidImageGenerator:
                     f"{self.config['puppeteer_config']}"
                 )
 
-        if self.config.get("mermaid_config"):
-            cmd.extend(["-c", self.config["mermaid_config"]])
-
-        return cmd, puppeteer_config_file
+        return cmd, puppeteer_config_file, mermaid_config_file

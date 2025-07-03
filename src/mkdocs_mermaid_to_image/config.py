@@ -28,7 +28,7 @@ class ConfigManager:
             ),
             (
                 "mermaid_config",
-                config_options.Optional(config_options.Type(str)),
+                config_options.Optional(config_options.Type(dict)),
             ),
             (
                 "mmdc_path",

@@ -108,8 +108,8 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
-            # Both temp file (.mmd) and puppeteer config file (.json) are cleaned
-            assert mock_clean.call_count == 2
+            # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
+            assert mock_clean.call_count == 3
             assert any(
                 "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
             )
@@ -146,8 +146,8 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
-            # Both temp file (.mmd) and puppeteer config file (.json) are cleaned
-            assert mock_clean.call_count == 2
+            # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
+            assert mock_clean.call_count == 3
             assert any(
                 "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
             )
@@ -181,8 +181,8 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
-            # Both temp file (.mmd) and puppeteer config file (.json) are cleaned
-            assert mock_clean.call_count == 2
+            # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
+            assert mock_clean.call_count == 3
             assert any(
                 "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
             )
@@ -193,7 +193,9 @@ class TestMermaidImageGenerator:
         mock_command_available.return_value = True
         generator = MermaidImageGenerator(basic_config)
 
-        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _, _ = generator._build_mmdc_command(
+            "input.mmd", "output.png", basic_config
+        )
 
         assert "mmdc" in cmd
         assert "-i" in cmd
@@ -224,7 +226,7 @@ class TestMermaidImageGenerator:
             {"theme": "dark", "background_color": "black", "width": 1000, "height": 800}
         )
 
-        cmd, _ = generator._build_mmdc_command(
+        cmd, _, _ = generator._build_mmdc_command(
             "input.mmd", "output.png", override_config
         )
 
@@ -261,7 +263,9 @@ class TestMermaidImageGenerator:
         )
         generator = MermaidImageGenerator(basic_config)
 
-        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _, _ = generator._build_mmdc_command(
+            "input.mmd", "output.png", basic_config
+        )
 
         assert "-C" in cmd
         assert str(css_file) in cmd
@@ -289,7 +293,9 @@ class TestMermaidImageGenerator:
         )
         generator = MermaidImageGenerator(basic_config)
 
-        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _, _ = generator._build_mmdc_command(
+            "input.mmd", "output.png", basic_config
+        )
 
         # CSS fileは存在確認していないので含まれる
         assert "-C" in cmd
@@ -324,7 +330,9 @@ class TestMermaidImageGenerator:
         mock_getenv.side_effect = mock_env
 
         generator = MermaidImageGenerator(basic_config)
-        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _, _ = generator._build_mmdc_command(
+            "input.mmd", "output.png", basic_config
+        )
 
         assert "-p" in cmd
         # Check that the puppeteer config file is created
@@ -348,7 +356,9 @@ class TestMermaidImageGenerator:
         mock_getenv.side_effect = mock_env
 
         generator = MermaidImageGenerator(basic_config)
-        cmd, _ = generator._build_mmdc_command("input.mmd", "output.png", basic_config)
+        cmd, _, _ = generator._build_mmdc_command(
+            "input.mmd", "output.png", basic_config
+        )
 
         assert "-p" in cmd
         # Check that the puppeteer config file is created

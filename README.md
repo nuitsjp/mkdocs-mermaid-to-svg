@@ -50,6 +50,12 @@ plugins:
       image_format: "svg"
       mermaid_config:
         theme: "default"
+        # PDF互換性のための設定（重要！）
+        htmlLabels: false
+        flowchart:
+          htmlLabels: false
+        class:
+          htmlLabels: false
 ```
 
 -   `mermaid_cli_path`:
@@ -61,6 +67,30 @@ plugins:
 -   `mermaid_config`:
     -   Defaults to `None`.
     -   A dictionary of options to pass to Mermaid for rendering. See the [Mermaid documentation](https://mermaid.js.org/config/schema-docs/config.html) for available options.
+    -   **Important for PDF generation**: Set `htmlLabels: false` to ensure diagrams display correctly in PDF output.
+
+## PDF Generation
+
+When generating PDFs from your MkDocs site, certain Mermaid diagrams (flowcharts, class diagrams) may not display text correctly due to HTML label rendering. To fix this:
+
+1. **Set `htmlLabels: false`** in your `mermaid_config`:
+
+```yaml
+plugins:
+  - mermaid-to-image:
+      mermaid_config:
+        htmlLabels: false
+        flowchart:
+          htmlLabels: false
+        class:
+          htmlLabels: false
+```
+
+2. **Why this is needed**: Mermaid CLI generates SVG files with `<foreignObject>` elements containing HTML when `htmlLabels` is enabled. PDF generation tools cannot properly render these HTML elements within SVG, causing text to disappear.
+
+3. **Affected diagram types**: Flowcharts, class diagrams, and other diagrams that use text labels.
+
+4. **Not affected**: Sequence diagrams already use standard SVG text elements and work correctly in PDFs.
 
 [pypi-link]: https://pypi.org/project/mkdocs-mermaid-to-image/
 [python-image]: https://img.shields.io/pypi/pyversions/mkdocs-mermaid-to-image?logo=python&logoColor=aaaaaa&labelColor=333333
