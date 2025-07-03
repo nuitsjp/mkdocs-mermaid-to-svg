@@ -151,3 +151,36 @@ graph TD
         # error_on_fail=Falseなので元の内容が返る
         assert result_content == markdown
         assert len(result_paths) == 0
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_process_page_with_generation_failure_error_on_fail(
+        self, mock_command_available, basic_config
+    ):
+        """error_on_fail=Trueで画像生成が失敗した場合に例外が発生するかテスト"""
+        mock_command_available.return_value = True
+        # error_on_fail=Trueに設定
+        config_with_error_on_fail = basic_config.copy()
+        config_with_error_on_fail["error_on_fail"] = True
+        processor = MermaidProcessor(config_with_error_on_fail)
+
+        # 画像生成が失敗するブロックをモック
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "test_0_abc123.png"
+        mock_block.generate_image.return_value = False  # 生成失敗
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```"""
+
+        # MermaidImageError例外が発生することを期待
+        from mkdocs_mermaid_to_image.exceptions import MermaidImageError
+
+        with pytest.raises(MermaidImageError) as exc_info:
+            processor.process_page("test.md", markdown, "/output")
+
+        assert "Image generation failed for block 0 in test.md" in str(exc_info.value)
