@@ -146,7 +146,11 @@ build:
 	uv run mkdocs build
 
 build-pdf:
+ifeq ($(OS),Windows_NT)
+	set ENABLE_PDF_EXPORT=1 && uv run mkdocs build
+else
 	ENABLE_PDF_EXPORT=1 uv run mkdocs build
+endif
 
 # Mermaid CLIコマンド
 mmdc-version:
