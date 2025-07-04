@@ -1372,3 +1372,79 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_custom_command_fallback(self, mock_command_available, basic_config):
+        """カスタムコマンドのフォールバック処理のテスト (lines 67-69をカバー)"""
+
+        # カスタムコマンドが利用不可、npxバリアントが利用可能な場合
+        def command_availability(cmd):
+            if cmd == "custom-mmdc":
+                return False
+            elif cmd == "npx custom-mmdc":
+                return True
+            return False
+
+        mock_command_available.side_effect = command_availability
+
+        config_with_custom = basic_config.copy()
+        config_with_custom["mmdc_path"] = "custom-mmdc"
+
+        generator = MermaidImageGenerator(config_with_custom)
+        generator._validate_dependencies()
+
+        assert generator._resolved_mmdc_command == "npx custom-mmdc"
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_file_error_handling_with_error_on_fail(
+        self, mock_command_available, basic_config
+    ):
+        """ファイルエラー時のerror_on_fail=True処理のテスト (lines 183-192をカバー)"""
+        mock_command_available.return_value = True
+        basic_config["error_on_fail"] = True
+        generator = MermaidImageGenerator(basic_config)
+
+        with (
+            patch("builtins.open", create=True),
+            patch(
+                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+            ) as mock_temp_path,
+            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+            patch("subprocess.run", side_effect=PermissionError("Permission denied")),
+        ):
+            from mkdocs_mermaid_to_image.exceptions import MermaidFileError
+
+            mock_temp_path.return_value = "/tmp/test.mmd"
+
+            with pytest.raises(MermaidFileError, match="File system error"):
+                generator.generate(
+                    "graph TD\n A --> B", "/tmp/output.png", basic_config
+                )
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_unexpected_error_handling_with_error_on_fail(
+        self, mock_command_available, basic_config
+    ):
+        """予期しないエラー時のerror_on_fail=True処理のテスト (lines 208-217をカバー)"""
+        mock_command_available.return_value = True
+        basic_config["error_on_fail"] = True
+        generator = MermaidImageGenerator(basic_config)
+
+        with (
+            patch("builtins.open", create=True),
+            patch(
+                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+            ) as mock_temp_path,
+            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+            patch("subprocess.run", side_effect=ValueError("Unexpected value error")),
+        ):
+            mock_temp_path.return_value = "/tmp/test.mmd"
+
+            with pytest.raises(
+                MermaidImageError, match="Unexpected error generating image"
+            ):
+                generator.generate(
+                    "graph TD\n A --> B", "/tmp/output.png", basic_config
+                )

@@ -204,3 +204,27 @@ class TestConfigManager:
 
         # オプショナル設定であることを確認
         assert isinstance(enabled_if_env_option, config_options.Optional)
+
+    def test_config_manager_validate_config_missing_required_key(self):
+        """必須キーが不足している場合の検証エラーテスト (line 96をカバー)"""
+        from mkdocs_mermaid_to_image.config import ConfigManager
+        from mkdocs_mermaid_to_image.exceptions import MermaidConfigError
+
+        # widthキーが不足した設定
+        incomplete_config = {
+            "height": 600,
+            "scale": 1.0,
+            "output_dir": "assets/images",
+            "image_format": "png",
+            "theme": "default",
+            "mmdc_command": "mmdc",
+            "error_on_fail": True,
+            "cache_enabled": True,
+            "verbose": False,
+            "enabled_if_env": None,
+        }
+
+        with pytest.raises(
+            MermaidConfigError, match="Required configuration key 'width' is missing"
+        ):
+            ConfigManager.validate_config(incomplete_config)
