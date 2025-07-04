@@ -1328,3 +1328,24 @@ class TestMermaidImageGenerator:
                 assert result is True
                 # デバッグログが呼ばれたことを確認
                 mock_debug.assert_called()
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_file_system_error_handling(self, mock_command_available, basic_config):
+        """ファイルシステムエラー処理のテスト (line 129をカバー)"""
+        mock_command_available.return_value = True
+        generator = MermaidImageGenerator(basic_config)
+
+        with (
+            patch("builtins.open", side_effect=FileNotFoundError("File not found")),
+            patch(
+                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+            ) as mock_temp_path,
+            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+        ):
+            mock_temp_path.return_value = "/tmp/test.mmd"
+
+            result = generator.generate(
+                "graph TD\n A --> B", "/tmp/output.png", basic_config
+            )
+
+            assert result is False
