@@ -393,3 +393,10 @@ class TestCleanGeneratedImages:
         suggestion = _get_cleanup_suggestion("PermissionError")
         assert "permissions" in suggestion.lower()
         assert "privileges" in suggestion.lower()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    def test_is_command_available_empty_command(self, mock_which):
+        """空のコマンド文字列のテスト (line 139をカバー)"""
+        result = is_command_available("")
+        assert result is False
+        mock_which.assert_not_called()
