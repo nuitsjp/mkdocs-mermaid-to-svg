@@ -400,3 +400,11 @@ class TestCleanGeneratedImages:
         result = is_command_available("")
         assert result is False
         mock_which.assert_not_called()
+
+    def test_get_cleanup_suggestion_default(self):
+        """デフォルトの提案のテスト (line 43 else分岐をカバー)"""
+        from mkdocs_mermaid_to_image.utils import _get_cleanup_suggestion
+
+        suggestion = _get_cleanup_suggestion("UnknownError")
+        assert "try again" in suggestion.lower()
+        assert "logs" in suggestion.lower()
