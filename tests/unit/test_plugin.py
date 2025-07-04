@@ -15,7 +15,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mkdocs_mermaid_to_image.exceptions import MermaidConfigError
+from mkdocs_mermaid_to_image.exceptions import (
+    MermaidConfigError,
+    MermaidFileError,
+    MermaidPreprocessorError,
+    MermaidValidationError,
+)
 from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
 
 
@@ -213,7 +218,6 @@ class TestMermaidToImagePlugin:
         self, _mock_processor_class, plugin, mock_page, mock_config
     ):
         """MermaidPreprocessorError例外とerror_on_fail=Trueのテスト"""
-        from mkdocs_mermaid_to_image.exceptions import MermaidPreprocessorError
 
         plugin.config = {
             "enabled": True,
@@ -241,7 +245,6 @@ class TestMermaidToImagePlugin:
         self, _mock_processor_class, plugin, mock_page, mock_config
     ):
         """一般的な例外とerror_on_fail=Trueのテスト"""
-        from mkdocs_mermaid_to_image.exceptions import MermaidPreprocessorError
 
         plugin.config = {
             "enabled": True,
@@ -561,6 +564,133 @@ class TestMermaidToImagePlugin:
             result = plugin.on_serve(server, config={}, builder=None)
             assert result == server
             server.watch.assert_called_once_with(".mermaid_cache")
+
+    # 例外処理のテストを追加
+    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_on_config_file_not_found_error(
+        self, mock_processor, mock_validate, plugin
+    ):
+        """on_config()でFileNotFoundErrorが発生した場合のテスト"""
+        mock_validate.return_value = True
+        mock_processor.side_effect = FileNotFoundError("File not found")
+
+        with pytest.raises(MermaidFileError) as exc_info:
+            plugin.on_config({})
+
+        assert "Required file not found during plugin initialization" in str(
+            exc_info.value
+        )
+
+    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_on_config_os_error(self, mock_processor, mock_validate, plugin):
+        """on_config()でOSErrorが発生した場合のテスト"""
+        mock_validate.return_value = True
+        mock_processor.side_effect = OSError("File system error")
+
+        with pytest.raises(MermaidFileError) as exc_info:
+            plugin.on_config({})
+
+        assert "File system error during plugin initialization" in str(exc_info.value)
+
+    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_on_config_permission_error(self, mock_processor, mock_validate, plugin):
+        """on_config()でPermissionErrorが発生した場合のテスト"""
+        mock_validate.return_value = True
+        mock_processor.side_effect = PermissionError("Permission denied")
+
+        with pytest.raises(MermaidFileError) as exc_info:
+            plugin.on_config({})
+
+        assert "File system error during plugin initialization" in str(exc_info.value)
+
+    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    def test_on_config_unexpected_error(self, mock_processor, mock_validate, plugin):
+        """on_config()で予期しないエラーが発生した場合のテスト"""
+        mock_validate.return_value = True
+        mock_processor.side_effect = RuntimeError("Unexpected error")
+
+        with pytest.raises(MermaidConfigError) as exc_info:
+            plugin.on_config({})
+
+        assert "Plugin configuration error" in str(exc_info.value)
+
+    @patch("pathlib.Path.exists")
+    def test_register_generated_images_value_error(self, mock_exists, plugin):
+        """画像パス処理でValueErrorが発生した場合のテスト"""
+        mock_exists.return_value = True
+
+        plugin.files = Mock()
+        plugin.files.append = Mock()
+        plugin.logger = Mock()
+
+        docs_dir = Path("/tmp/docs")
+        config = {"site_dir": "/tmp/site", "use_directory_urls": True}
+
+        # 相対パス計算でValueErrorが発生するようにモック
+        with patch("pathlib.Path.relative_to", side_effect=ValueError("Path error")):
+            plugin._register_generated_images_to_files(
+                ["/tmp/other/image.png"], docs_dir, config
+            )
+
+        # エラーログが出力されることを確認
+        plugin.logger.error.assert_called_once_with(
+            "Error processing image path /tmp/other/image.png: Path error"
+        )
+
+    def test_process_mermaid_diagrams_file_not_found_error(self, plugin):
+        """_process_mermaid_diagrams()でFileNotFoundErrorが発生した場合のテスト"""
+        plugin.config = {"error_on_fail": False, "output_dir": "assets/images"}
+        plugin.processor = Mock()
+        plugin.processor.process_page.side_effect = FileNotFoundError("File not found")
+        plugin.logger = Mock()
+
+        page = Mock()
+        page.file.src_path = "test.md"
+        page.url = "/test/"
+        config = {"docs_dir": "/tmp/docs"}
+
+        result = plugin._process_mermaid_diagrams("markdown", page, config)
+
+        # 元のマークダウンが返されることを確認
+        assert result == "markdown"
+
+        # エラーログが出力されることを確認
+        plugin.logger.error.assert_called_once()
+
+    def test_process_mermaid_diagrams_value_error_with_error_on_fail(self, plugin):
+        """_process_mermaid_diagrams()でValueErrorが発生し、error_on_fail=Trueの場合のテスト"""
+        plugin.config = {"error_on_fail": True, "output_dir": "assets/images"}
+        plugin.processor = Mock()
+        plugin.processor.process_page.side_effect = ValueError("Validation error")
+        plugin.logger = Mock()
+
+        page = Mock()
+        page.file.src_path = "test.md"
+        page.url = "/test/"
+        config = {"docs_dir": "/tmp/docs"}
+
+        with pytest.raises(MermaidValidationError):
+            plugin._process_mermaid_diagrams("markdown", page, config)
+
+    def test_process_mermaid_diagrams_unexpected_error_with_error_on_fail(self, plugin):
+        """_process_mermaid_diagrams()で予期しないエラーが発生し、error_on_fail=Trueの場合のテスト"""
+
+        plugin.config = {"error_on_fail": True, "output_dir": "assets/images"}
+        plugin.processor = Mock()
+        plugin.processor.process_page.side_effect = RuntimeError("Unexpected error")
+        plugin.logger = Mock()
+
+        page = Mock()
+        page.file.src_path = "test.md"
+        page.url = "/test/"
+        config = {"docs_dir": "/tmp/docs"}
+
+        with pytest.raises(MermaidPreprocessorError):
+            plugin._process_mermaid_diagrams("markdown", page, config)
 
 
 class TestMermaidToImagePluginServeMode:
