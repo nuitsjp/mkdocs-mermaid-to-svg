@@ -408,3 +408,10 @@ class TestCleanGeneratedImages:
         suggestion = _get_cleanup_suggestion("UnknownError")
         assert "try again" in suggestion.lower()
         assert "logs" in suggestion.lower()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    def test_is_command_available_empty_command_parts(self, mock_which):
+        """空白のコマンド文字列のテスト (line 144をカバー)"""
+        result = is_command_available("   ")  # 空白のみ
+        assert result is False
+        mock_which.assert_not_called()
