@@ -1,83 +1,56 @@
-# カバレージ強化
+# Boost Coverage
 
-あなたは優秀なテストエンジニアです。以下のコードのテストカバレージを向上させるため、不足している部分を特定し、テストケースを追加してください。
+You are an excellent test engineer. To improve the test coverage of the following code, identify missing parts and add test cases as needed.
 
-なお正しく動くはずのコードにテストを追加するので、t-wada式TDDを実行する必要はありません。
+Since you are adding tests to code that should already work correctly, you do not need to follow the t-wada style TDD process.
 
-## 分析対象
+## Target for Analysis
 
-プロジェクト全体
-
-## 作業手順
-
-1. ブランチ作成とプッシュ
-2. カバレージ強化の実施：下記を十分なレベルになるまで実行
-    1. カバレージ計測
-    2. カバレージ強化対象の決定
-    3. テストコードの作成
-    4. テスト実施
-    5. コード品質評価
-    6. コード品質改善
-    7. カバレージ評価
-    8. コミット
-    9. プッシュ
-
-### ブランチ作成とプッシュ
-
-ブランチ名: boost-coverage-yyyyMMddHHmm
-
-yyyyMMddHHmmはおおよその実行時刻
-
-### カバレージ強化の実施
-
-このセクションは、テスト1件追加につき1サイクルを回します。
-
-カバレージ計測～プッシュまでを1テストごとに実施し、複数のテストコードを作成してから、まとめてカバレージや品質の評価を行うわけではありません。
-
-説明が必要な個所について、個別に記載する。
-
-#### カバレージ計測
-
-```bash
 make test-cov
-```
 
-#### カバレージ強化対象の決定
+## Workflow
 
-カバレージ計測結果から_version.pyを除き、98%に達していないものから対象を選定して実施する
+1. make test-cov
+2. Confirmation of target coverage rate
+3. git checkout -b boost-coverage-yyyyMMddHHmm
+4. git push -u origin boost-coverage-yyyyMMddHHmm
+5. make test-cov
+6. Plan coverage improvement
+7. Boost Coverage 1
+    1. Add one test method
+    2. make test-cov
+    3. Fix test if needed
+    4. make check-all
+    5. Fix code quality issues
+    6. make test-cov
+    7. Fix test and update coverage plan if needed
+8. Boost Coverage 2
+    1. Add one test method
+    2. make test-cov
+    3. Fix test if needed
+    4. make check-all
+    5. Fix code quality issues
+    6. make test-cov
+    7. Fix test and update coverage plan if needed
+9. ...
+10. Commit & push
 
-#### テスト実施
+## Commit Message
 
-```bash
-make test-cov
-```
-
-#### コード品質評価
-
-```bash
-make check-all
-```
-
-#### カバレージ評価
-
-```bash
-make test-cov
-```
-
-### コミット
-
-下記を実施し、変更内容を確認。
+Check the following to review your changes:
 
 ```bash
 git status && git diff && git log --oneline -10
 ```
 
-- git statusとgit diffで変更を確認
-- 不要なファイルが含まれていないことを確認
-- センシティブな情報が含まれていないことを確認
-- 変更の種類を判断（feature/fix/refactor/docs/test）
+- Check changes with git status and git diff
+- Ensure no unnecessary files are included
+- Ensure no sensitive information is included
+- Determine the type of change (feature/fix/refactor/docs/test)
 
-問題なければ、フォーマットに従いコミットメッセージを作成し、コミットする
+If there are no issues, create a commit message following the format below and commit your changes:
+
+コメントは日本語で記述すること。
 
 ```txt
 <変更の種類>: <変更内容の要約>
@@ -87,6 +60,6 @@ git status && git diff && git log --oneline -10
 🤖 Generated with [GitHub Copilot](https://docs.github.com/ja/copilot)
 ```
 
-- 変更内容を明確に記述
-- なぜ変更したかを説明（whatよりwhy）
+- Clearly describe the changes
+- Explain why the changes were made (focus on why, not just what)
 - 日本語で記述
