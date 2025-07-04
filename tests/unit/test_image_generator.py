@@ -1294,3 +1294,37 @@ class TestMermaidImageGenerator:
 
         generator = MermaidImageGenerator(basic_config)
         assert generator._resolved_mmdc_command == "npx mmdc"
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_debug_logging_enabled(self, mock_command_available, basic_config):
+        """デバッグロギング有効時のテスト (line 108をカバー)"""
+        import logging
+
+        mock_command_available.return_value = True
+        generator = MermaidImageGenerator(basic_config)
+
+        with patch("subprocess.run") as mock_subprocess:
+            mock_subprocess.return_value = Mock(returncode=0, stderr="")
+
+            # デバッグログレベルを設定
+            generator.logger.setLevel(logging.DEBUG)
+
+            with (
+                patch("builtins.open", create=True),
+                patch(
+                    "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                ) as mock_temp_path,
+                patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+                patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+                patch("pathlib.Path.exists", return_value=True),
+                patch.object(generator.logger, "debug") as mock_debug,
+            ):
+                mock_temp_path.return_value = "/tmp/test.mmd"
+
+                result = generator.generate(
+                    "graph TD\n A --> B", "/tmp/output.png", basic_config
+                )
+
+                assert result is True
+                # デバッグログが呼ばれたことを確認
+                mock_debug.assert_called()
