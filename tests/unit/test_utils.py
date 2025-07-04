@@ -384,3 +384,12 @@ class TestCleanGeneratedImages:
 
         # loggerがNoneでも例外が発生しない
         clean_generated_images(image_paths, None)
+
+    # カバレージ強化: _get_cleanup_suggestionテスト
+    def test_get_cleanup_suggestion_permission_error(self):
+        """PermissionErrorに対する適切な提案のテスト (line 43をカバー)"""
+        from mkdocs_mermaid_to_image.utils import _get_cleanup_suggestion
+
+        suggestion = _get_cleanup_suggestion("PermissionError")
+        assert "permissions" in suggestion.lower()
+        assert "privileges" in suggestion.lower()
