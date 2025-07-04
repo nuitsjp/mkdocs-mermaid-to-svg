@@ -415,3 +415,21 @@ class TestCleanGeneratedImages:
         result = is_command_available("   ")  # 空白のみ
         assert result is False
         mock_which.assert_not_called()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    @patch("subprocess.run")
+    def test_is_command_available_exception_handling(self, mock_run, mock_which):
+        """例外処理のテスト (lines 192-197をカバー)"""
+        mock_which.return_value = "/usr/bin/mmdc"
+
+        # 各種例外をテスト
+        exceptions_to_test = [
+            FileNotFoundError("Command not found"),
+            OSError("System error"),
+            RuntimeError("Unexpected error"),
+        ]
+
+        for exception in exceptions_to_test:
+            mock_run.side_effect = exception
+            result = is_command_available("mmdc")
+            assert result is False
