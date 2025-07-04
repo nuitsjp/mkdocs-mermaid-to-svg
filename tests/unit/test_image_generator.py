@@ -1276,3 +1276,21 @@ class TestMermaidImageGenerator:
             # 各コマンドパスがキャッシュに含まれているはず
             for config in configs:
                 assert config["mmdc_path"] in MermaidImageGenerator._command_cache
+
+    # カバレージ強化: fallbackコマンドテスト
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_fallback_command_mmdc_to_npx(self, mock_command_available, basic_config):
+        """mmdc -> npx mmdc fallback テスト (lines 65-69をカバー)"""
+        MermaidImageGenerator.clear_command_cache()
+
+        def mock_availability(cmd):
+            if cmd == "mmdc":
+                return False  # primary command fails
+            elif cmd == "npx mmdc":
+                return True  # fallback succeeds
+            return False
+
+        mock_command_available.side_effect = mock_availability
+
+        generator = MermaidImageGenerator(basic_config)
+        assert generator._resolved_mmdc_command == "npx mmdc"
