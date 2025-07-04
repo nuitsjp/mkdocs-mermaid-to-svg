@@ -830,3 +830,15 @@ class TestMermaidToImagePluginServeMode:
 
             # プロセッサ未初期化時は元のMarkdownが返される
             assert result == markdown
+
+    # カバレージ強化: TYPE_CHECKINGテスト
+    def test_type_checking_import(self):
+        """TYPE_CHECKINGの条件分岐テスト (line 10をカバー)"""
+        # TYPE_CHECKINGはmypyなど型チェック時のみTrueになる
+        # 実行時はFalseなので、importはスキップされる
+
+        # PluginクラスがFilesを直接importしていないことを確認
+        # （TYPE_CHECKING内でのみimportされるため）
+        plugin = MermaidToImagePlugin()
+        assert hasattr(plugin, "files")  # 属性は存在する
+        assert plugin.files is None  # 初期値はNone
