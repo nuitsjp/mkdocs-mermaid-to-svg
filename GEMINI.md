@@ -1,15 +1,28 @@
 # GEMINI.md
 
-This file provides guidance to Gemini when working with code in this repository.
+This file provides guidance to Gemini CLI when working with code in this repository.
 
 ## Primary Directive
 
 - Think in English, interact with the user in Japanese.
 - When modifying the implementation, strictly adhere to the t-wada style of Test-Driven Development (TDD).
   - **t-wada TDD Concept**:
-    - First, write a failing test (Red).
-    - Then, write the simplest code to make it pass (Green).
-    - Finally, refactor the code (Refactor).
+    1. 1st Issue
+        1. First, write a failing test (Red).
+            - make test
+            - make check-all
+        2. Then, write the simplest code to make it pass (Green).
+            - make test-cov
+            - make check-all
+        3. Finally, refactor the code (Refactor).
+    2. 2nd Issue
+        1. First, write a failing test (Red).
+            - make test
+            - make check-all
+        2. Then, write the simplest code to make it pass (Green).
+            - make test-cov
+            - make check-all
+        3. Finally, refactor the code (Refactor).
   - Each cycle should be small and focused on a single purpose.
 
 ## Development Commands
@@ -26,10 +39,13 @@ make test-cov
 
 ### Code Quality
 ```bash
-# Run all quality checks in sequence
+# Run quality checks (equivalent to pre-commit hooks)
 make check
 
-# Run all checks on all files with pre-commit
+# Run security checks
+make check-security
+
+# Run complete checks (quality + security)
 make check-all
 ```
 
@@ -119,4 +135,6 @@ Error behavior is controlled by `error_on_fail` setting:
 - Use `--verbose` flag for detailed debug logging
 - CI environments are detected and handled with appropriate puppeteer configuration
 - Generated images are dynamically registered with MkDocs file system for proper copying to site directory
-- Pre-commit hooks ensure code quality (ruff, mypy, bandit)
+- Mermaid CLI uses local installation with automatic fallback to `npx mmdc`
+- Quality checks are unified with pre-commit hooks (`make check`)
+- Use `make check-all` before submitting PRs
