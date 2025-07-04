@@ -1349,3 +1349,26 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
+
+    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    def test_unexpected_error_handling(self, mock_command_available, basic_config):
+        """予期しないエラー処理のテスト (line 208をカバー)"""
+        mock_command_available.return_value = True
+        generator = MermaidImageGenerator(basic_config)
+
+        with (
+            patch("builtins.open", create=True),
+            patch(
+                "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+            ) as mock_temp_path,
+            patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
+            patch("subprocess.run", side_effect=RuntimeError("Unexpected error")),
+        ):
+            mock_temp_path.return_value = "/tmp/test.mmd"
+
+            result = generator.generate(
+                "graph TD\n A --> B", "/tmp/output.png", basic_config
+            )
+
+            assert result is False
