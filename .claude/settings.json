@@ -22,7 +22,11 @@
       "Bash(mv:*)",
       "Bash(find:*)",
       "Bash(rg:*)",
-      "Bash(ruff check:*)"
+      "Bash(ruff check:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

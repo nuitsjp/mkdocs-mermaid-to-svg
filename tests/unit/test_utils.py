@@ -384,3 +384,52 @@ class TestCleanGeneratedImages:
 
         # loggerがNoneでも例外が発生しない
         clean_generated_images(image_paths, None)
+
+    # カバレージ強化: _get_cleanup_suggestionテスト
+    def test_get_cleanup_suggestion_permission_error(self):
+        """PermissionErrorに対する適切な提案のテスト (line 43をカバー)"""
+        from mkdocs_mermaid_to_image.utils import _get_cleanup_suggestion
+
+        suggestion = _get_cleanup_suggestion("PermissionError")
+        assert "permissions" in suggestion.lower()
+        assert "privileges" in suggestion.lower()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    def test_is_command_available_empty_command(self, mock_which):
+        """空のコマンド文字列のテスト (line 139をカバー)"""
+        result = is_command_available("")
+        assert result is False
+        mock_which.assert_not_called()
+
+    def test_get_cleanup_suggestion_default(self):
+        """デフォルトの提案のテスト (line 43 else分岐をカバー)"""
+        from mkdocs_mermaid_to_image.utils import _get_cleanup_suggestion
+
+        suggestion = _get_cleanup_suggestion("UnknownError")
+        assert "try again" in suggestion.lower()
+        assert "logs" in suggestion.lower()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    def test_is_command_available_empty_command_parts(self, mock_which):
+        """空白のコマンド文字列のテスト (line 144をカバー)"""
+        result = is_command_available("   ")  # 空白のみ
+        assert result is False
+        mock_which.assert_not_called()
+
+    @patch("mkdocs_mermaid_to_image.utils.which")
+    @patch("subprocess.run")
+    def test_is_command_available_exception_handling(self, mock_run, mock_which):
+        """例外処理のテスト (lines 192-197をカバー)"""
+        mock_which.return_value = "/usr/bin/mmdc"
+
+        # 各種例外をテスト
+        exceptions_to_test = [
+            FileNotFoundError("Command not found"),
+            OSError("System error"),
+            RuntimeError("Unexpected error"),
+        ]
+
+        for exception in exceptions_to_test:
+            mock_run.side_effect = exception
+            result = is_command_available("mmdc")
+            assert result is False
