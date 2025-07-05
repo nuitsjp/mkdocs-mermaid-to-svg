@@ -54,8 +54,7 @@ class TestStructuredFormatter:
 
         formatted = formatter.format(record)
         expected = (
-            "[mkdocs-mermaid-to-image] INFO: Context message "
-            "(key1=value1 key2=value2)"
+            "[mkdocs-mermaid-to-image] INFO: Context message (key1=value1 key2=value2)"
         )
         assert formatted == expected
 

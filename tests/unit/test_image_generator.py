@@ -97,7 +97,8 @@ class TestMermaidImageGenerator:
         """subprocessエラー時の画像生成失敗テスト"""
         mock_command_available.return_value = True
         # WindowsファイルシステムでもLinuxでも互換性があるパスを使用
-        mock_temp_path.return_value = str(Path("test.mmd").resolve())
+        temp_file_path = str(Path("test.mmd").resolve())
+        mock_temp_path.return_value = temp_file_path
         mock_subprocess.return_value = Mock(returncode=1, stderr="Error message")
 
         generator = MermaidImageGenerator(basic_config)
@@ -114,7 +115,7 @@ class TestMermaidImageGenerator:
             # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
             assert mock_clean.call_count == 3
             assert any(
-                "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
+                temp_file_path in str(call) for call in mock_clean.call_args_list
             )
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")

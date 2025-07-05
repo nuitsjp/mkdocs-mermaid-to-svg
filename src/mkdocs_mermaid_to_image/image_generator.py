@@ -55,8 +55,7 @@ class MermaidImageGenerator:
             self._resolved_mmdc_command = primary_command
             self._command_cache[primary_command] = primary_command
             self.logger.debug(
-                f"Using primary mmdc command: {primary_command} "
-                f"(cached for future use)"
+                f"Using primary mmdc command: {primary_command} (cached for future use)"
             )
             return
 
