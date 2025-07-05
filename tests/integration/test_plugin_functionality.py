@@ -82,7 +82,13 @@ def test_utils():
     # setup_logger was removed as part of logging unification
     # Testing logger functionality is now covered in test_logging_config.py
 
-    result = is_command_available("python3")
+    # WindowsではpythonコマンドまたはwhereコマンドでPythonコマンドを確認
+    import platform
+
+    if platform.system() == "Windows":
+        result = is_command_available("python") or is_command_available("where")
+    else:
+        result = is_command_available("python3")
     assert result is True
 
 

@@ -126,12 +126,21 @@ class MermaidImageGenerator:
         except Exception as e:
             return self._handle_unexpected_error(e, output_path, mermaid_code)
         finally:
-            if temp_file:
-                clean_temp_file(temp_file)
-            if puppeteer_config_file:
-                clean_temp_file(puppeteer_config_file)
-            if mermaid_config_file:
-                clean_temp_file(mermaid_config_file)
+            # テンポラリファイルのクリーンアップ - エラーが発生しても継続
+            cleanup_files = [
+                ("temp_file", temp_file),
+                ("puppeteer_config_file", puppeteer_config_file),
+                ("mermaid_config_file", mermaid_config_file),
+            ]
+
+            for file_type, file_path in cleanup_files:
+                if file_path:
+                    try:
+                        clean_temp_file(file_path)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to clean up {file_type} '{file_path}': {e}"
+                        )
 
     def _handle_command_failure(
         self, result: subprocess.CompletedProcess[str], cmd: list[str]

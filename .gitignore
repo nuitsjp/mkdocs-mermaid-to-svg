@@ -1,5 +1,6 @@
 INSTRUCTION.md
 _version.py
+.tmp/
 
 # Python
 __pycache__/

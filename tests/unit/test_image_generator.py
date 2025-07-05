@@ -96,7 +96,8 @@ class TestMermaidImageGenerator:
     ):
         """subprocessエラー時の画像生成失敗テスト"""
         mock_command_available.return_value = True
-        mock_temp_path.return_value = "/tmp/test.mmd"
+        # WindowsファイルシステムでもLinuxでも互換性があるパスを使用
+        mock_temp_path.return_value = str(Path("test.mmd").resolve())
         mock_subprocess.return_value = Mock(returncode=1, stderr="Error message")
 
         generator = MermaidImageGenerator(basic_config)

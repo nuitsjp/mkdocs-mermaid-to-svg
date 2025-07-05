@@ -104,7 +104,9 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 
     try:
         rel_path = os.path.relpath(file_path, base_path)
-        return rel_path
+        # Unix風のパス区切り文字に正規化（MkDocsは内部的にUnix風パスを使用）
+        normalized_path = rel_path.replace(os.sep, "/")
+        return normalized_path
     except ValueError as e:
         logger.warning(
             f"Cannot calculate relative path from {base_path} to {file_path}",

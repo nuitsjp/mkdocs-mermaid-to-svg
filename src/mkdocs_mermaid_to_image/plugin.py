@@ -145,8 +145,12 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
         if self.files is None:
             return False
 
+        # パス比較のため正規化（Windowsのバックスラッシュをフォワードスラッシュに）
+        normalized_src_path = src_path.replace("\\", "/")
+
         for file_obj in self.files:
-            if file_obj.src_path == src_path:
+            normalized_file_path = file_obj.src_path.replace("\\", "/")
+            if normalized_file_path == normalized_src_path:
                 self.files.remove(file_obj)
                 return True
         return False

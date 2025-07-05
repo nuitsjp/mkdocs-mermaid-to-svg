@@ -138,6 +138,16 @@ class TestSetupPluginLogging:
             assert len(logger.handlers) == 2  # Console + File
             assert log_file.exists()
 
+            # ログファイルのハンドラを適切に閉じてリソースを解放
+            for handler in logger.handlers[:]:
+                if (
+                    hasattr(handler, "stream")
+                    and hasattr(handler.stream, "name")
+                    and handler.stream.name == str(log_file)
+                ):
+                    handler.close()
+                    logger.removeHandler(handler)
+
     def test_setup_without_force_skips_existing(self) -> None:
         """Test setup without force skips when handlers exist."""
         # First setup
