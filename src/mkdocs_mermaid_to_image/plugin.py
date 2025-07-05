@@ -115,7 +115,8 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
             try:
                 # docs_dirからの相対パスを計算
                 rel_path = image_file_path.relative_to(docs_dir)
-                rel_path_str = str(rel_path)
+                # パスをUnix形式に正規化（MkDocsの標準）
+                rel_path_str = str(rel_path).replace("\\", "/")
 
                 # 既存のファイルを効率的に検索して削除（重複回避）
                 self._remove_existing_file_by_path(rel_path_str)
@@ -127,6 +128,8 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
                     str(config["site_dir"]),
                     use_directory_urls=config.get("use_directory_urls", True),
                 )
+                # Fileオブジェクトのsrc_pathも確実にUnix形式になるよう修正
+                file_obj.src_path = file_obj.src_path.replace("\\", "/")
                 self.files.append(file_obj)
 
             except ValueError as e:

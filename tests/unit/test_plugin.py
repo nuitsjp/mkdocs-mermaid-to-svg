@@ -430,9 +430,12 @@ class TestMermaidToImagePlugin:
             len(files) == initial_file_count
         ), "File count should remain the same after duplicate replacement"
 
-        # ファイルパスが正しいことを確認
+        # ファイルパスが正しいことを確認（OS依存のパス区切り文字を考慮）
         file_paths = [f.src_path for f in files]
-        assert "assets/images/test.svg" in file_paths
+        expected_path = "assets/images/test.svg"
+        # パス正規化して比較（Unix形式に統一）
+        normalized_file_paths = [path.replace("\\", "/") for path in file_paths]
+        assert expected_path in normalized_file_paths
 
     @patch("pathlib.Path.exists")
     def test_register_generated_images_no_duplication_warning_after_fix(
