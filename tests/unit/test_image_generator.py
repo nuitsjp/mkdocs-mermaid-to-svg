@@ -97,7 +97,8 @@ class TestMermaidImageGenerator:
         """subprocessエラー時の画像生成失敗テスト"""
         mock_command_available.return_value = True
         # WindowsファイルシステムでもLinuxでも互換性があるパスを使用
-        temp_file_path = str(Path("test.mmd").resolve())
+        temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+        output_path = str(Path(tempfile.gettempdir()) / "output.png")
         mock_temp_path.return_value = temp_file_path
         mock_subprocess.return_value = Mock(returncode=1, stderr="Error message")
 
@@ -108,14 +109,17 @@ class TestMermaidImageGenerator:
             patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
         ):
             result = generator.generate(
-                "invalid mermaid code", "/tmp/output.png", basic_config
+                "invalid mermaid code", output_path, basic_config
             )
 
             assert result is False
             # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
             assert mock_clean.call_count == 3
+            # パス比較を正規化 - WindowsとLinuxで異なるパス区切り文字に対応
+            normalized_temp_path = str(Path(temp_file_path))
             assert any(
-                temp_file_path in str(call) for call in mock_clean.call_args_list
+                normalized_temp_path == str(Path(call.args[0]))
+                for call in mock_clean.call_args_list
             )
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
@@ -135,7 +139,9 @@ class TestMermaidImageGenerator:
     ):
         """出力ファイルが生成されない場合の失敗テスト"""
         mock_command_available.return_value = True
-        mock_temp_path.return_value = "/tmp/test.mmd"
+        temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+        output_path = str(Path(tempfile.gettempdir()) / "output.png")
+        mock_temp_path.return_value = temp_file_path
         mock_subprocess.return_value = Mock(returncode=0, stderr="")
         mock_exists.return_value = False  # 出力ファイルが作成されない
 
@@ -145,15 +151,16 @@ class TestMermaidImageGenerator:
             patch("builtins.open", create=True),
             patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
         ):
-            result = generator.generate(
-                "graph TD\n A --> B", "/tmp/output.png", basic_config
-            )
+            result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
             # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
             assert mock_clean.call_count == 3
+            # パス比較を正規化 - WindowsとLinuxで異なるパス区切り文字に対応
+            normalized_temp_path = str(Path(temp_file_path))
             assert any(
-                "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
+                normalized_temp_path == str(Path(call.args[0]))
+                for call in mock_clean.call_args_list
             )
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
@@ -171,7 +178,9 @@ class TestMermaidImageGenerator:
     ):
         """タイムアウト時の画像生成失敗テスト"""
         mock_command_available.return_value = True
-        mock_temp_path.return_value = "/tmp/test.mmd"
+        temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+        output_path = str(Path(tempfile.gettempdir()) / "output.png")
+        mock_temp_path.return_value = temp_file_path
         mock_subprocess.side_effect = subprocess.TimeoutExpired("mmdc", 30)
 
         generator = MermaidImageGenerator(basic_config)
@@ -180,15 +189,16 @@ class TestMermaidImageGenerator:
             patch("builtins.open", create=True),
             patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
         ):
-            result = generator.generate(
-                "graph TD\n A --> B", "/tmp/output.png", basic_config
-            )
+            result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
             # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
             assert mock_clean.call_count == 3
+            # パス比較を正規化 - WindowsとLinuxで異なるパス区切り文字に対応
+            normalized_temp_path = str(Path(temp_file_path))
             assert any(
-                "/tmp/test.mmd" in str(call) for call in mock_clean.call_args_list
+                normalized_temp_path == str(Path(call.args[0]))
+                for call in mock_clean.call_args_list
             )
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
@@ -409,7 +419,8 @@ class TestMermaidImageGenerator:
                 pytest.raises(MermaidCLIError),
             ):
                 mock_temp_path.return_value = str(temp_file)
-                generator.generate("invalid", "/tmp/output.png", basic_config)
+                output_path = str(tmp_path / "output.png")
+                generator.generate("invalid", output_path, basic_config)
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_generate_with_missing_output_file_error_on_fail_true(
@@ -437,8 +448,9 @@ class TestMermaidImageGenerator:
             mock_temp_path.return_value = str(temp_file)
             mock_exists.return_value = False  # Output file does not exist
 
+            output_path = str(tmp_path / "output.png")
             with pytest.raises(MermaidImageError, match="Image not created"):
-                generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
+                generator.generate("graph TD\nA-->B", output_path, basic_config)
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_generate_with_timeout_error_on_fail_true(
@@ -464,8 +476,9 @@ class TestMermaidImageGenerator:
             mock_subprocess.side_effect = subprocess.TimeoutExpired("mmdc", 30)
             mock_temp_path.return_value = str(temp_file)
 
+            output_path = str(tmp_path / "output.png")
             with pytest.raises(MermaidCLIError, match="timed out"):
-                generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
+                generator.generate("graph TD\nA-->B", output_path, basic_config)
 
     @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
     def test_generate_with_general_exception_error_on_fail_true(
@@ -491,10 +504,11 @@ class TestMermaidImageGenerator:
             mock_subprocess.side_effect = Exception("Unexpected error")
             mock_temp_path.return_value = str(temp_file)
 
+            output_path = str(tmp_path / "output.png")
             with pytest.raises(
                 MermaidImageError, match="Unexpected error generating image"
             ):
-                generator.generate("graph TD\nA-->B", "/tmp/output.png", basic_config)
+                generator.generate("graph TD\nA-->B", output_path, basic_config)
 
     @pytest.mark.parametrize(
         "mmd_file, expected_png",
@@ -1321,10 +1335,12 @@ class TestMermaidImageGenerator:
                 patch("pathlib.Path.exists", return_value=True),
                 patch.object(generator.logger, "debug") as mock_debug,
             ):
-                mock_temp_path.return_value = "/tmp/test.mmd"
+                temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+                output_path = str(Path(tempfile.gettempdir()) / "output.png")
+                mock_temp_path.return_value = temp_file_path
 
                 result = generator.generate(
-                    "graph TD\n A --> B", "/tmp/output.png", basic_config
+                    "graph TD\n A --> B", output_path, basic_config
                 )
 
                 assert result is True
@@ -1344,11 +1360,11 @@ class TestMermaidImageGenerator:
             ) as mock_temp_path,
             patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
         ):
-            mock_temp_path.return_value = "/tmp/test.mmd"
+            temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+            output_path = str(Path(tempfile.gettempdir()) / "output.png")
+            mock_temp_path.return_value = temp_file_path
 
-            result = generator.generate(
-                "graph TD\n A --> B", "/tmp/output.png", basic_config
-            )
+            result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
 
@@ -1367,10 +1383,10 @@ class TestMermaidImageGenerator:
             patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
             patch("subprocess.run", side_effect=RuntimeError("Unexpected error")),
         ):
-            mock_temp_path.return_value = "/tmp/test.mmd"
+            temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+            output_path = str(Path(tempfile.gettempdir()) / "output.png")
+            mock_temp_path.return_value = temp_file_path
 
-            result = generator.generate(
-                "graph TD\n A --> B", "/tmp/output.png", basic_config
-            )
+            result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
