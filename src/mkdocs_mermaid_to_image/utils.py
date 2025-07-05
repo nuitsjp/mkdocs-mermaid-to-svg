@@ -1,10 +1,10 @@
 import hashlib
 import logging
 import os
+import platform
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
-from shutil import which
 
 from .logging_config import get_logger
 
@@ -125,9 +125,8 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 def is_command_available(command: str) -> bool:
     """Check if a command is available and working by executing version check
 
-    This function performs two checks:
-    1. First checks if the base command exists using 'which'
-    2. Then executes the command with version flags to verify it works
+    This function checks if a command is available by executing it with version flags.
+    This approach works better on Windows where commands might be .ps1 scripts.
 
     Args:
         command: Command string to check (e.g., 'mmdc' or 'npx mmdc')
@@ -143,12 +142,7 @@ def is_command_available(command: str) -> bool:
     if not command_parts:
         return False
 
-    # For commands like "npx mmdc", check if "npx" is available first
-    base_command = command_parts[0]
-    if which(base_command) is None:
-        return False
-
-    # Now actually try to execute the command to verify it works
+    # Try to execute the command to verify it works
     logger = get_logger(__name__)
     logger.debug(f"Checking if command '{command}' is working...")
 
@@ -173,10 +167,33 @@ def _verify_command_execution(
 
     for flag in version_flags:
         try:
-            version_cmd = [*command_parts, flag]
-            result = subprocess.run(  # nosec B603
-                version_cmd, capture_output=True, text=True, timeout=5, check=False
-            )
+            # On Windows, use shell=True to handle .ps1 scripts properly
+            use_shell = platform.system() == "Windows"
+
+            if use_shell:
+                # For shell=True, command should be a string
+                version_cmd_str = " ".join([*command_parts, flag])
+                # shell=True is required on Windows to execute .ps1 scripts
+                # Input is controlled internally, not from external user input
+                result = subprocess.run(  # nosec B603,B602
+                    version_cmd_str,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                    shell=True,
+                )
+            else:
+                # For shell=False, command should be a list
+                version_cmd = [*command_parts, flag]
+                result = subprocess.run(  # nosec B603
+                    version_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                    shell=False,
+                )
 
             # If command executes successfully (return code 0 or 1 for help commands)
             if result.returncode in [0, 1]:

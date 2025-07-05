@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import platform
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
@@ -104,12 +105,7 @@ class MermaidImageGenerator:
                 temp_file, output_path, config
             )
 
-            if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.debug("Executing mermaid CLI command")
-
-            result = subprocess.run(  # nosec B603
-                cmd, capture_output=True, text=True, timeout=30, check=False
-            )
+            result = self._execute_mermaid_command(cmd)
 
             if result.returncode != 0:
                 return self._handle_command_failure(result, cmd)
@@ -317,3 +313,37 @@ class MermaidImageGenerator:
                 )
 
         return cmd, puppeteer_config_file, mermaid_config_file
+
+    def _execute_mermaid_command(
+        self, cmd: list[str]
+    ) -> subprocess.CompletedProcess[str]:
+        """Execute mermaid command with appropriate shell settings for the platform."""
+        if self.logger.isEnabledFor(logging.DEBUG):
+            self.logger.debug("Executing mermaid CLI command")
+
+        # On Windows, use shell=True to handle .ps1 scripts properly
+        use_shell = platform.system() == "Windows"
+
+        if use_shell:
+            # For shell=True, command should be a string
+            cmd_str = " ".join(cmd)
+            # shell=True is required on Windows to execute .ps1 scripts
+            # Input is controlled internally, not from external user input
+            return subprocess.run(  # nosec B603,B602
+                cmd_str,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                shell=True,
+            )
+        else:
+            # For shell=False, command should be a list
+            return subprocess.run(  # nosec B603
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                shell=False,
+            )

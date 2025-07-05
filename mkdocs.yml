@@ -26,8 +26,6 @@ markdown_extensions:
 plugins:
   - search
   - mermaid-to-image:
-      # 環境変数ENABLE_PDF_EXPORTが設定されている場合のみプラグインを有効化
-      enabled_if_env: ENABLE_PDF_EXPORT
       # PDF生成時の互換性のためHTMLラベルを無効化
       mermaid_config:
         htmlLabels: false
@@ -36,7 +34,6 @@ plugins:
         class:
           htmlLabels: false
   - to-pdf:
-      enabled_if_env: ENABLE_PDF_EXPORT
       cover_subtitle: 'MkDocs Mermaid to Image'
       toc_title: 目次
       toc_level: 3
