@@ -29,8 +29,6 @@ class TestMinimalMkDocsConfig:
         assert plugin.config["width"] == 800
         assert plugin.config["height"] == 600
         assert plugin.config["scale"] == 1.0
-        assert plugin.config["cache_enabled"] is True
-        assert plugin.config["cache_dir"] == ".mermaid_cache"
         assert plugin.config["preserve_original"] is False
         assert plugin.config["error_on_fail"] is False
         assert plugin.config["log_level"] == "INFO"

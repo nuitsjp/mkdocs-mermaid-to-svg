@@ -71,8 +71,6 @@ class TestMermaidToImagePlugin:
             "css_file": None,
             "puppeteer_config": None,
             "mermaid_config": None,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
@@ -102,8 +100,6 @@ class TestMermaidToImagePlugin:
             "css_file": None,
             "puppeteer_config": None,
             "mermaid_config": None,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
@@ -267,10 +263,7 @@ class TestMermaidToImagePlugin:
 
     def test_on_post_build_with_images(self, plugin):
         """画像生成後のon_post_buildでログが出るかテスト"""
-        plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
-        }
+        plugin.config = {}
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.png"]
 
         mock_logger = Mock()
@@ -278,28 +271,10 @@ class TestMermaidToImagePlugin:
         plugin.on_post_build(config={})
         mock_logger.info.assert_called_with("Generated 2 Mermaid images total")
 
-    @patch("shutil.rmtree")
-    @patch("pathlib.Path.exists")
-    def test_on_post_build_cache_cleanup(self, mock_exists, mock_rmtree, plugin):
-        """キャッシュ無効時にキャッシュディレクトリが削除されるかテスト"""
-        plugin.config = {
-            "cache_enabled": False,
-            "cache_dir": ".mermaid_cache",
-        }
-        plugin.generated_images = []
-        plugin.logger = Mock()
-        mock_exists.return_value = True
-
-        plugin.on_post_build(config={})
-
-        mock_rmtree.assert_called_once_with(".mermaid_cache")
-
     @patch("pathlib.Path.exists")
     def test_on_post_build_image_cleanup_enabled(self, mock_exists, plugin):
         """画像クリーンアップが有効時に生成画像ファイルが削除されるかテスト"""
         plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "cleanup_generated_images": True,
         }
         plugin.generated_images = [
@@ -322,8 +297,6 @@ class TestMermaidToImagePlugin:
     def test_on_post_build_image_cleanup_disabled(self, mock_exists, plugin):
         """画像クリーンアップが無効時に生成画像ファイルが削除されないかテスト"""
         plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "cleanup_generated_images": False,
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
@@ -344,8 +317,6 @@ class TestMermaidToImagePlugin:
         """画像削除時のエラーハンドリングをテスト"""
         plugin.config = {
             "cleanup_generated_images": True,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
         }
         plugin.generated_images = ["/path/to/image1.png"]
         mock_exists.return_value = True
@@ -361,8 +332,6 @@ class TestMermaidToImagePlugin:
         """loggerがNoneでもクリーンアップが実行されることをテスト"""
         plugin.config = {
             "cleanup_generated_images": True,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
 
@@ -543,17 +512,12 @@ class TestMermaidToImagePlugin:
         assert result == server
 
     def test_on_serve_enabled(self, plugin):
-        """プラグイン有効時にキャッシュディレクトリの監視が追加されるかテスト"""
-        plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
-        }
+        """プラグイン有効時のon_serveの挙動をテスト"""
+        plugin.config = {}
         server = Mock()
 
-        with patch("pathlib.Path.exists", return_value=True):
-            result = plugin.on_serve(server, config={}, builder=None)
-            assert result == server
-            server.watch.assert_called_once_with(".mermaid_cache")
+        result = plugin.on_serve(server, config={}, builder=None)
+        assert result == server
 
     # 例外処理のテストを追加
     @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")

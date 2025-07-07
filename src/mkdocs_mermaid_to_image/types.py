@@ -16,7 +16,6 @@ MermaidTheme = Literal["default", "dark", "forest", "neutral"]
 class PluginConfigDict(TypedDict, total=False):
     image_format: ImageFormat
     theme: MermaidTheme
-    cache_enabled: bool
     output_dir: str
     image_width: int
     image_height: int
@@ -84,7 +83,6 @@ class LogContext(TypedDict, total=False):
 CommandResult = tuple[int, str, str]
 
 FileOperation = Literal["read", "write", "create", "delete"]
-CacheOperation = Literal["hit", "miss", "invalidate", "store"]
 
 PluginHook = Literal["on_config", "on_page_markdown", "on_post_build"]
 
@@ -93,14 +91,5 @@ class ProcessingStats(TypedDict):
     total_blocks: int
     processed_blocks: int
     failed_blocks: int
-    cache_hits: int
-    cache_misses: int
     total_processing_time_ms: float
     average_processing_time_ms: float
-
-
-class CacheInfo(TypedDict):
-    cache_key: str
-    cache_hit: bool
-    cache_timestamp: str
-    file_hash: str

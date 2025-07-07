@@ -52,14 +52,6 @@ class ConfigManager:
                 config_options.Optional(config_options.Type(str)),
             ),
             (
-                "cache_enabled",
-                config_options.Type(bool, default=True),
-            ),
-            (
-                "cache_dir",
-                config_options.Type(str, default=".mermaid_cache"),
-            ),
-            (
                 "preserve_original",
                 config_options.Type(bool, default=False),
             ),
