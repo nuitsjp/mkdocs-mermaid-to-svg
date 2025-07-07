@@ -37,7 +37,6 @@ class TestMinimalConfig:
         essential_with_defaults = [
             "output_dir",  # 画像出力先
             "image_format",  # 画像形式
-            "mmdc_path",  # Mermaid CLIパス
             "theme",  # テーマ
             "background_color",  # 背景色
             "width",  # 画像幅

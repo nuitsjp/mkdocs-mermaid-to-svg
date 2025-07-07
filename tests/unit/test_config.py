@@ -60,7 +60,6 @@ class TestConfigManager:
             "enabled_if_env",  # 環境変数による有効化
             "output_dir",  # 画像出力ディレクトリ
             "image_format",  # 画像形式
-            "mmdc_path",  # Mermaid CLIのパス
             "theme",  # テーマ設定
             "background_color",  # 背景色
             "width",  # 画像の幅

@@ -27,10 +27,6 @@ class ConfigManager:
                 config_options.Optional(config_options.Type(dict)),
             ),
             (
-                "mmdc_path",
-                config_options.Type(str, default="mmdc"),
-            ),
-            (
                 "theme",
                 config_options.Choice(
                     ["default", "dark", "forest", "neutral"], default="default"
