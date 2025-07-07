@@ -23,20 +23,6 @@ class TestMinimalConfig:
                     "enabled_if_env",
                 ], f"{config_name} should have a default value"
 
-    def test_enabled_デフォルトTrue_で動作(self):
-        """enabled オプション未指定時にTrueになることを確認。"""
-        plugin = MermaidToImagePlugin()
-
-        # enabled設定を確認
-        enabled_config = None
-        for config_name, config_option in plugin.config_scheme:
-            if config_name == "enabled":
-                enabled_config = config_option
-                break
-
-        assert enabled_config is not None
-        assert enabled_config.default is True
-
     def test_必須設定項目以外は全てデフォルト値を持つ(self):
         """必須設定項目以外は全てデフォルト値を持ち、最小構成で動作することを確認。"""
         plugin = MermaidToImagePlugin()
@@ -49,7 +35,6 @@ class TestMinimalConfig:
 
         # 期待される最小構成で動作に必要な項目
         essential_with_defaults = [
-            "enabled",  # プラグインの有効化
             "output_dir",  # 画像出力先
             "image_format",  # 画像形式
             "mmdc_path",  # Mermaid CLIパス

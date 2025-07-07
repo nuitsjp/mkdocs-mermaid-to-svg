@@ -103,7 +103,6 @@ def test_serve_mode_integration():
 
         # 設定を模擬
         plugin.config = {
-            "enabled": True,
             "output_dir": "assets/images",
             "image_format": "png",
             "mmdc_path": "mmdc",
@@ -180,7 +179,6 @@ def test_build_mode_integration():
 
         # 設定を模擬
         plugin.config = {
-            "enabled": True,
             "output_dir": "assets/images",
             "error_on_fail": False,
         }

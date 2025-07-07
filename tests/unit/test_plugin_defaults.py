@@ -18,27 +18,12 @@ class TestPluginDefaults:
         assert isinstance(plugin.config_scheme, tuple)
         assert len(plugin.config_scheme) > 0
 
-    def test_enabled_のデフォルト値がTrueである(self):
-        """enabled オプションのデフォルト値が True であることを確認。"""
-        plugin = MermaidToImagePlugin()
-
-        # config_schemeから enabled の設定を検索
-        enabled_config = None
-        for config_item in plugin.config_scheme:
-            if config_item[0] == "enabled":
-                enabled_config = config_item[1]
-                break
-
-        assert enabled_config is not None
-        assert enabled_config.default is True
-
     def test_すべてのオプションがデフォルト値を持つ(self):
         """全てのオプションが適切なデフォルト値を持つことを確認。"""
         plugin = MermaidToImagePlugin()
 
         # 必須でないオプション（デフォルト値が必要）のリスト
         expected_defaults = {
-            "enabled": True,
             "output_dir": "assets/images",
             "image_format": "svg",
             "mmdc_path": "mmdc",

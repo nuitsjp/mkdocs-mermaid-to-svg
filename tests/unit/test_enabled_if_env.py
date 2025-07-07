@@ -33,23 +33,20 @@ class TestEnabledIfEnv:
             assert plugin._should_be_enabled(config) is False
 
     def test_enabled_if_env_default_behavior_when_not_specified(self):
-        """enabled_if_envが指定されていない場合、通常のenabled設定に従うことをテスト"""
+        """enabled_if_envが指定されていない場合、プラグインが有効化されることをテスト"""
         plugin = MermaidToImagePlugin()
-        config = {"enabled": True}
+        config = {}
 
-        # enabled設定に従うことを確認
+        # enabled_if_envが未設定の場合、プラグインが有効化されることを確認
         assert plugin._should_be_enabled(config) is True
 
-        config = {"enabled": False}
-        assert plugin._should_be_enabled(config) is False
-
-    def test_enabled_if_env_overrides_enabled_setting(self):
-        """enabled_if_envが設定されている場合、enabled設定を上書きすることをテスト"""
+    def test_enabled_if_env_overrides_default_behavior(self):
+        """enabled_if_envが設定されている場合、デフォルトの有効化動作を上書きすることをテスト"""
         with unittest.mock.patch.dict(os.environ, {}, clear=True):
             plugin = MermaidToImagePlugin()
-            config = {"enabled": True, "enabled_if_env": "ENABLE_PDF_EXPORT"}
+            config = {"enabled_if_env": "ENABLE_PDF_EXPORT"}
 
-            # 環境変数が未設定の場合、enabledがTrueでも無効化される
+            # 環境変数が未設定の場合、プラグインが無効化される
             assert plugin._should_be_enabled(config) is False
 
     def test_config_scheme_includes_enabled_if_env(self):

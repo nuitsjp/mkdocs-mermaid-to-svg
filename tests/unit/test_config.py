@@ -57,7 +57,6 @@ class TestConfigManager:
 
         # 期待される設定項目のリスト
         expected_configs = [
-            "enabled",  # プラグインの有効/無効
             "enabled_if_env",  # 環境変数による有効化
             "output_dir",  # 画像出力ディレクトリ
             "image_format",  # 画像形式

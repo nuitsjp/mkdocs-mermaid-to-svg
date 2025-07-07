@@ -60,7 +60,6 @@ class TestMermaidToImagePlugin:
     def test_config_validation_success(self, plugin, mock_config):
         """有効な設定でon_configが成功するかテスト"""
         plugin.config = {
-            "enabled": True,
             "output_dir": "assets/images",
             "image_format": "png",
             "mmdc_path": "mmdc",
@@ -91,7 +90,7 @@ class TestMermaidToImagePlugin:
     def test_config_validation_disabled_plugin(self, plugin, mock_config):
         """プラグインが無効な場合にprocessorがNoneになるかテスト"""
         plugin.config = {
-            "enabled": False,
+            "enabled_if_env": "NON_EXISTENT_ENV",
             "output_dir": "assets/images",
             "image_format": "png",
             "mmdc_path": "mmdc",
@@ -119,7 +118,6 @@ class TestMermaidToImagePlugin:
     def test_config_validation_invalid_dimensions(self, plugin, mock_config):
         """幅や高さが不正な場合に例外が発生するかテスト"""
         plugin.config = {
-            "enabled": True,
             "width": -100,
             "height": 600,
             "scale": 1.0,
@@ -131,7 +129,7 @@ class TestMermaidToImagePlugin:
 
     def test_on_files_disabled(self, plugin):
         """プラグイン無効時のon_filesの挙動をテスト"""
-        plugin.config = {"enabled": False}
+        plugin.config = {}
         files = ["file1.md", "file2.md"]
 
         result = plugin.on_files(files, config={})
@@ -140,7 +138,7 @@ class TestMermaidToImagePlugin:
 
     def test_on_files_enabled(self, plugin):
         """プラグイン有効時のon_filesの挙動をテスト"""
-        plugin.config = {"enabled": True}
+        plugin.config = {}
         plugin.processor = Mock()
         files = ["file1.md", "file2.md"]
 
@@ -151,7 +149,7 @@ class TestMermaidToImagePlugin:
     @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
     def test_on_page_markdown_disabled(self, _mock_processor_class, plugin, mock_page):
         """プラグイン無効時は元のMarkdownが返るかテスト"""
-        plugin.config = {"enabled": False}
+        plugin.config = {}
         markdown = "# Test\n\nSome content"
 
         result = plugin.on_page_markdown(markdown, page=mock_page, config={}, files=[])
@@ -163,7 +161,6 @@ class TestMermaidToImagePlugin:
     ):
         """ページ内にMermaidブロックがある場合の処理をテスト"""
         plugin.config = {
-            "enabled": True,
             "output_dir": "assets/images",
             "error_on_fail": False,
             "log_level": "INFO",
@@ -193,7 +190,6 @@ class TestMermaidToImagePlugin:
     ):
         """画像生成時に例外が発生した場合のエラーハンドリングをテスト"""
         plugin.config = {
-            "enabled": True,
             "output_dir": "assets/images",
             "error_on_fail": False,
             "log_level": "INFO",
@@ -220,7 +216,6 @@ class TestMermaidToImagePlugin:
         """MermaidPreprocessorError例外とerror_on_fail=Trueのテスト"""
 
         plugin.config = {
-            "enabled": True,
             "output_dir": "assets/images",
             "error_on_fail": True,  # この場合は例外が再発生される
             "log_level": "INFO",
@@ -247,7 +242,6 @@ class TestMermaidToImagePlugin:
         """一般的な例外とerror_on_fail=Trueのテスト"""
 
         plugin.config = {
-            "enabled": True,
             "output_dir": "assets/images",
             "error_on_fail": True,  # この場合は例外が再発生される
             "log_level": "INFO",
@@ -267,14 +261,13 @@ class TestMermaidToImagePlugin:
 
     def test_on_post_build_disabled(self, plugin):
         """プラグイン無効時のon_post_buildの挙動をテスト"""
-        plugin.config = {"enabled": False}
+        plugin.config = {"enabled_if_env": "NON_EXISTENT_ENV"}
         plugin.on_post_build(config={})
         # 例外が発生しなければOK
 
     def test_on_post_build_with_images(self, plugin):
         """画像生成後のon_post_buildでログが出るかテスト"""
         plugin.config = {
-            "enabled": True,
             "cache_enabled": True,
             "cache_dir": ".mermaid_cache",
         }
@@ -290,7 +283,6 @@ class TestMermaidToImagePlugin:
     def test_on_post_build_cache_cleanup(self, mock_exists, mock_rmtree, plugin):
         """キャッシュ無効時にキャッシュディレクトリが削除されるかテスト"""
         plugin.config = {
-            "enabled": True,
             "cache_enabled": False,
             "cache_dir": ".mermaid_cache",
         }
@@ -306,7 +298,6 @@ class TestMermaidToImagePlugin:
     def test_on_post_build_image_cleanup_enabled(self, mock_exists, plugin):
         """画像クリーンアップが有効時に生成画像ファイルが削除されるかテスト"""
         plugin.config = {
-            "enabled": True,
             "cache_enabled": True,
             "cache_dir": ".mermaid_cache",
             "cleanup_generated_images": True,
@@ -331,7 +322,6 @@ class TestMermaidToImagePlugin:
     def test_on_post_build_image_cleanup_disabled(self, mock_exists, plugin):
         """画像クリーンアップが無効時に生成画像ファイルが削除されないかテスト"""
         plugin.config = {
-            "enabled": True,
             "cache_enabled": True,
             "cache_dir": ".mermaid_cache",
             "cleanup_generated_images": False,
@@ -353,7 +343,6 @@ class TestMermaidToImagePlugin:
     ):
         """画像削除時のエラーハンドリングをテスト"""
         plugin.config = {
-            "enabled": True,
             "cleanup_generated_images": True,
             "cache_enabled": True,
             "cache_dir": ".mermaid_cache",
@@ -371,7 +360,6 @@ class TestMermaidToImagePlugin:
     ):
         """loggerがNoneでもクリーンアップが実行されることをテスト"""
         plugin.config = {
-            "enabled": True,
             "cleanup_generated_images": True,
             "cache_enabled": True,
             "cache_dir": ".mermaid_cache",
@@ -392,7 +380,7 @@ class TestMermaidToImagePlugin:
         mock_exists.return_value = True
 
         plugin = MermaidToImagePlugin()
-        plugin.config = {"enabled": True}
+        plugin.config = {}
 
         # 実際のMkDocs FilesオブジェクトとFileオブジェクトを使用
         from pathlib import Path
@@ -445,7 +433,7 @@ class TestMermaidToImagePlugin:
         mock_exists.return_value = True
 
         plugin = MermaidToImagePlugin()
-        plugin.config = {"enabled": True}
+        plugin.config = {}
 
         # 実際のMkDocs FilesオブジェクトとFileオブジェクトを使用
         from pathlib import Path
@@ -496,7 +484,7 @@ class TestMermaidToImagePlugin:
         mock_exists.return_value = False
 
         plugin = MermaidToImagePlugin()
-        plugin.config = {"enabled": True}
+        plugin.config = {}
         plugin.logger = Mock()
 
         from pathlib import Path
@@ -548,7 +536,7 @@ class TestMermaidToImagePlugin:
 
     def test_on_serve_disabled(self, plugin):
         """プラグイン無効時のon_serveの挙動をテスト"""
-        plugin.config = {"enabled": False}
+        plugin.config = {"enabled_if_env": "NON_EXISTENT_ENV"}
         server = Mock()
 
         result = plugin.on_serve(server, config={}, builder=None)
@@ -557,7 +545,6 @@ class TestMermaidToImagePlugin:
     def test_on_serve_enabled(self, plugin):
         """プラグイン有効時にキャッシュディレクトリの監視が追加されるかテスト"""
         plugin.config = {
-            "enabled": True,
             "cache_enabled": True,
             "cache_dir": ".mermaid_cache",
         }
@@ -736,7 +723,7 @@ class TestMermaidToImagePluginServeMode:
         """serveモード時にMermaid処理がスキップされることを確認"""
         with patch.object(sys, "argv", ["mkdocs", "serve"]):
             plugin = MermaidToImagePlugin()
-            plugin.config = {"enabled": True}
+            plugin.config = {}
             plugin.processor = Mock()  # プロセッサが設定されている状態
 
             # Mock page and config
@@ -761,7 +748,6 @@ class TestMermaidToImagePluginServeMode:
         with patch.object(sys, "argv", ["mkdocs", "build"]):
             plugin = MermaidToImagePlugin()
             plugin.config = {
-                "enabled": True,
                 "output_dir": "assets/images",
                 "error_on_fail": False,
             }
@@ -796,7 +782,7 @@ class TestMermaidToImagePluginServeMode:
         """serveモード時にプラグインが無効な場合の処理を確認"""
         with patch.object(sys, "argv", ["mkdocs", "serve"]):
             plugin = MermaidToImagePlugin()
-            plugin.config = {"enabled": False}
+            plugin.config = {}
             plugin.processor = None
 
             # Mock page and config
@@ -817,7 +803,7 @@ class TestMermaidToImagePluginServeMode:
         """serveモード時にプロセッサが未初期化の場合の処理を確認"""
         with patch.object(sys, "argv", ["mkdocs", "serve"]):
             plugin = MermaidToImagePlugin()
-            plugin.config = {"enabled": True}
+            plugin.config = {}
             plugin.processor = None  # プロセッサが未初期化
 
             # Mock page and config

@@ -55,7 +55,6 @@ class TestConfigConsistency:
 
         # 期待される型とデフォルト値のマッピング
         expected_types_and_defaults = {
-            "enabled": (bool, True),
             "output_dir": (str, "assets/images"),
             "image_format": (str, "svg"),
             "mmdc_path": (str, "mmdc"),

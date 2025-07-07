@@ -22,7 +22,6 @@ class TestMinimalMkDocsConfig:
                 plugin.config[config_name] = config_option.default
 
         # 必須設定項目がデフォルト値で設定されていることを確認
-        assert plugin.config["enabled"] is True
         assert plugin.config["output_dir"] == "assets/images"
         assert plugin.config["image_format"] == "svg"
         assert plugin.config["mmdc_path"] == "mmdc"

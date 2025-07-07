@@ -11,10 +11,6 @@ class ConfigManager:
     def get_config_scheme() -> tuple[tuple[str, Any], ...]:
         return (
             (
-                "enabled",
-                config_options.Type(bool, default=True),
-            ),
-            (
                 "enabled_if_env",
                 config_options.Optional(config_options.Type(str)),
             ),
