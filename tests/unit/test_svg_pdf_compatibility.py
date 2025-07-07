@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
+from mkdocs_mermaid_to_svg.image_generator import MermaidImageGenerator
 
 
 class TestSVGPDFCompatibility:

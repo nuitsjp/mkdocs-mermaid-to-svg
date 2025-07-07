@@ -22,8 +22,8 @@ from pathlib import Path
 import pytest  # Pythonのテストフレームワーク
 
 # テスト対象のConfigManagerクラスをインポート
-from mkdocs_mermaid_to_image.config import ConfigManager
-from mkdocs_mermaid_to_image.exceptions import MermaidConfigError, MermaidFileError
+from mkdocs_mermaid_to_svg.config import ConfigManager
+from mkdocs_mermaid_to_svg.exceptions import MermaidConfigError, MermaidFileError
 
 
 class TestConfigManager:
@@ -59,7 +59,6 @@ class TestConfigManager:
         expected_configs = [
             "enabled_if_env",  # 環境変数による有効化
             "output_dir",  # 画像出力ディレクトリ
-            "image_format",  # 画像形式
             "theme",  # テーマ設定
             "background_color",  # 背景色
             "width",  # 画像の幅

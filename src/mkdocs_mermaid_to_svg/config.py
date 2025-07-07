@@ -19,10 +19,6 @@ class ConfigManager:
                 config_options.Type(str, default="assets/images"),
             ),
             (
-                "image_format",
-                config_options.Choice(["png", "svg"], default="svg"),
-            ),
-            (
                 "mermaid_config",
                 config_options.Optional(config_options.Type(dict)),
             ),
@@ -50,14 +46,6 @@ class ConfigManager:
             (
                 "temp_dir",
                 config_options.Optional(config_options.Type(str)),
-            ),
-            (
-                "cache_enabled",
-                config_options.Type(bool, default=True),
-            ),
-            (
-                "cache_dir",
-                config_options.Type(str, default=".mermaid_cache"),
             ),
             (
                 "preserve_original",

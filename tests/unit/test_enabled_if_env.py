@@ -1,7 +1,7 @@
 import os
 import unittest.mock
 
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
 
 class TestEnabledIfEnv:

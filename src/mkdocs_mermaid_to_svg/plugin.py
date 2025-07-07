@@ -1,5 +1,4 @@
 import os
-import shutil
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
@@ -21,7 +20,7 @@ from .processor import MermaidProcessor
 from .utils import clean_generated_images
 
 
-class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
+class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
     config_scheme = ConfigManager.get_config_scheme()
 
     def __init__(self) -> None:
@@ -254,18 +253,13 @@ class MermaidToImagePlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call
         if self.config.get("cleanup_generated_images", False) and self.generated_images:
             clean_generated_images(self.generated_images, self.logger)
 
-        if not self.config["cache_enabled"]:
-            cache_dir = self.config["cache_dir"]
-            if Path(cache_dir).exists():
-                shutil.rmtree(cache_dir)
-
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
         if not self._should_be_enabled(self.config):
             return server
 
-        if self.config["cache_enabled"]:
-            cache_dir = self.config["cache_dir"]
-            if Path(cache_dir).exists():
-                server.watch(cache_dir)
-
         return server
+
+
+# Backward compatibility: alias for the old name
+# This will be removed in a future version
+MermaidToImagePlugin = MermaidSvgConverterPlugin

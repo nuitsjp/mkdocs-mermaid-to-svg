@@ -120,11 +120,8 @@ def create_error_context(
 
 def create_performance_context(
     execution_time_ms: float | None = None,
-    image_format: str | None = None,
 ) -> LogContext:
     context: LogContext = {"execution_time_ms": execution_time_ms}
-    if image_format is not None and image_format in ("png", "svg"):
-        context["image_format"] = image_format  # type: ignore[typeddict-item]
     return context
 
 

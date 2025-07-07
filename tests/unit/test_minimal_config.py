@@ -1,6 +1,6 @@
 """Test minimal configuration functionality."""
 
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
 
 class TestMinimalConfig:
@@ -36,14 +36,11 @@ class TestMinimalConfig:
         # 期待される最小構成で動作に必要な項目
         essential_with_defaults = [
             "output_dir",  # 画像出力先
-            "image_format",  # 画像形式
             "theme",  # テーマ
             "background_color",  # 背景色
             "width",  # 画像幅
             "height",  # 画像高さ
             "scale",  # 拡大率
-            "cache_enabled",  # キャッシュ有効化
-            "cache_dir",  # キャッシュディレクトリ
             "preserve_original",  # 元コード保持
             "error_on_fail",  # エラー時動作
             "log_level",  # ログレベル
@@ -79,7 +76,7 @@ class TestMinimalConfig:
 
     def test_最小設定での設定検証通過(self):
         """最小設定で設定検証が通過することを確認。"""
-        from mkdocs_mermaid_to_image.config import ConfigManager
+        from mkdocs_mermaid_to_svg.config import ConfigManager
 
         # 最小設定（必須項目のみデフォルト値）
         minimal_config = {

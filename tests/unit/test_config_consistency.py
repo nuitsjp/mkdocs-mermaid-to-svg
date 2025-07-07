@@ -1,7 +1,7 @@
 """Test configuration consistency between config.py and plugin.py."""
 
-from mkdocs_mermaid_to_image.config import ConfigManager
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_mermaid_to_svg.config import ConfigManager
+from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
 
 class TestConfigConsistency:

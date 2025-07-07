@@ -3,15 +3,15 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mkdocs-mermaid-to-image"
-description = "MkDocs plugin to preprocess Mermaid diagrams into static images"
+name = "mkdocs-mermaid-to-svg"
+description = "MkDocs plugin to preprocess Mermaid diagrams into static SVG images"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "nuitsjp"},
 ]
-keywords = ["mkdocs", "mermaid", "diagram", "preprocessing", "static-generation"]
+keywords = ["mkdocs", "mermaid", "diagram", "preprocessing", "svg", "static-generation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -55,22 +55,22 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nuitsjp/mkdocs-mermaid-to-image"
-"Bug Reports" = "https://github.com/nuitsjp/mkdocs-mermaid-to-image/issues"
-Source = "https://github.com/nuitsjp/mkdocs-mermaid-to-image"
+Homepage = "https://github.com/nuitsjp/mkdocs-mermaid-to-svg"
+"Bug Reports" = "https://github.com/nuitsjp/mkdocs-mermaid-to-svg/issues"
+Source = "https://github.com/nuitsjp/mkdocs-mermaid-to-svg"
 
 [project.entry-points."mkdocs.plugins"]
-mermaid-to-image = "mkdocs_mermaid_to_image.plugin:MermaidToImagePlugin"
+mermaid-to-svg = "mkdocs_mermaid_to_svg.plugin:MermaidSvgConverterPlugin"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mkdocs_mermaid_to_image"]
+packages = ["src/mkdocs_mermaid_to_svg"]
 
 [tool.hatch.version]
 source = "vcs"
 raw-options = { local_scheme = "no-local-version" }
 
 [tool.hatch.build.hooks.vcs]
-version-file = "src/mkdocs_mermaid_to_image/_version.py"
+version-file = "src/mkdocs_mermaid_to_svg/_version.py"
 
 [tool.ruff]
 line-length = 88
@@ -142,7 +142,7 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=src/mkdocs_mermaid_to_image",
+    "--cov=src/mkdocs_mermaid_to_svg",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--basetemp=.tmp",
@@ -153,10 +153,10 @@ markers = [
 ]
 
 [tool.uv.sources]
-mkdocs-mermaid-to-image = { workspace = true }
+mkdocs-mermaid-to-svg = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "mkdocs-mermaid-to-image",
+    "mkdocs-mermaid-to-svg",
     "pytest-benchmark>=5.1.0",
 ]

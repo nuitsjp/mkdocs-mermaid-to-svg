@@ -1,6 +1,6 @@
 """
 ユーティリティ関数のテスト
-このファイルでは、mkdocs_mermaid_to_image.utilsモジュールの各種ユーティリティ関数が正しく動作するかをテストします。
+このファイルでは、mkdocs_mermaid_to_svg.utilsモジュールの各種ユーティリティ関数が正しく動作するかをテストします。
 
 Python未経験者へのヒント：
 - pytestを使ってテストを書いています。
@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from mkdocs_mermaid_to_image.utils import (
+from mkdocs_mermaid_to_svg.utils import (
     clean_temp_file,
     ensure_directory,
     generate_image_filename,
@@ -209,7 +209,7 @@ class TestUtilityFunctions:
         clean_temp_file(None)
         # Should not raise any exception
 
-    @patch("mkdocs_mermaid_to_image.utils.Path.unlink")
+    @patch("mkdocs_mermaid_to_svg.utils.Path.unlink")
     def test_clean_temp_file_permission_error(self, mock_unlink):
         """PermissionErrorが発生した場合の処理をテスト"""
         mock_unlink.side_effect = PermissionError("Access denied")
@@ -224,7 +224,7 @@ class TestUtilityFunctions:
         with contextlib.suppress(OSError):
             Path(temp_path).unlink()
 
-    @patch("mkdocs_mermaid_to_image.utils.Path.unlink")
+    @patch("mkdocs_mermaid_to_svg.utils.Path.unlink")
     def test_clean_temp_file_os_error(self, mock_unlink):
         """OSErrorが発生した場合の処理をテスト"""
         mock_unlink.side_effect = OSError("File locked")
@@ -246,7 +246,7 @@ class TestUtilityFunctions:
         assert get_relative_path("file", "") == "file"
         assert get_relative_path("", "") == ""
 
-    @patch("mkdocs_mermaid_to_image.utils.os.path.relpath")
+    @patch("mkdocs_mermaid_to_svg.utils.os.path.relpath")
     def test_get_relative_path_value_error(self, mock_relpath):
         """ValueErrorが発生した場合のフォールバックをテスト"""
         mock_relpath.side_effect = ValueError("Cross-drive paths not supported")
@@ -265,7 +265,7 @@ class TestCleanGeneratedImages:
     @patch("pathlib.Path.unlink")
     def test_clean_generated_images_success(self, mock_unlink, mock_exists):
         """正常なクリーンアップのテスト"""
-        from mkdocs_mermaid_to_image.utils import clean_generated_images
+        from mkdocs_mermaid_to_svg.utils import clean_generated_images
 
         mock_logger = Mock()
         image_paths = ["/path/to/image1.png", "/path/to/image2.svg"]
@@ -280,7 +280,7 @@ class TestCleanGeneratedImages:
     @patch("pathlib.Path.unlink")
     def test_clean_generated_images_permission_error(self, mock_unlink, mock_exists):
         """権限エラー時のテスト"""
-        from mkdocs_mermaid_to_image.utils import clean_generated_images
+        from mkdocs_mermaid_to_svg.utils import clean_generated_images
 
         mock_logger = Mock()
         image_paths = ["/path/to/image1.png"]
@@ -299,7 +299,7 @@ class TestCleanGeneratedImages:
     @patch("pathlib.Path.unlink")
     def test_clean_generated_images_os_error(self, mock_unlink, mock_exists):
         """OSエラー時のテスト"""
-        from mkdocs_mermaid_to_image.utils import clean_generated_images
+        from mkdocs_mermaid_to_svg.utils import clean_generated_images
 
         mock_logger = Mock()
         image_paths = ["/path/to/image1.png"]
@@ -316,7 +316,7 @@ class TestCleanGeneratedImages:
 
     def test_clean_generated_images_empty_list(self):
         """空のリストの場合のテスト"""
-        from mkdocs_mermaid_to_image.utils import clean_generated_images
+        from mkdocs_mermaid_to_svg.utils import clean_generated_images
 
         mock_logger = Mock()
 
@@ -329,7 +329,7 @@ class TestCleanGeneratedImages:
     @patch("pathlib.Path.exists")
     def test_clean_generated_images_nonexistent_files(self, mock_exists):
         """存在しないファイルの場合のテスト"""
-        from mkdocs_mermaid_to_image.utils import clean_generated_images
+        from mkdocs_mermaid_to_svg.utils import clean_generated_images
 
         mock_logger = Mock()
         image_paths = ["/path/to/nonexistent.png"]
@@ -343,7 +343,7 @@ class TestCleanGeneratedImages:
 
     def test_clean_generated_images_empty_string_paths(self):
         """空文字列のパスが含まれる場合のテスト"""
-        from mkdocs_mermaid_to_image.utils import clean_generated_images
+        from mkdocs_mermaid_to_svg.utils import clean_generated_images
 
         mock_logger = Mock()
         image_paths = ["", "/path/to/image.png", None]
@@ -355,7 +355,7 @@ class TestCleanGeneratedImages:
     @patch("pathlib.Path.unlink")
     def test_clean_generated_images_with_none_logger(self, mock_unlink, mock_exists):
         """loggerがNoneの場合のテスト"""
-        from mkdocs_mermaid_to_image.utils import clean_generated_images
+        from mkdocs_mermaid_to_svg.utils import clean_generated_images
 
         image_paths = ["/path/to/image1.png", "/path/to/image2.svg"]
         mock_exists.return_value = True
@@ -366,7 +366,7 @@ class TestCleanGeneratedImages:
     # カバレージ強化: _get_cleanup_suggestionテスト
     def test_get_cleanup_suggestion_permission_error(self):
         """PermissionErrorに対する適切な提案のテスト (line 43をカバー)"""
-        from mkdocs_mermaid_to_image.utils import _get_cleanup_suggestion
+        from mkdocs_mermaid_to_svg.utils import _get_cleanup_suggestion
 
         suggestion = _get_cleanup_suggestion("PermissionError")
         assert "permissions" in suggestion.lower()
@@ -379,7 +379,7 @@ class TestCleanGeneratedImages:
 
     def test_get_cleanup_suggestion_default(self):
         """デフォルトの提案のテスト (line 43 else分岐をカバー)"""
-        from mkdocs_mermaid_to_image.utils import _get_cleanup_suggestion
+        from mkdocs_mermaid_to_svg.utils import _get_cleanup_suggestion
 
         suggestion = _get_cleanup_suggestion("UnknownError")
         assert "try again" in suggestion.lower()

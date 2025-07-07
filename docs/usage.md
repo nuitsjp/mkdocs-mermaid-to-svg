@@ -16,8 +16,6 @@ plugins:
       height: 600                # デフォルト: 600
       scale: 1.0                 # デフォルト: 1.0
       background_color: "white"  # デフォルト: "white"
-      cache_enabled: true        # デフォルト: true
-      cache_dir: ".mermaid_cache" # デフォルト: ".mermaid_cache"
       preserve_original: false   # デフォルト: false
       error_on_fail: false       # デフォルト: false
       log_level: "INFO"          # "DEBUG", "INFO", "WARNING", "ERROR"

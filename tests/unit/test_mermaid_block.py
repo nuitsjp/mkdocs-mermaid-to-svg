@@ -10,7 +10,7 @@ Python未経験者へのヒント：
 
 from unittest.mock import Mock, patch
 
-from mkdocs_mermaid_to_image.mermaid_block import (
+from mkdocs_mermaid_to_svg.mermaid_block import (
     MermaidBlock,
     _calculate_relative_path_prefix,
 )
@@ -147,15 +147,15 @@ class TestMermaidBlock:
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
 
         with patch(
-            "mkdocs_mermaid_to_image.mermaid_block.generate_image_filename"
+            "mkdocs_mermaid_to_svg.mermaid_block.generate_image_filename"
         ) as mock_gen_filename:
-            mock_gen_filename.return_value = "test_0_abc123.png"
+            mock_gen_filename.return_value = "test_0_abc123.svg"
 
-            result = block.get_filename("/path/to/page.md", 0, "png")
+            result = block.get_filename("/path/to/page.md", 0, "svg")
 
-            assert result == "test_0_abc123.png"
+            assert result == "test_0_abc123.svg"
             mock_gen_filename.assert_called_once_with(
-                "/path/to/page.md", 0, "graph TD\n A --> B", "png"
+                "/path/to/page.md", 0, "graph TD\n A --> B", "svg"
             )
 
     def test_invalid_width_height_attributes(self):

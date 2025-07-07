@@ -88,7 +88,7 @@ def mock_logger():
 @pytest.fixture
 def mock_command_available():
     """コマンド利用可能性チェックのモック（利用可能）"""
-    with patch("mkdocs_mermaid_to_image.image_generator.is_command_available") as mock:
+    with patch("mkdocs_mermaid_to_svg.image_generator.is_command_available") as mock:
         mock.return_value = True
         yield mock
 
@@ -96,7 +96,7 @@ def mock_command_available():
 @pytest.fixture
 def mock_command_unavailable():
     """コマンド利用可能性チェックのモック（利用不可）"""
-    with patch("mkdocs_mermaid_to_image.image_generator.is_command_available") as mock:
+    with patch("mkdocs_mermaid_to_svg.image_generator.is_command_available") as mock:
         mock.return_value = False
         yield mock
 
@@ -143,8 +143,8 @@ def mock_file_not_exists():
 def mock_temp_file():
     """一時ファイル操作のモック"""
     with (
-        patch("mkdocs_mermaid_to_image.utils.get_temp_file_path") as mock_temp_path,
-        patch("mkdocs_mermaid_to_image.utils.clean_temp_file") as mock_clean,
+        patch("mkdocs_mermaid_to_svg.utils.get_temp_file_path") as mock_temp_path,
+        patch("mkdocs_mermaid_to_svg.utils.clean_temp_file") as mock_clean,
     ):
         mock_temp_path.return_value = "/tmp/test.mmd"
         yield {"temp_path": mock_temp_path, "clean": mock_clean}
@@ -153,10 +153,10 @@ def mock_temp_file():
 @pytest.fixture
 def mock_processor_with_command(basic_config):
     """コマンド利用可能なプロセッサのモックフィクスチャ"""
-    from mkdocs_mermaid_to_image.processor import MermaidProcessor
+    from mkdocs_mermaid_to_svg.processor import MermaidProcessor
 
     with patch(
-        "mkdocs_mermaid_to_image.image_generator.is_command_available"
+        "mkdocs_mermaid_to_svg.image_generator.is_command_available"
     ) as mock_cmd:
         mock_cmd.return_value = True
         processor = MermaidProcessor(basic_config)
@@ -166,10 +166,10 @@ def mock_processor_with_command(basic_config):
 @pytest.fixture
 def mock_processor_without_command(basic_config):
     """コマンド利用不可なプロセッサのモックフィクスチャ"""
-    from mkdocs_mermaid_to_image.processor import MermaidProcessor
+    from mkdocs_mermaid_to_svg.processor import MermaidProcessor
 
     with patch(
-        "mkdocs_mermaid_to_image.image_generator.is_command_available"
+        "mkdocs_mermaid_to_svg.image_generator.is_command_available"
     ) as mock_cmd:
         mock_cmd.return_value = False
         try:

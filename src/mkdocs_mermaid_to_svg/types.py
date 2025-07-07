@@ -9,14 +9,11 @@ PluginStatus = Literal["success", "error", "pending"]
 ValidationStatus = Literal["valid", "invalid", "skipped"]
 ProcessingStatus = Literal["processing", "completed", "failed"]
 
-ImageFormat = Literal["png", "svg"]
 MermaidTheme = Literal["default", "dark", "forest", "neutral"]
 
 
 class PluginConfigDict(TypedDict, total=False):
-    image_format: ImageFormat
     theme: MermaidTheme
-    cache_enabled: bool
     output_dir: str
     image_width: int
     image_height: int
@@ -75,7 +72,6 @@ class ErrorInfo(TypedDict):
 class LogContext(TypedDict, total=False):
     page_file: str | None
     block_index: int | None
-    image_format: ImageFormat | None
     processing_step: str | None
     execution_time_ms: float | None
     error_type: str | None
@@ -84,7 +80,6 @@ class LogContext(TypedDict, total=False):
 CommandResult = tuple[int, str, str]
 
 FileOperation = Literal["read", "write", "create", "delete"]
-CacheOperation = Literal["hit", "miss", "invalidate", "store"]
 
 PluginHook = Literal["on_config", "on_page_markdown", "on_post_build"]
 
@@ -93,14 +88,5 @@ class ProcessingStats(TypedDict):
     total_blocks: int
     processed_blocks: int
     failed_blocks: int
-    cache_hits: int
-    cache_misses: int
     total_processing_time_ms: float
     average_processing_time_ms: float
-
-
-class CacheInfo(TypedDict):
-    cache_key: str
-    cache_hit: bool
-    cache_timestamp: str
-    file_hash: str

@@ -163,7 +163,7 @@ class MermaidImageGenerator:
         if self.config["error_on_fail"]:
             raise MermaidImageError(
                 error_msg,
-                image_format=self.config.get("image_format", "png"),
+                image_format="svg",
                 image_path=output_path,
                 mermaid_content=mermaid_code,
                 suggestion="Check Mermaid syntax and CLI configuration",
@@ -204,7 +204,7 @@ class MermaidImageGenerator:
         if self.config["error_on_fail"]:
             raise MermaidImageError(
                 error_msg,
-                image_format=self.config.get("image_format", "png"),
+                image_format="svg",
                 image_path=output_path,
                 mermaid_content=mermaid_code,
                 suggestion="Check Mermaid diagram syntax and CLI configuration",
@@ -261,6 +261,8 @@ class MermaidImageGenerator:
             input_file,
             "-o",
             output_file,
+            "-f",
+            "svg",
             "-t",
             config.get("theme", self.config["theme"]),
             "-b",

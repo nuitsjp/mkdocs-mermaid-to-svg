@@ -15,13 +15,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mkdocs_mermaid_to_image.exceptions import (
+from mkdocs_mermaid_to_svg.exceptions import (
     MermaidConfigError,
     MermaidFileError,
     MermaidPreprocessorError,
     MermaidValidationError,
 )
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
 
 class TestMermaidToImagePlugin:
@@ -71,16 +71,14 @@ class TestMermaidToImagePlugin:
             "css_file": None,
             "puppeteer_config": None,
             "mermaid_config": None,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
         }
 
         with (
-            patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor"),
-            patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_logger,
+            patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor"),
+            patch("mkdocs_mermaid_to_svg.plugin.get_logger") as mock_logger,
         ):
             mock_logger.return_value = Mock()
             result = plugin.on_config(mock_config)
@@ -102,14 +100,12 @@ class TestMermaidToImagePlugin:
             "css_file": None,
             "puppeteer_config": None,
             "mermaid_config": None,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "preserve_original": False,
             "error_on_fail": False,
             "log_level": "INFO",
         }
 
-        with patch("mkdocs_mermaid_to_image.plugin.get_logger") as mock_logger:
+        with patch("mkdocs_mermaid_to_svg.plugin.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
             result = plugin.on_config(mock_config)
             assert result == mock_config
@@ -146,7 +142,7 @@ class TestMermaidToImagePlugin:
         assert result == files
         assert plugin.generated_images == []
 
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_page_markdown_disabled(self, _mock_processor_class, plugin, mock_page):
         """プラグイン無効時は元のMarkdownが返るかテスト"""
         plugin.config = {}
@@ -155,7 +151,7 @@ class TestMermaidToImagePlugin:
         result = plugin.on_page_markdown(markdown, page=mock_page, config={}, files=[])
         assert result == markdown
 
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_page_markdown_success(
         self, _mock_processor_class, plugin, mock_page, mock_config
     ):
@@ -184,7 +180,7 @@ class TestMermaidToImagePlugin:
         assert plugin.generated_images == ["/path/to/image.png"]
         mock_processor.process_page.assert_called_once()
 
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_page_markdown_error_handling(
         self, _mock_processor_class, plugin, mock_page, mock_config
     ):
@@ -209,7 +205,7 @@ class TestMermaidToImagePlugin:
         # error_on_fail=Falseなので元のMarkdownが返る
         assert result == markdown
 
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_page_markdown_mermaid_error_with_error_on_fail_true(
         self, _mock_processor_class, plugin, mock_page, mock_config
     ):
@@ -235,7 +231,7 @@ class TestMermaidToImagePlugin:
                 markdown, page=mock_page, config=mock_config, files=[]
             )
 
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_page_markdown_general_error_with_error_on_fail_true(
         self, _mock_processor_class, plugin, mock_page, mock_config
     ):
@@ -267,10 +263,7 @@ class TestMermaidToImagePlugin:
 
     def test_on_post_build_with_images(self, plugin):
         """画像生成後のon_post_buildでログが出るかテスト"""
-        plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
-        }
+        plugin.config = {}
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.png"]
 
         mock_logger = Mock()
@@ -278,28 +271,10 @@ class TestMermaidToImagePlugin:
         plugin.on_post_build(config={})
         mock_logger.info.assert_called_with("Generated 2 Mermaid images total")
 
-    @patch("shutil.rmtree")
-    @patch("pathlib.Path.exists")
-    def test_on_post_build_cache_cleanup(self, mock_exists, mock_rmtree, plugin):
-        """キャッシュ無効時にキャッシュディレクトリが削除されるかテスト"""
-        plugin.config = {
-            "cache_enabled": False,
-            "cache_dir": ".mermaid_cache",
-        }
-        plugin.generated_images = []
-        plugin.logger = Mock()
-        mock_exists.return_value = True
-
-        plugin.on_post_build(config={})
-
-        mock_rmtree.assert_called_once_with(".mermaid_cache")
-
     @patch("pathlib.Path.exists")
     def test_on_post_build_image_cleanup_enabled(self, mock_exists, plugin):
         """画像クリーンアップが有効時に生成画像ファイルが削除されるかテスト"""
         plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "cleanup_generated_images": True,
         }
         plugin.generated_images = [
@@ -322,8 +297,6 @@ class TestMermaidToImagePlugin:
     def test_on_post_build_image_cleanup_disabled(self, mock_exists, plugin):
         """画像クリーンアップが無効時に生成画像ファイルが削除されないかテスト"""
         plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
             "cleanup_generated_images": False,
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
@@ -344,8 +317,6 @@ class TestMermaidToImagePlugin:
         """画像削除時のエラーハンドリングをテスト"""
         plugin.config = {
             "cleanup_generated_images": True,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
         }
         plugin.generated_images = ["/path/to/image1.png"]
         mock_exists.return_value = True
@@ -354,15 +325,13 @@ class TestMermaidToImagePlugin:
         # エラーが発生してもプラグインは正常に動作する
         plugin.on_post_build(config={})
 
-    @patch("mkdocs_mermaid_to_image.plugin.clean_generated_images")
+    @patch("mkdocs_mermaid_to_svg.plugin.clean_generated_images")
     def test_on_post_build_image_cleanup_without_logger(
         self, mock_clean_generated_images, plugin
     ):
         """loggerがNoneでもクリーンアップが実行されることをテスト"""
         plugin.config = {
             "cleanup_generated_images": True,
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
         }
         plugin.generated_images = ["/path/to/image1.png", "/path/to/image2.svg"]
 
@@ -543,21 +512,16 @@ class TestMermaidToImagePlugin:
         assert result == server
 
     def test_on_serve_enabled(self, plugin):
-        """プラグイン有効時にキャッシュディレクトリの監視が追加されるかテスト"""
-        plugin.config = {
-            "cache_enabled": True,
-            "cache_dir": ".mermaid_cache",
-        }
+        """プラグイン有効時のon_serveの挙動をテスト"""
+        plugin.config = {}
         server = Mock()
 
-        with patch("pathlib.Path.exists", return_value=True):
-            result = plugin.on_serve(server, config={}, builder=None)
-            assert result == server
-            server.watch.assert_called_once_with(".mermaid_cache")
+        result = plugin.on_serve(server, config={}, builder=None)
+        assert result == server
 
     # 例外処理のテストを追加
-    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_config_file_not_found_error(
         self, mock_processor, mock_validate, plugin
     ):
@@ -572,8 +536,8 @@ class TestMermaidToImagePlugin:
             exc_info.value
         )
 
-    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_config_os_error(self, mock_processor, mock_validate, plugin):
         """on_config()でOSErrorが発生した場合のテスト"""
         mock_validate.return_value = True
@@ -584,8 +548,8 @@ class TestMermaidToImagePlugin:
 
         assert "File system error during plugin initialization" in str(exc_info.value)
 
-    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_config_permission_error(self, mock_processor, mock_validate, plugin):
         """on_config()でPermissionErrorが発生した場合のテスト"""
         mock_validate.return_value = True
@@ -596,8 +560,8 @@ class TestMermaidToImagePlugin:
 
         assert "File system error during plugin initialization" in str(exc_info.value)
 
-    @patch("mkdocs_mermaid_to_image.plugin.ConfigManager.validate_config")
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.ConfigManager.validate_config")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_on_config_unexpected_error(self, mock_processor, mock_validate, plugin):
         """on_config()で予期しないエラーが発生した場合のテスト"""
         mock_validate.return_value = True
@@ -718,7 +682,7 @@ class TestMermaidToImagePluginServeMode:
             plugin = MermaidToImagePlugin()
             assert not plugin.is_serve_mode
 
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_正常系_serveモード時のMarkdown処理スキップ(self, _mock_processor_class):
         """serveモード時にMermaid処理がスキップされることを確認"""
         with patch.object(sys, "argv", ["mkdocs", "serve"]):
@@ -742,7 +706,7 @@ class TestMermaidToImagePluginServeMode:
             # プロセッサの処理メソッドが呼び出されていないことを確認
             plugin.processor.process_page.assert_not_called()
 
-    @patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor")
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
     def test_正常系_ビルドモード時のMarkdown処理実行(self, _mock_processor_class):
         """ビルドモード時にMermaid処理が実行されることを確認"""
         with patch.object(sys, "argv", ["mkdocs", "build"]):

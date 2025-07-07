@@ -9,7 +9,7 @@ class TestMinimalMkDocsConfig:
 
     def test_最小構成mkdocs_yml_でプラグイン動作(self):
         """plugins: [mermaid-to-image] だけの設定でプラグインが動作することを確認。"""
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
         # プラグインインスタンスを作成
         plugin = MermaidToImagePlugin()
@@ -23,14 +23,11 @@ class TestMinimalMkDocsConfig:
 
         # 必須設定項目がデフォルト値で設定されていることを確認
         assert plugin.config["output_dir"] == "assets/images"
-        assert plugin.config["image_format"] == "svg"
         assert plugin.config["theme"] == "default"
         assert plugin.config["background_color"] == "white"
         assert plugin.config["width"] == 800
         assert plugin.config["height"] == 600
         assert plugin.config["scale"] == 1.0
-        assert plugin.config["cache_enabled"] is True
-        assert plugin.config["cache_dir"] == ".mermaid_cache"
         assert plugin.config["preserve_original"] is False
         assert plugin.config["error_on_fail"] is False
         assert plugin.config["log_level"] == "INFO"
@@ -43,7 +40,7 @@ class TestMinimalMkDocsConfig:
 
     def test_最小構成でon_config_が成功する(self):
         """最小構成でon_configフックが成功することを確認。"""
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
         plugin = MermaidToImagePlugin()
 
@@ -64,8 +61,8 @@ class TestMinimalMkDocsConfig:
 
             # プロセッサ初期化をモック
             with (
-                patch("mkdocs_mermaid_to_image.plugin.MermaidProcessor"),
-                patch("mkdocs_mermaid_to_image.plugin.get_logger"),
+                patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor"),
+                patch("mkdocs_mermaid_to_svg.plugin.get_logger"),
             ):
                 # on_config が正常に実行されることを確認
                 result = plugin.on_config(mock_mkdocs_config)
@@ -75,8 +72,8 @@ class TestMinimalMkDocsConfig:
 
     def test_デフォルト値でconfig_validation_が通過する(self):
         """デフォルト値で設定検証が通過することを確認。"""
-        from mkdocs_mermaid_to_image.config import ConfigManager
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_mermaid_to_svg.config import ConfigManager
+        from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
         plugin = MermaidToImagePlugin()
 
@@ -117,7 +114,7 @@ plugins:
 
     def test_全てのオプションにデフォルト値またはオプショナル設定(self):
         """全ての設定項目がデフォルト値を持つかオプショナル設定であることを確認。"""
-        from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
+        from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
 
         plugin = MermaidToImagePlugin()
 

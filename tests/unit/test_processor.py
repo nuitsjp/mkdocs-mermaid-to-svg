@@ -12,9 +12,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from mkdocs_mermaid_to_image.exceptions import MermaidCLIError
-from mkdocs_mermaid_to_image.mermaid_block import MermaidBlock
-from mkdocs_mermaid_to_image.processor import MermaidProcessor
+from mkdocs_mermaid_to_svg.exceptions import MermaidCLIError
+from mkdocs_mermaid_to_svg.mermaid_block import MermaidBlock
+from mkdocs_mermaid_to_svg.processor import MermaidProcessor
 
 
 class TestMermaidProcessor:
@@ -42,7 +42,7 @@ class TestMermaidProcessor:
             "log_level": "INFO",
         }
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_processor_initialization(self, mock_command_available, basic_config):
         """MermaidProcessorの初期化が正しく行われるかテスト"""
         mock_command_available.return_value = True
@@ -52,20 +52,20 @@ class TestMermaidProcessor:
         assert processor.markdown_processor is not None
         assert processor.image_generator is not None
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_processor_initialization_missing_cli(
         self, mock_command_available, basic_config
     ):
         """Mermaid CLIが見つからない場合に例外が発生するかテスト"""
         # キャッシュをクリアして独立したテストにする
-        from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
+        from mkdocs_mermaid_to_svg.image_generator import MermaidImageGenerator
 
         MermaidImageGenerator.clear_command_cache()
         mock_command_available.return_value = False
         with pytest.raises(MermaidCLIError):
             MermaidProcessor(basic_config)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_with_blocks(self, mock_command_available, basic_config):
         """Mermaidブロックがある場合のページ処理をテスト"""
         mock_command_available.return_value = True
@@ -101,7 +101,7 @@ graph TD
         mock_block.generate_image.assert_called_once()
         mock_block.get_filename.assert_called_once_with("test.md", 0, "png")
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_no_blocks(self, mock_command_available, basic_config):
         """Mermaidブロックがない場合は元の内容が返るかテスト"""
         mock_command_available.return_value = True
@@ -123,7 +123,7 @@ print("Hello")
         assert result_content == markdown
         assert len(result_paths) == 0
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_with_generation_failure(
         self, mock_command_available, basic_config
     ):
@@ -152,7 +152,7 @@ graph TD
         assert result_content == markdown
         assert len(result_paths) == 0
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_with_generation_failure_error_on_fail(
         self, mock_command_available, basic_config
     ):
@@ -178,14 +178,14 @@ graph TD
 ```"""
 
         # MermaidImageError例外が発生することを期待
-        from mkdocs_mermaid_to_image.exceptions import MermaidImageError
+        from mkdocs_mermaid_to_svg.exceptions import MermaidImageError
 
         with pytest.raises(MermaidImageError) as exc_info:
             processor.process_page("test.md", markdown, "/output")
 
         assert "Image generation failed for block 0 in test.md" in str(exc_info.value)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_with_filesystem_error_error_on_fail(
         self, mock_command_available, basic_config
     ):
@@ -211,7 +211,7 @@ graph TD
 ```"""
 
         # MermaidFileError例外が発生することを期待
-        from mkdocs_mermaid_to_image.exceptions import MermaidFileError
+        from mkdocs_mermaid_to_svg.exceptions import MermaidFileError
 
         with pytest.raises(MermaidFileError) as exc_info:
             processor.process_page("test.md", markdown, "/output")
@@ -219,7 +219,7 @@ graph TD
         assert "File system error processing block 0 in test.md" in str(exc_info.value)
         assert "Permission denied" in str(exc_info.value)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_with_filesystem_error_no_error_on_fail(
         self, mock_command_available, basic_config
     ):
@@ -250,7 +250,7 @@ graph TD
         assert result_content == markdown
         assert len(result_paths) == 0
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_with_unexpected_error_error_on_fail(
         self, mock_command_available, basic_config
     ):
@@ -276,7 +276,7 @@ graph TD
 ```"""
 
         # MermaidPreprocessorError例外が発生することを期待
-        from mkdocs_mermaid_to_image.exceptions import MermaidPreprocessorError
+        from mkdocs_mermaid_to_svg.exceptions import MermaidPreprocessorError
 
         with pytest.raises(MermaidPreprocessorError) as exc_info:
             processor.process_page("test.md", markdown, "/output")
@@ -284,7 +284,7 @@ graph TD
         assert "Unexpected error processing block 0 in test.md" in str(exc_info.value)
         assert "Unexpected error" in str(exc_info.value)
 
-    @patch("mkdocs_mermaid_to_image.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_with_unexpected_error_no_error_on_fail(
         self, mock_command_available, basic_config
     ):

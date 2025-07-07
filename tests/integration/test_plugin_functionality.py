@@ -5,10 +5,10 @@ MkDocs Mermaid to Image Plugin - 統合機能テストスクリプト
 import sys
 from unittest.mock import Mock, patch
 
-from mkdocs_mermaid_to_image.config import ConfigManager
-from mkdocs_mermaid_to_image.plugin import MermaidToImagePlugin
-from mkdocs_mermaid_to_image.processor import MermaidProcessor
-from mkdocs_mermaid_to_image.utils import (
+from mkdocs_mermaid_to_svg.config import ConfigManager
+from mkdocs_mermaid_to_svg.plugin import MermaidToImagePlugin
+from mkdocs_mermaid_to_svg.processor import MermaidProcessor
+from mkdocs_mermaid_to_svg.utils import (
     generate_image_filename,
     is_command_available,
 )
@@ -321,13 +321,13 @@ def test_pdf_generation_with_cached_command():
     import tempfile
     from pathlib import Path
 
-    from mkdocs_mermaid_to_image.image_generator import MermaidImageGenerator
+    from mkdocs_mermaid_to_svg.image_generator import MermaidImageGenerator
 
     # キャッシュをクリア
     MermaidImageGenerator.clear_command_cache()
 
     with patch(
-        "mkdocs_mermaid_to_image.image_generator.is_command_available"
+        "mkdocs_mermaid_to_svg.image_generator.is_command_available"
     ) as mock_cmd:
         mock_cmd.return_value = True
 
@@ -375,10 +375,10 @@ def test_pdf_generation_with_cached_command():
                 with (
                     patch("pathlib.Path.exists") as mock_exists,
                     patch(
-                        "mkdocs_mermaid_to_image.image_generator.get_temp_file_path"
+                        "mkdocs_mermaid_to_svg.image_generator.get_temp_file_path"
                     ) as mock_temp,
-                    patch("mkdocs_mermaid_to_image.image_generator.clean_temp_file"),
-                    patch("mkdocs_mermaid_to_image.image_generator.ensure_directory"),
+                    patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file"),
+                    patch("mkdocs_mermaid_to_svg.image_generator.ensure_directory"),
                     patch("builtins.open", create=True),
                 ):
                     # テンポラリファイルパス
