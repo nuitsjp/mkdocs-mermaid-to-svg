@@ -2,6 +2,7 @@ INSTRUCTION.md
 _version.py
 .tmp/
 settings.local.json
+nul
 
 # Python
 __pycache__/
