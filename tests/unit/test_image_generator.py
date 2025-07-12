@@ -51,10 +51,6 @@ class TestMermaidImageGenerator:
         return {
             "mmdc_path": "mmdc",
             "theme": "default",
-            "background_color": "white",
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
             "css_file": None,
             "puppeteer_config": puppeteer_config,
             "mermaid_config": None,
@@ -218,14 +214,6 @@ class TestMermaidImageGenerator:
         assert "output.png" in cmd
         assert "-t" in cmd
         assert "default" in cmd
-        assert "-b" in cmd
-        assert "white" in cmd
-        assert "-w" in cmd
-        assert "800" in cmd
-        assert "-H" in cmd
-        assert "600" in cmd
-        assert "-s" in cmd
-        assert "1.0" in cmd
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_build_mmdc_command_with_overrides(
@@ -236,9 +224,7 @@ class TestMermaidImageGenerator:
         generator = MermaidImageGenerator(basic_config)
 
         override_config = basic_config.copy()
-        override_config.update(
-            {"theme": "dark", "background_color": "black", "width": 1000, "height": 800}
-        )
+        override_config.update({"theme": "dark"})
 
         cmd, _, _ = generator._build_mmdc_command(
             "input.mmd", "output.png", override_config
@@ -246,12 +232,6 @@ class TestMermaidImageGenerator:
 
         assert "-t" in cmd
         assert "dark" in cmd
-        assert "-b" in cmd
-        assert "black" in cmd
-        assert "-w" in cmd
-        assert "1000" in cmd
-        assert "-H" in cmd
-        assert "800" in cmd
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_build_mmdc_command_with_optional_files(

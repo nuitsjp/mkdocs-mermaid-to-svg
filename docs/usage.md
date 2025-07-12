@@ -10,12 +10,7 @@ plugins:
       enabled: true              # デフォルト: true
       enabled_if_env: "ENABLE_PDF_EXPORT"  # 環境変数による制御（オプション）
       output_dir: "assets/images" # デフォルト: "assets/images"
-      image_format: "svg"        # "png" または "svg" (デフォルト: "svg")
       theme: "default"           # "default", "dark", "forest", "neutral"
-      width: 800                 # デフォルト: 800
-      height: 600                # デフォルト: 600
-      scale: 1.0                 # デフォルト: 1.0
-      background_color: "white"  # デフォルト: "white"
       preserve_original: false   # デフォルト: false
       error_on_fail: false       # デフォルト: false
       log_level: "INFO"          # "DEBUG", "INFO", "WARNING", "ERROR"
@@ -26,11 +21,7 @@ plugins:
 - **enabled**: プラグインの有効/無効
 - **enabled_if_env**: 環境変数による条件付き有効化
 - **output_dir**: 生成画像の保存ディレクトリ
-- **image_format**: 出力形式（PNG/SVG）
 - **theme**: ダイアグラムテーマ
-- **width/height**: 画像サイズ（px）
-- **scale**: 画像の拡大率
-- **cache_enabled**: キャッシュ機能の有効/無効
 - **preserve_original**: 元のMermaidコードを保持するか
 - **error_on_fail**: エラー時にビルドを停止するか
 

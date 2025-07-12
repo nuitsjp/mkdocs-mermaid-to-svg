@@ -265,14 +265,6 @@ class MermaidImageGenerator:
             "svg",
             "-t",
             config.get("theme", self.config["theme"]),
-            "-b",
-            config.get("background_color", self.config["background_color"]),
-            "-w",
-            str(config.get("width", self.config["width"])),
-            "-H",
-            str(config.get("height", self.config["height"])),
-            "-s",
-            str(config.get("scale", self.config["scale"])),
         ]
 
         # Add Mermaid configuration file for PDF compatibility

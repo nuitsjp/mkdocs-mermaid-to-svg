@@ -23,7 +23,7 @@ import pytest  # Pythonのテストフレームワーク
 
 # テスト対象のConfigManagerクラスをインポート
 from mkdocs_mermaid_to_svg.config import ConfigManager
-from mkdocs_mermaid_to_svg.exceptions import MermaidConfigError, MermaidFileError
+from mkdocs_mermaid_to_svg.exceptions import MermaidFileError
 
 
 class TestConfigManager:
@@ -55,15 +55,11 @@ class TestConfigManager:
         # 設定項目名の一覧を抽出（各項目の最初の要素が名前）
         config_names = [item[0] for item in scheme]
 
-        # 期待される設定項目のリスト
+        # 期待される設定項目のリスト（PNG関連設定を削除）
         expected_configs = [
             "enabled_if_env",  # 環境変数による有効化
             "output_dir",  # 画像出力ディレクトリ
             "theme",  # テーマ設定
-            "background_color",  # 背景色
-            "width",  # 画像の幅
-            "height",  # 画像の高さ
-            "scale",  # 拡大率
             "error_on_fail",  # エラー時の動作
             "log_level",  # ログレベル
         ]
@@ -81,11 +77,8 @@ class TestConfigManager:
         - Noneは「設定されていない」ことを表します
         - assertで戻り値がTrueであることを確認
         """
-        # 有効な設定データを定義
+        # 有効な設定データを定義（PNG関連設定を削除）
         valid_config = {
-            "width": 800,  # 正の整数
-            "height": 600,  # 正の整数
-            "scale": 1.0,  # 正の浮動小数点数
             "css_file": None,  # ファイル未指定
             "puppeteer_config": None,  # ファイル未指定
         }
@@ -97,21 +90,6 @@ class TestConfigManager:
     @pytest.mark.parametrize(
         "config_override,expected_error,error_message",
         [
-            (
-                {"width": -100},
-                MermaidConfigError,
-                "Width and height must be positive integers",
-            ),
-            (
-                {"height": 0},
-                MermaidConfigError,
-                "Width and height must be positive integers",
-            ),
-            (
-                {"scale": -1.5},
-                MermaidConfigError,
-                "Scale must be a positive number",
-            ),
             (
                 {"css_file": "/nonexistent/file.css"},
                 MermaidFileError,
@@ -138,9 +116,6 @@ class TestConfigManager:
         - error_message: 期待されるエラーメッセージ
         """
         base_config = {
-            "width": 800,
-            "height": 600,
-            "scale": 1.0,
             "css_file": None,
             "puppeteer_config": None,
         }
@@ -162,9 +137,6 @@ class TestConfigManager:
 
         try:
             valid_config = {
-                "width": 800,
-                "height": 600,
-                "scale": 1.0,
                 "css_file": css_file_path,
                 "puppeteer_config": puppeteer_file_path,
             }

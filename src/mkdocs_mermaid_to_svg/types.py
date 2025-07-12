@@ -15,12 +15,8 @@ MermaidTheme = Literal["default", "dark", "forest", "neutral"]
 class PluginConfigDict(TypedDict, total=False):
     theme: MermaidTheme
     output_dir: str
-    image_width: int
-    image_height: int
-    background_color: str
     puppeteer_config: str
     css_file: str
-    scale: float
     timeout: int
 
 

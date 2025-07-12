@@ -361,10 +361,6 @@ plugins:
       output_dir: "assets/images"             # Directory for generated images
       mermaid_config: {...}                   # Mermaid configuration object or file path
       theme: "default"                        # Mermaid theme: default, dark, forest, neutral
-      background_color: "white"               # Background color for generated images
-      width: 800                              # Image width in pixels
-      height: 600                             # Image height in pixels
-      scale: 1.0                              # Scale factor for image generation
       css_file: "path/to/custom.css"          # Optional CSS file for styling
       puppeteer_config: "path/to/config.json" # Optional Puppeteer configuration
       temp_dir: "/tmp"                        # Temporary directory for processing
@@ -377,8 +373,6 @@ plugins:
 ### Validation Logic
 
 The `ConfigManager.validate_config()` method ensures:
-- Required parameters (`width`, `height`, `scale`) are present and valid
-- Numeric values are positive
 - File paths (CSS, Puppeteer config) exist when specified
 - Configuration consistency across all options
 

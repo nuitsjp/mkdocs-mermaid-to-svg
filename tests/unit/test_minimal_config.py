@@ -33,17 +33,14 @@ class TestMinimalConfig:
         for config_name, config_option in plugin.config_scheme:
             has_defaults[config_name] = hasattr(config_option, "default")
 
-        # 期待される最小構成で動作に必要な項目
+        # 期待される最小構成で動作に必要な項目（PNG関連設定を削除）
         essential_with_defaults = [
             "output_dir",  # 画像出力先
             "theme",  # テーマ
-            "background_color",  # 背景色
-            "width",  # 画像幅
-            "height",  # 画像高さ
-            "scale",  # 拡大率
             "preserve_original",  # 元コード保持
             "error_on_fail",  # エラー時動作
             "log_level",  # ログレベル
+            "cleanup_generated_images",  # 生成画像クリーンアップ
         ]
 
         for essential in essential_with_defaults:

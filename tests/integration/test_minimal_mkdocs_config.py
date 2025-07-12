@@ -24,10 +24,10 @@ class TestMinimalMkDocsConfig:
         # 必須設定項目がデフォルト値で設定されていることを確認
         assert plugin.config["output_dir"] == "assets/images"
         assert plugin.config["theme"] == "default"
-        assert plugin.config["background_color"] == "white"
-        assert plugin.config["width"] == 800
-        assert plugin.config["height"] == 600
-        assert plugin.config["scale"] == 1.0
+        assert plugin.config["preserve_original"] is False
+        assert plugin.config["error_on_fail"] is False
+        assert plugin.config["log_level"] == "INFO"
+        assert plugin.config["cleanup_generated_images"] is False
         assert plugin.config["preserve_original"] is False
         assert plugin.config["error_on_fail"] is False
         assert plugin.config["log_level"] == "INFO"

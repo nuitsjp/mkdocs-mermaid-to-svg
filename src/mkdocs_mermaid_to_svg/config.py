@@ -3,7 +3,7 @@ from typing import Any
 
 from mkdocs.config import config_options
 
-from .exceptions import MermaidConfigError, MermaidFileError
+from .exceptions import MermaidFileError
 
 
 class ConfigManager:
@@ -27,13 +27,6 @@ class ConfigManager:
                 config_options.Choice(
                     ["default", "dark", "forest", "neutral"], default="default"
                 ),
-            ),
-            ("background_color", config_options.Type(str, default="white")),
-            ("width", config_options.Type(int, default=800)),
-            ("height", config_options.Type(int, default=600)),
-            (
-                "scale",
-                config_options.Type(float, default=1.0),
             ),
             (
                 "css_file",
@@ -69,33 +62,6 @@ class ConfigManager:
 
     @staticmethod
     def validate_config(config: dict[str, Any]) -> bool:
-        # 必須パラメータの存在チェック
-        required_keys = ["width", "height", "scale"]
-        for key in required_keys:
-            if key not in config:
-                raise MermaidConfigError(
-                    f"Required configuration key '{key}' is missing",
-                    config_key=key,
-                    suggestion=f"Add '{key}' to your plugin configuration",
-                )
-
-        if config["width"] <= 0 or config["height"] <= 0:
-            raise MermaidConfigError(
-                "Width and height must be positive integers",
-                config_key="width/height",
-                config_value=f"width={config['width']}, height={config['height']}",
-                suggestion="Set width and height to positive integer values "
-                "(e.g., width: 800, height: 600)",
-            )
-
-        if config["scale"] <= 0:
-            raise MermaidConfigError(
-                "Scale must be a positive number",
-                config_key="scale",
-                config_value=config["scale"],
-                suggestion="Set scale to a positive number (e.g., scale: 1.0)",
-            )
-
         # オプションパラメータのチェック（存在する場合のみ）
         if (
             "css_file" in config

@@ -69,16 +69,13 @@ class TestMermaidBlock:
 
     def test_generate_image_with_block_attributes(self):
         """ブロック属性が画像生成設定に反映されるかテスト"""
-        attributes = {"theme": "dark", "background": "black", "width": "1000"}
+        attributes = {"theme": "dark"}
         block = MermaidBlock("graph TD\n A --> B", 0, 20, attributes)
         mock_generator = Mock()
         mock_generator.generate.return_value = True
 
         config = {
             "theme": "default",
-            "background_color": "white",
-            "width": 800,
-            "height": 600,
         }
 
         result = block.generate_image("/path/to/output.png", mock_generator, config)
@@ -88,9 +85,6 @@ class TestMermaidBlock:
         args = mock_generator.generate.call_args[0]
         merged_config = args[2]
         assert merged_config["theme"] == "dark"
-        assert merged_config["background_color"] == "black"
-        assert merged_config["width"] == 1000
-        assert merged_config["height"] == 600  # 元の設定のまま
 
     def test_get_image_markdown_basic(self):
         """画像Markdown生成の基本テスト"""

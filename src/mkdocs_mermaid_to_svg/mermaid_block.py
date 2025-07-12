@@ -1,4 +1,3 @@
-import contextlib
 from pathlib import Path
 from typing import Any
 
@@ -55,14 +54,6 @@ class MermaidBlock:
 
         if "theme" in self.attributes:
             merged_config["theme"] = self.attributes["theme"]
-        if "background" in self.attributes:
-            merged_config["background_color"] = self.attributes["background"]
-        if "width" in self.attributes:
-            with contextlib.suppress(ValueError):
-                merged_config["width"] = int(self.attributes["width"])
-        if "height" in self.attributes:
-            with contextlib.suppress(ValueError):
-                merged_config["height"] = int(self.attributes["height"])
 
         result = image_generator.generate(self.code, output_path, merged_config)
         return bool(result)
