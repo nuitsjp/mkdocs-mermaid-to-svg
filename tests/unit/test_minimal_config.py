@@ -19,7 +19,6 @@ class TestMinimalConfig:
                     "mermaid_config",
                     "css_file",
                     "puppeteer_config",
-                    "temp_dir",
                     "enabled_if_env",
                 ], f"{config_name} should have a default value"
 
@@ -57,7 +56,6 @@ class TestMinimalConfig:
             "mermaid_config",  # Mermaid設定ファイル
             "css_file",  # カスタムCSS
             "puppeteer_config",  # Puppeteer設定
-            "temp_dir",  # 一時ディレクトリ
         ]
 
         for config_name, config_option in plugin.config_scheme:

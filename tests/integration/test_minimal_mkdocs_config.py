@@ -36,7 +36,6 @@ class TestMinimalMkDocsConfig:
         assert plugin.config["mermaid_config"] is None
         assert plugin.config["css_file"] is None
         assert plugin.config["puppeteer_config"] is None
-        assert plugin.config["temp_dir"] is None
 
     def test_最小構成でon_config_が成功する(self):
         """最小構成でon_configフックが成功することを確認。"""

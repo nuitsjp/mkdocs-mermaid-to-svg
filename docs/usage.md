@@ -34,7 +34,6 @@ plugins:
       mermaid_config: "path/to/config.json" # Mermaid設定ファイル
       css_file: "path/to/custom.css"       # カスタムCSSファイル
       puppeteer_config: "path/to/config.json" # Puppeteer設定ファイル
-      temp_dir: "/tmp/mermaid"             # 一時ディレクトリ
 ```
 
 ## PDF出力との組み合わせ
@@ -174,6 +173,6 @@ ls site/[your_output_dir]/
 ```yaml
 plugins:
   - mermaid-to-image:
-      # 大量のダイアグラムがある場合は一時ディレクトリを分離
-      temp_dir: "/tmp/mermaid_build"
+      # 大量のダイアグラムがある場合の最適化設定
+      error_on_fail: false
 ```

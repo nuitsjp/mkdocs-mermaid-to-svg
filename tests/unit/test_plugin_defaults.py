@@ -63,7 +63,6 @@ class TestPluginDefaults:
             "mermaid_config",
             "css_file",
             "puppeteer_config",
-            "temp_dir",
         ]
 
         for config_item in plugin.config_scheme:
