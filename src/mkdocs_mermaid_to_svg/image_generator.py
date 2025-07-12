@@ -330,17 +330,17 @@ class MermaidImageGenerator:
         use_shell = platform.system() == "Windows"
 
         if use_shell:
-            # For shell=True, command should be a string
+            # On Windows, explicitly use cmd.exe to avoid issues with Git Bash
             cmd_str = " ".join(cmd)
-            # shell=True is required on Windows to execute .ps1 scripts
+            # Use cmd.exe explicitly to handle npm/node commands properly
             # Input is controlled internally, not from external user input
-            return subprocess.run(  # nosec B603,B602
-                cmd_str,
+            return subprocess.run(  # nosec B603,B602,B607
+                ["cmd", "/c", cmd_str],
                 capture_output=True,
                 text=True,
                 timeout=30,
                 check=False,
-                shell=True,
+                shell=False,  # nosec B603
             )
         else:
             # For shell=False, command should be a list
@@ -350,5 +350,5 @@ class MermaidImageGenerator:
                 text=True,
                 timeout=30,
                 check=False,
-                shell=False,
+                shell=False,  # nosec B603
             )

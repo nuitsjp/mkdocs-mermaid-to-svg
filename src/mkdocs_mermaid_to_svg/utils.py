@@ -173,17 +173,17 @@ def _verify_command_execution(
             use_shell = platform.system() == "Windows"
 
             if use_shell:
-                # For shell=True, command should be a string
+                # On Windows, explicitly use cmd.exe to avoid issues with Git Bash
                 version_cmd_str = " ".join([*command_parts, flag])
-                # shell=True is required on Windows to execute .ps1 scripts
+                # Use cmd.exe explicitly to handle npm/node commands properly
                 # Input is controlled internally, not from external user input
-                result = subprocess.run(  # nosec B603,B602
-                    version_cmd_str,
+                result = subprocess.run(  # nosec B603,B602,B607
+                    ["cmd", "/c", version_cmd_str],
                     capture_output=True,
                     text=True,
                     timeout=5,
                     check=False,
-                    shell=True,
+                    shell=False,  # nosec B603
                 )
             else:
                 # For shell=False, command should be a list
@@ -194,7 +194,7 @@ def _verify_command_execution(
                     text=True,
                     timeout=5,
                     check=False,
-                    shell=False,
+                    shell=False,  # nosec B603
                 )
 
             # If command executes successfully (return code 0 or 1 for help commands)
