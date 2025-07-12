@@ -55,5 +55,5 @@ class TestSvgOnlyConfig:
         # コマンドにSVGフォーマットが含まれていることを確認
         command_str = " ".join(command)
         assert (
-            "-f svg" in command_str or "--format svg" in command_str
+            "-e svg" in command_str or "--outputFormat svg" in command_str
         ), f"Generated command should use SVG format, but got: {command}"

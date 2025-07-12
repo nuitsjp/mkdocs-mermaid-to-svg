@@ -52,7 +52,7 @@ graph TD
 
     subgraph "External Dependencies"
         MkDocs[MkDocs Framework]
-        MermaidCLI[Mermaid CLI (@mermaid-js/mermaid-cli)]
+        MermaidCLI["Mermaid CLI (@mermaid-js/mermaid-cli)"]
     end
 
     A -.->|implements| MkDocs

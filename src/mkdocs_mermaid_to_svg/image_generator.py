@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import platform
 import subprocess  # nosec B404
@@ -147,6 +146,10 @@ class MermaidImageGenerator:
         """mmdcコマンド実行失敗時の処理"""
         error_msg = f"Mermaid CLI failed: {result.stderr}"
         self.logger.error(error_msg)
+        self.logger.error(f"Failed command: {' '.join(cmd)}")
+        self.logger.error(f"Return code: {result.returncode}")
+        self.logger.error(f"Stdout: {result.stdout}")
+        self.logger.error(f"Stderr: {result.stderr}")
         if self.config["error_on_fail"]:
             raise MermaidCLIError(
                 error_msg,
@@ -261,7 +264,7 @@ class MermaidImageGenerator:
             input_file,
             "-o",
             output_file,
-            "-f",
+            "-e",
             "svg",
         ]
 
@@ -323,8 +326,9 @@ class MermaidImageGenerator:
         self, cmd: list[str]
     ) -> subprocess.CompletedProcess[str]:
         """Execute mermaid command with appropriate shell settings for the platform."""
-        if self.logger.isEnabledFor(logging.DEBUG):
-            self.logger.debug("Executing mermaid CLI command")
+        # Log command details for debugging CLI issues
+        self.logger.debug(f"Executing mermaid CLI command: {' '.join(cmd)}")
+        self.logger.debug(f"Command parts: {cmd}")
 
         # On Windows, use shell=True to handle .ps1 scripts properly
         use_shell = platform.system() == "Windows"
@@ -332,10 +336,13 @@ class MermaidImageGenerator:
         if use_shell:
             # On Windows, explicitly use cmd.exe to avoid issues with Git Bash
             cmd_str = " ".join(cmd)
+            full_cmd = ["cmd", "/c", cmd_str]
+            self.logger.debug(f"Windows execution via cmd.exe: {full_cmd}")
+            self.logger.debug(f"Joined command string: '{cmd_str}'")
             # Use cmd.exe explicitly to handle npm/node commands properly
             # Input is controlled internally, not from external user input
             return subprocess.run(  # nosec B603,B602,B607
-                ["cmd", "/c", cmd_str],
+                full_cmd,
                 capture_output=True,
                 text=True,
                 timeout=30,

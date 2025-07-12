@@ -32,9 +32,7 @@ class MermaidProcessor:
 
         for i, block in enumerate(blocks):
             try:
-                image_filename = block.get_filename(
-                    page_file, i, self.config["image_format"]
-                )
+                image_filename = block.get_filename(page_file, i, "svg")
                 image_path = Path(output_dir) / image_filename
 
                 success = block.generate_image(

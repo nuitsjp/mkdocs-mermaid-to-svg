@@ -99,7 +99,7 @@ graph TD
         assert result_content == "![Mermaid](test.png)"
         assert len(result_paths) == 1
         mock_block.generate_image.assert_called_once()
-        mock_block.get_filename.assert_called_once_with("test.md", 0, "png")
+        mock_block.get_filename.assert_called_once_with("test.md", 0, "svg")
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_no_blocks(self, mock_command_available, basic_config):
