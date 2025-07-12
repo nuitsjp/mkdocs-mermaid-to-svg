@@ -42,8 +42,14 @@ class TestThemeFunctionality:
 
         generator = MermaidImageGenerator(config)
 
+        # tempfileのモックをより適切に設定
+        mock_temp_file = Mock()
+        mock_temp_file.name = "/tmp/test_config.json"
+        mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
+        mock_temp_file.__exit__ = Mock(return_value=None)
+
         with (
-            patch("tempfile.NamedTemporaryFile"),
+            patch("tempfile.NamedTemporaryFile", return_value=mock_temp_file),
             patch("builtins.open"),
             patch("os.path.exists", return_value=True),
         ):
@@ -52,17 +58,17 @@ class TestThemeFunctionality:
             # subprocessが呼ばれたことを確認
             mock_subprocess.assert_called_once()
             # 実際に呼ばれたコマンドを取得
-        called_args = mock_subprocess.call_args[0][0]
-        # print(f"DEBUG: Called command: {called_args}")  # デバッグ用（コメントアウト）
+            called_args = mock_subprocess.call_args[0][0]
+            # print(f"DEBUG: Called command: {called_args}")  # デバッグ用
 
-        # デフォルトテーマの場合、-tオプションが含まれないことを確認
-        if "-t" in called_args:
-            theme_index = called_args.index("-t")
-            theme_value = called_args[theme_index + 1]
-            # デフォルトテーマの場合は省略されるべき
-            assert (
-                theme_value != "default"
-            ), f"Default theme should be omitted, but got: {theme_value}"
+            # デフォルトテーマの場合、-tオプションが含まれないことを確認
+            if "-t" in called_args:
+                theme_index = called_args.index("-t")
+                theme_value = called_args[theme_index + 1]
+                # デフォルトテーマの場合は省略されるべき
+                assert (
+                    theme_value != "default"
+                ), f"Default theme should be omitted, but got: {theme_value}"
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     @patch("subprocess.run")
@@ -78,8 +84,14 @@ class TestThemeFunctionality:
 
         generator = MermaidImageGenerator(config)
 
+        # tempfileのモックをより適切に設定
+        mock_temp_file = Mock()
+        mock_temp_file.name = "/tmp/test_config.json"
+        mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
+        mock_temp_file.__exit__ = Mock(return_value=None)
+
         with (
-            patch("tempfile.NamedTemporaryFile"),
+            patch("tempfile.NamedTemporaryFile", return_value=mock_temp_file),
             patch("builtins.open"),
             patch("os.path.exists", return_value=True),
         ):
@@ -91,15 +103,21 @@ class TestThemeFunctionality:
             # 実際に呼ばれたコマンドを取得
             called_args = mock_subprocess.call_args[0][0]
 
+            # Windowsでは cmd /c "command string" の形式になるため、
+            # 全体のコマンド文字列をチェック
+            if (
+                len(called_args) >= 3
+                and called_args[0] == "cmd"
+                and called_args[1] == "/c"
+            ):
+                command_string = called_args[2]
+            else:
+                command_string = " ".join(called_args)
+
             # -tオプションが含まれることを確認
             assert (
-                "-t" in called_args
-            ), f"Theme option not found in command: {called_args}"
-
-            # テーマ値が正しく設定されていることを確認
-            theme_index = called_args.index("-t")
-            theme_value = called_args[theme_index + 1]
-            assert theme_value == "dark", f"Expected 'dark' theme, got: {theme_value}"
+                "-t dark" in command_string
+            ), f"Theme option not found in command: {command_string}"
 
     @pytest.mark.parametrize("theme", ["default", "dark", "forest", "neutral"])
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
@@ -116,8 +134,14 @@ class TestThemeFunctionality:
 
         generator = MermaidImageGenerator(config)
 
+        # tempfileのモックをより適切に設定
+        mock_temp_file = Mock()
+        mock_temp_file.name = "/tmp/test_config.json"
+        mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
+        mock_temp_file.__exit__ = Mock(return_value=None)
+
         with (
-            patch("tempfile.NamedTemporaryFile"),
+            patch("tempfile.NamedTemporaryFile", return_value=mock_temp_file),
             patch("builtins.open"),
             patch("os.path.exists", return_value=True),
         ):
@@ -129,20 +153,27 @@ class TestThemeFunctionality:
             # 実際に呼ばれたコマンドを取得
             called_args = mock_subprocess.call_args[0][0]
 
+            # Windowsでは cmd /c "command string" の形式になるため、
+            # 全体のコマンド文字列をチェック
+            if (
+                len(called_args) >= 3
+                and called_args[0] == "cmd"
+                and called_args[1] == "/c"
+            ):
+                command_string = called_args[2]
+            else:
+                command_string = " ".join(called_args)
+
             if theme == "default":
                 # デフォルトテーマの場合は-tオプションが省略されるべき
-                if "-t" in called_args:
-                    theme_index = called_args.index("-t")
-                    theme_value = called_args[theme_index + 1]
-                    assert theme_value != "default", "Default theme should be omitted"
+                assert (
+                    "-t default" not in command_string
+                ), "Default theme should be omitted"
             else:
                 # 非デフォルトテーマの場合は-tオプションが含まれるべき
-                assert "-t" in called_args, f"Theme option not found for {theme}"
-                theme_index = called_args.index("-t")
-                theme_value = called_args[theme_index + 1]
                 assert (
-                    theme_value == theme
-                ), f"Expected '{theme}' theme, got: {theme_value}"
+                    f"-t {theme}" in command_string
+                ), f"Theme option not found for {theme}. Command: {command_string}"
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     @patch("subprocess.run")
@@ -161,8 +192,14 @@ class TestThemeFunctionality:
 
         generator = MermaidImageGenerator(config)
 
+        # tempfileのモックをより適切に設定
+        mock_temp_file = Mock()
+        mock_temp_file.name = "/tmp/test_config.json"
+        mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
+        mock_temp_file.__exit__ = Mock(return_value=None)
+
         with (
-            patch("tempfile.NamedTemporaryFile"),
+            patch("tempfile.NamedTemporaryFile", return_value=mock_temp_file),
             patch("builtins.open"),
             patch("os.path.exists", return_value=True),
         ):
@@ -174,12 +211,18 @@ class TestThemeFunctionality:
             # 実際に呼ばれたコマンドを取得
             called_args = mock_subprocess.call_args[0][0]
 
+            # Windowsでは cmd /c "command string" の形式になるため、
+            # 全体のコマンド文字列をチェック
+            if (
+                len(called_args) >= 3
+                and called_args[0] == "cmd"
+                and called_args[1] == "/c"
+            ):
+                command_string = called_args[2]
+            else:
+                command_string = " ".join(called_args)
+
             # 個別設定のdarkテーマが使われることを確認
             assert (
-                "-t" in called_args
-            ), f"Theme option not found in command: {called_args}"
-            theme_index = called_args.index("-t")
-            theme_value = called_args[theme_index + 1]
-            assert (
-                theme_value == "dark"
-            ), f"Expected 'dark' theme from individual config, got: {theme_value}"
+                "-t dark" in command_string
+            ), f"Theme option not found in command: {command_string}"
