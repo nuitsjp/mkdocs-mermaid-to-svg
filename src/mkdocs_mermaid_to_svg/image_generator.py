@@ -39,7 +39,7 @@ class MermaidImageGenerator:
 
     def _validate_dependencies(self) -> None:
         """Validate and resolve the mmdc command with fallback support."""
-        primary_command = self.config["mmdc_path"]
+        primary_command = self.config.get("mmdc_path", "mmdc")
 
         # Check cache first
         if primary_command in self._command_cache:

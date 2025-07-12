@@ -54,6 +54,10 @@ class ConfigManager:
                 "cleanup_generated_images",
                 config_options.Type(bool, default=False),
             ),
+            (
+                "mmdc_path",
+                config_options.Type(str, default="mmdc"),
+            ),
         )
 
     @staticmethod

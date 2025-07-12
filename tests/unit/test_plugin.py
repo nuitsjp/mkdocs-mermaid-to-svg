@@ -111,16 +111,15 @@ class TestMermaidToImagePlugin:
             assert result == mock_config
             assert plugin.processor is None
 
-    def test_config_validation_invalid_dimensions(self, plugin, mock_config):
-        """幅や高さが不正な場合に例外が発生するかテスト"""
+    def test_config_validation_invalid_css_file(self, plugin, mock_config):
+        """存在しないCSSファイル指定時に例外が発生するかテスト"""
         plugin.config = {
-            "width": -100,
-            "height": 600,
-            "scale": 1.0,
+            "css_file": "nonexistent.css",
+            "mmdc_path": "mmdc",
             "log_level": "INFO",
         }
 
-        with pytest.raises(MermaidConfigError):
+        with pytest.raises(MermaidFileError):
             plugin.on_config(mock_config)
 
     def test_on_files_disabled(self, plugin):
