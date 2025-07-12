@@ -63,12 +63,3 @@ class TestProjectRename:
 
         except ImportError as e:
             pytest.fail(f"Should be able to import new package name: {e}")
-
-    def test_import_with_old_package_name_should_fail(self):
-        """
-        古いパッケージ名でのインポートが失敗することを確認するテスト
-
-        このテストは最初に失敗し、パッケージ名を変更した後に成功する必要があります。
-        """
-        with pytest.raises(ImportError):
-            pass

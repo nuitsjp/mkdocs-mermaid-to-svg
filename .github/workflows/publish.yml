@@ -120,7 +120,7 @@ jobs:
             echo "Tag name: ${{ github.ref_name }}"
           else
             # テストリリース時: hatch-vcsで生成されたパッケージからバージョンを取得
-            VERSION=$(uv run python -c "import mkdocs_mermaid_to_image; print(mkdocs_mermaid_to_image.__version__)")
+            VERSION=$(uv run python -c "import mkdocs_mermaid_to_svg; print(mkdocs_mermaid_to_svg.__version__)")
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "Version from package (hatch-vcs): $VERSION"
           fi
@@ -139,9 +139,9 @@ jobs:
             echo "Tag-based version extraction: ${GITHUB_REF_NAME#release-}"
           fi
           echo "Package version (hatch-vcs):"
-          uv run python -c "import mkdocs_mermaid_to_image; print(f'  {mkdocs_mermaid_to_image.__version__}')" || echo "  Package not available"
+          uv run python -c "import mkdocs_mermaid_to_svg; print(f'  {mkdocs_mermaid_to_svg.__version__}')" || echo "  Package not available"
           echo "Version file content:"
-          cat src/mkdocs_mermaid_to_image/_version.py 2>/dev/null || echo "  Version file not found"
+          cat src/mkdocs_mermaid_to_svg/_version.py 2>/dev/null || echo "  Version file not found"
           echo "================================="
 
       - name: Validate package
@@ -188,9 +188,9 @@ jobs:
           echo "- **Release Type**: ${{ needs.determine-release-type.outputs.release-type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ needs.determine-release-type.outputs.is-production }}" == "true" ]]; then
-            echo "- **PyPI**: https://pypi.org/project/mkdocs-mermaid-to-image/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **PyPI**: https://pypi.org/project/mkdocs-mermaid-to-svg/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
             echo "- **GitHub Release**: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **TestPyPI**: https://test.pypi.org/project/mkdocs-mermaid-to-image/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
-            echo "- **Installation**: \`pip install --index-url https://test.pypi.org/simple/ mkdocs-mermaid-to-image==${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **TestPyPI**: https://test.pypi.org/project/mkdocs-mermaid-to-svg/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+            echo "- **Installation**: \`pip install --index-url https://test.pypi.org/simple/ mkdocs-mermaid-to-svg==${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           fi

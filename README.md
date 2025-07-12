@@ -1,10 +1,10 @@
-# mkdocs-mermaid-to-image
+# mkdocs-mermaid-to-svg
 
 [![PyPI - Python Version][python-image]][pypi-link]
 
-An MkDocs plugin to convert Mermaid charts to images.
+An MkDocs plugin to convert Mermaid charts to SVG images.
 
-This plugin finds Mermaid code blocks and replaces them with images. This is useful for formats that don't support JavaScript, like PDF.
+This plugin finds Mermaid code blocks and replaces them with SVG images. This is useful for formats that don't support JavaScript, like PDF.
 
 - [Documents](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
 
@@ -26,7 +26,7 @@ npx puppeteer browsers install chrome-headless-shell
 Install the plugin using pip:
 
 ```bash
-pip install mkdocs-mermaid-to-image
+pip install mkdocs-mermaid-to-svg
 ```
 
 Activate the plugin in `mkdocs.yml`:
@@ -34,7 +34,7 @@ Activate the plugin in `mkdocs.yml`:
 ```yaml
 plugins:
   - search
-  - mermaid-to-image
+  - mermaid-to-svg
 ```
 
 > **Note:** If you have no `plugins` entry in your config file yet, you'll likely also want to add the `search` plugin. MkDocs enables it by default if there is no `plugins` entry set, but now you have to enable it explicitly.
@@ -45,9 +45,8 @@ You can customize the plugin's behavior in `mkdocs.yml`:
 
 ```yaml
 plugins:
-  - mermaid-to-image:
+  - mermaid-to-svg:
       mermaid_cli_path: /path/to/your/mmdc
-      image_format: "svg"
       mermaid_config:
         theme: "default"
         # PDF互換性のための設定（重要！）
@@ -77,7 +76,7 @@ When generating PDFs from your MkDocs site, certain Mermaid diagrams (flowcharts
 
 ```yaml
 plugins:
-  - mermaid-to-image:
+  - mermaid-to-svg:
       mermaid_config:
         htmlLabels: false
         flowchart:
@@ -92,5 +91,5 @@ plugins:
 
 4. **Not affected**: Sequence diagrams already use standard SVG text elements and work correctly in PDFs.
 
-[pypi-link]: https://pypi.org/project/mkdocs-mermaid-to-image/
-[python-image]: https://img.shields.io/pypi/pyversions/mkdocs-mermaid-to-image?logo=python&logoColor=aaaaaa&labelColor=333333
+[pypi-link]: https://pypi.org/project/mkdocs-mermaid-to-svg/
+[python-image]: https://img.shields.io/pypi/pyversions/mkdocs-mermaid-to-svg?logo=python&logoColor=aaaaaa&labelColor=333333

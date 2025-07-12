@@ -1,7 +1,7 @@
 {
-  "name": "mkdocs-mermaid-to-image",
+  "name": "mkdocs-mermaid-to-svg",
   "version": "1.0.0",
-  "description": "MkDocs plugin to convert Mermaid diagrams to static images",
+  "description": "MkDocs plugin to convert Mermaid diagrams to static SVG images",
   "private": true,
   "dependencies": {
     "@mermaid-js/mermaid-cli": "^11.6.0"
@@ -9,7 +9,7 @@
   "scripts": {
     "setup": "npm install",
     "test": "python -m pytest",
-    "test-cov": "python -m pytest --cov=src/mkdocs_mermaid_to_image --cov-report=html"
+    "test-cov": "python -m pytest --cov=src/mkdocs_mermaid_to_svg --cov-report=html"
   },
   "engines": {
     "node": ">=16.0.0",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/nuitsjp/mkdocs-mermaid-to-image.git"
+    "url": "https://github.com/nuitsjp/mkdocs-mermaid-to-svg.git"
   },
   "keywords": [
     "mkdocs",
