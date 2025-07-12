@@ -1104,15 +1104,17 @@ dependencies = [
     { name = "pillow" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "bandit" },
     { name = "hypothesis" },
+    { name = "mkdocs-mermaid-to-svg" },
     { name = "mkdocs-to-pdf" },
     { name = "mypy" },
     { name = "pip-audit" },
     { name = "pre-commit" },
     { name = "pytest" },
+    { name = "pytest-benchmark" },
     { name = "pytest-cov" },
     { name = "pytest-xdist" },
     { name = "ruff" },
@@ -1130,40 +1132,35 @@ docs = [
     { name = "sphinx-rtd-theme" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "mkdocs-mermaid-to-svg" },
-    { name = "pytest-benchmark" },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7.0" },
-    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "mkdocs", specifier = ">=1.4.0" },
     { name = "mkdocs-material", specifier = ">=8.0.0" },
-    { name = "mkdocs-to-pdf", marker = "extra == 'dev'", specifier = ">=0.10.1" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10.0" },
-    { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=2.0.0" },
     { name = "numpy", specifier = ">=1.20.0" },
     { name = "pillow", specifier = ">=11.3.0" },
-    { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.6.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.7.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
-    { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.5.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0" },
-    { name = "sphinx", marker = "extra == 'docs'", specifier = ">=7.0.0" },
-    { name = "sphinx-autodoc-typehints", marker = "extra == 'docs'", specifier = ">=2.0.0" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = ">=2.0.0" },
-    { name = "twine", marker = "extra == 'dev'", specifier = ">=5.0.0" },
 ]
-provides-extras = ["dev", "docs"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "bandit", specifier = ">=1.7.0" },
+    { name = "hypothesis", specifier = ">=6.0.0" },
     { name = "mkdocs-mermaid-to-svg", editable = "." },
+    { name = "mkdocs-to-pdf", specifier = ">=0.10.1" },
+    { name = "mypy", specifier = ">=1.10.0" },
+    { name = "pip-audit", specifier = ">=2.6.0" },
+    { name = "pre-commit", specifier = ">=3.7.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-benchmark", specifier = ">=5.1.0" },
+    { name = "pytest-cov", specifier = ">=5.0.0" },
+    { name = "pytest-xdist", specifier = ">=3.5.0" },
+    { name = "ruff", specifier = ">=0.4.0" },
+    { name = "twine", specifier = ">=5.0.0" },
+]
+docs = [
+    { name = "myst-parser", specifier = ">=2.0.0" },
+    { name = "sphinx", specifier = ">=7.0.0" },
+    { name = "sphinx-autodoc-typehints", specifier = ">=2.0.0" },
+    { name = "sphinx-rtd-theme", specifier = ">=2.0.0" },
 ]
 
 [[package]]
