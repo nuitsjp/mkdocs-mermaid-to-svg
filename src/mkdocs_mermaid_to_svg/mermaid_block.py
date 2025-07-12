@@ -48,14 +48,20 @@ class MermaidBlock:
         )
 
     def generate_image(
-        self, output_path: str, image_generator: Any, config: dict[str, Any]
+        self,
+        output_path: str,
+        image_generator: Any,
+        config: dict[str, Any],
+        page_file: str | None = None,
     ) -> bool:
         merged_config = config.copy()
 
         if "theme" in self.attributes:
             merged_config["theme"] = self.attributes["theme"]
 
-        result = image_generator.generate(self.code, output_path, merged_config)
+        result = image_generator.generate(
+            self.code, output_path, merged_config, page_file
+        )
         return bool(result)
 
     def get_image_markdown(

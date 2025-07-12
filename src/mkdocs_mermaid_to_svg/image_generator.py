@@ -85,7 +85,11 @@ class MermaidImageGenerator:
         )
 
     def generate(
-        self, mermaid_code: str, output_path: str, config: dict[str, Any]
+        self,
+        mermaid_code: str,
+        output_path: str,
+        config: dict[str, Any],
+        page_file: str | None = None,
     ) -> bool:
         temp_file = None
         puppeteer_config_file = None
@@ -111,7 +115,15 @@ class MermaidImageGenerator:
             if not Path(output_path).exists():
                 return self._handle_missing_output(output_path, mermaid_code)
 
-            self.logger.info(f"Generated image: {output_path}")
+            # MkDocsの標準フォーマットでログ出力
+            import logging
+
+            mkdocs_logger = logging.getLogger("mkdocs")
+            relative_path = Path(output_path).name
+            source_info = f" from {page_file}" if page_file else ""
+            mkdocs_logger.info(
+                f"Converting Mermaid diagram to SVG: {relative_path}{source_info}"
+            )
             return True
 
         except (MermaidCLIError, MermaidImageError):

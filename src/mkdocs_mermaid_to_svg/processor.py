@@ -36,7 +36,7 @@ class MermaidProcessor:
                 image_path = Path(output_dir) / image_filename
 
                 success = block.generate_image(
-                    str(image_path), self.image_generator, self.config
+                    str(image_path), self.image_generator, self.config, page_file
                 )
 
                 if success:
