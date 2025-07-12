@@ -263,9 +263,12 @@ class MermaidImageGenerator:
             output_file,
             "-f",
             "svg",
-            "-t",
-            config.get("theme", self.config["theme"]),
         ]
+
+        # Add theme option only if it's not the default
+        theme = config.get("theme", self.config["theme"])
+        if theme != "default":
+            cmd.extend(["-t", theme])
 
         # Add Mermaid configuration file for PDF compatibility
         mermaid_config_file = self._create_mermaid_config_file()

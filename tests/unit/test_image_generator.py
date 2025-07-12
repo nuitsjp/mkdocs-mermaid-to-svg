@@ -212,8 +212,8 @@ class TestMermaidImageGenerator:
         assert "input.mmd" in cmd
         assert "-o" in cmd
         assert "output.png" in cmd
-        assert "-t" in cmd
-        assert "default" in cmd
+        # デフォルトテーマの場合、-tオプションは含まれない
+        assert "-t" not in cmd
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_build_mmdc_command_with_overrides(
