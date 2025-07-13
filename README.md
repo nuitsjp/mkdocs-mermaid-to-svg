@@ -107,7 +107,7 @@ plugins:
       puppeteer_config: "puppeteer.json"  # Custom Puppeteer configuration
       error_on_fail: false                # Continue on diagram generation errors
       log_level: "INFO"                   # Logging level (DEBUG, INFO, WARNING, ERROR)
-      cleanup_generated_images: false     # Clean up generated images after build
+      cleanup_generated_images: true      # Clean up generated images after build
 ```
 
 ## Available Options
@@ -128,7 +128,7 @@ plugins:
 | `temp_dir` | `None` | Custom temporary directory |
 | `error_on_fail` | `false` | Stop build on diagram generation errors |
 | `log_level` | `"INFO"` | Logging level |
-| `cleanup_generated_images` | `false` | Clean up generated images after build |
+| `cleanup_generated_images` | `true` | Clean up generated images after build |
 
 ## PDF Generation
 

@@ -26,7 +26,7 @@ class TestMinimalMkDocsConfig:
         assert plugin.config["theme"] == "default"
         assert plugin.config["error_on_fail"] is True
         assert plugin.config["log_level"] == "INFO"
-        assert plugin.config["cleanup_generated_images"] is False
+        assert plugin.config["cleanup_generated_images"] is True
 
         # オプショナル設定項目はNoneになっていることを確認
         assert plugin.config["mermaid_config"] is None

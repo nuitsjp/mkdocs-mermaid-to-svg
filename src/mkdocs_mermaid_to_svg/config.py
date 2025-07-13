@@ -48,7 +48,7 @@ class ConfigManager:
             ),
             (
                 "cleanup_generated_images",
-                config_options.Type(bool, default=False),
+                config_options.Type(bool, default=True),
             ),
             (
                 "mmdc_path",
