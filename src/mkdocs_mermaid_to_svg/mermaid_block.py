@@ -68,7 +68,6 @@ class MermaidBlock:
         self,
         image_path: str,
         page_file: str,
-        preserve_original: bool = False,
         page_url: str = "",
     ) -> str:
         image_path_obj = Path(image_path)
@@ -80,15 +79,6 @@ class MermaidBlock:
         relative_image_path = f"{relative_prefix}assets/images/{image_path_obj.name}"
 
         image_markdown = f"![Mermaid Diagram]({relative_image_path})"
-
-        if preserve_original:
-            if self.attributes:
-                attr_str = ", ".join(f"{k}: {v}" for k, v in self.attributes.items())
-                original_block = f"```mermaid {{{attr_str}}}\n{self.code}\n```"
-            else:
-                original_block = f"```mermaid\n{self.code}\n```"
-
-            image_markdown = f"{image_markdown}\n\n{original_block}"
 
         return image_markdown
 

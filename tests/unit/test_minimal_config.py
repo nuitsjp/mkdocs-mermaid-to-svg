@@ -36,7 +36,6 @@ class TestMinimalConfig:
         essential_with_defaults = [
             "output_dir",  # 画像出力先
             "theme",  # テーマ
-            "preserve_original",  # 元コード保持
             "error_on_fail",  # エラー時動作
             "log_level",  # ログレベル
             "cleanup_generated_images",  # 生成画像クリーンアップ

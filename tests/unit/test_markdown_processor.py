@@ -23,7 +23,7 @@ class TestMarkdownProcessor:
     @pytest.fixture
     def basic_config(self):
         """テスト用の基本設定を返すfixture"""
-        return {"preserve_original": False, "log_level": "INFO"}
+        return {"log_level": "INFO"}
 
     def test_extract_basic_mermaid_blocks(self, basic_config):
         """基本的なMermaidブロック抽出のテスト"""
@@ -167,36 +167,7 @@ More content."""
         assert "![Mermaid Diagram](assets/images/test.png)" in result
         assert "```mermaid" not in result
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", False, ""
-        )
-
-    def test_replace_blocks_with_images_preserve_original(self, basic_config):
-        """元のコードも残す場合の置換テスト"""
-        basic_config["preserve_original"] = True
-        processor = MarkdownProcessor(basic_config)
-
-        markdown = """```mermaid
-graph TD
-    A --> B
-```"""
-        mock_block = Mock(spec=MermaidBlock)
-        mock_block.start_pos = 0
-        mock_block.end_pos = len(markdown)
-        mock_block.get_image_markdown.return_value = (
-            "![Mermaid Diagram](test.png)\n\n```mermaid\ngraph TD\n    A --> B\n```"
-        )
-
-        blocks = [mock_block]
-        image_paths = ["/path/to/test.png"]
-
-        result = processor.replace_blocks_with_images(
-            markdown, blocks, image_paths, "test.md"
-        )
-
-        assert "![Mermaid Diagram](test.png)" in result
-        assert "```mermaid" in result  # Original preserved
-        mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", True, ""
+            "/path/to/test.png", "test.md", ""
         )
 
     def test_replace_blocks_mismatched_lengths(self, basic_config):

@@ -37,10 +37,6 @@ class ConfigManager:
                 config_options.Optional(config_options.Type(str)),
             ),
             (
-                "preserve_original",
-                config_options.Type(bool, default=False),
-            ),
-            (
                 "error_on_fail",
                 config_options.Type(bool, default=True),
             ),

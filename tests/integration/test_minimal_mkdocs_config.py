@@ -24,13 +24,9 @@ class TestMinimalMkDocsConfig:
         # 必須設定項目がデフォルト値で設定されていることを確認
         assert plugin.config["output_dir"] == "assets/images"
         assert plugin.config["theme"] == "default"
-        assert plugin.config["preserve_original"] is False
         assert plugin.config["error_on_fail"] is True
         assert plugin.config["log_level"] == "INFO"
         assert plugin.config["cleanup_generated_images"] is False
-        assert plugin.config["preserve_original"] is False
-        assert plugin.config["error_on_fail"] is True
-        assert plugin.config["log_level"] == "INFO"
 
         # オプショナル設定項目はNoneになっていることを確認
         assert plugin.config["mermaid_config"] is None

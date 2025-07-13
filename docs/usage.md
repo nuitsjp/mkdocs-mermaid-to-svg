@@ -11,7 +11,6 @@ plugins:
       enabled_if_env: "ENABLE_PDF_EXPORT"  # 環境変数による制御（オプション）
       output_dir: "assets/images" # デフォルト: "assets/images"
       theme: "default"           # "default", "dark", "forest", "neutral"
-      preserve_original: false   # デフォルト: false
       error_on_fail: false       # デフォルト: false
       log_level: "INFO"          # "DEBUG", "INFO", "WARNING", "ERROR"
 ```
@@ -22,7 +21,6 @@ plugins:
 - **enabled_if_env**: 環境変数による条件付き有効化
 - **output_dir**: 生成画像の保存ディレクトリ
 - **theme**: ダイアグラムテーマ
-- **preserve_original**: 元のMermaidコードを保持するか
 - **error_on_fail**: エラー時にビルドを停止するか
 
 ### 高度な設定

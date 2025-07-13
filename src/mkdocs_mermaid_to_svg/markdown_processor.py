@@ -85,7 +85,6 @@ class MarkdownProcessor:
             image_markdown = block.get_image_markdown(
                 image_path,
                 page_file,
-                self.config.get("preserve_original", False),
                 page_url,
             )
 
