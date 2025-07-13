@@ -1,109 +1,165 @@
-# MkDocs Mermaid to Image Plugin
+# mkdocs-mermaid-to-svg
 
+[![PyPI - Python Version][python-image]][pypi-link]
+[![Linux Support][linux-image]](#requirements)
+[![Windows Support][windows-image]](#requirements)
 
-**MkDocs環境でMermaidダイアグラムを静的画像として事前レンダリングし、PDF出力に対応させるプラグインです。**
+An MkDocs plugin to convert Mermaid charts to SVG images.
 
-- [Sample PDF](MkDocs-Mermaid-to-Image.pdf)
+This plugin detects Mermaid code blocks and replaces them with SVG images. This is especially useful for formats that don't support JavaScript, like PDF output.
 
-## ✨ 特徴
+- [Documentation](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
 
-- MermaidダイアグラムをPNG/SVG画像として事前レンダリング
-- PDF出力対応
-- 標準テーマサポート
-- キャッシュ機能による高速ビルド
+## Features
 
-## 開発ガイド
+- **SVG output**: Generates high-quality SVG images from Mermaid diagrams
+- **PDF compatible**: SVG images work perfectly in PDF exports
+- **Automatic conversion**: Automatically detects and converts all Mermaid code blocks
+- **Configurable**: Supports Mermaid themes and custom configurations
+- **Environment control**: Can be conditionally enabled via environment variables
 
-このセクションは `mkdocs-mermaid-to-image` プラグインの開発に参加するための総合的なガイドです。
+## Requirements
 
-### 前提条件
+This plugin requires [Node.js](https://nodejs.org/) to be installed beforehand.
 
-開発を始める前に、以下のツールがシステムにインストールされていることを確認してください。
-
-- **Python**: 3.9 以上
-- **Node.js**: 16.0.0 以上
-- **npm**: 7.0.0 以上
-- **uv**: 高速なPythonパッケージインストーラー
-- **Make**: ビルド自動化ツール
-
-### セットアップ
-
-開発環境のセットアップは、リポジトリのルートで以下のコマンドを実行するだけです。
+### Mermaid CLI
 
 ```bash
-make setup
+# Install Mermaid CLI globally
+npm install -g @mermaid-js/mermaid-cli
+
+# Or install per project
+npm install @mermaid-js/mermaid-cli
 ```
 
-このコマンドは、Pythonの依存関係とNode.jsの依存関係をインストールし、pre-commitフックを設定します。
-
-### ローカルでのビルドとインストール
-
-開発中にプラグインの動作を確認するには、ローカルでビルドしてインストールする必要があります。
-ソースコードの変更を即座に反映させるために、編集可能モード (`-e`) でインストールすることを推奨します。
+### Puppeteer
 
 ```bash
-make install-dev
+# Install Puppeteer
+npm install puppeteer
+
+# Install browser for Puppeteer (required)
+npx puppeteer browsers install chrome-headless-shell
 ```
 
-これにより、`mkdocs.yml` で `mermaid-to-image` プラグインを指定したMkDocsプロジェクトで、開発中のプラグインを直接テストできます。
+## Setup
 
-### よく使うコマンド
+Install the plugin using pip:
 
-`Makefile` には、開発を効率化するためのコマンドが多数定義されています。
+```bash
+pip install mkdocs-mermaid-to-svg
+```
 
-#### 開発コマンド
+Activate the plugin in `mkdocs.yml` (recommended configuration for PDF generation):
 
-- `make install-dev`: 開発用に編集可能モードでパッケージをインストールします。
-- `make test`: すべてのテストを実行します。
-- `make test-cov`: カバレッジレポート付きでテストを実行します。
+```yaml
+plugins:
+  - mermaid-to-svg:
+      # Disable HTML labels for PDF compatibility
+      mermaid_config:
+        htmlLabels: false
+        flowchart:
+          htmlLabels: false
+        class:
+          htmlLabels: false
+  - to-pdf:  # When used with PDF generation plugins
+      enabled_if_env: ENABLE_PDF_EXPORT
+```
 
-#### 品質チェック
+### PDF Compatibility
 
-- `make check`: 品質チェック（pre-commitフックと同等の内容）を実行します。
-- `make check-security`: セキュリティチェック（bandit + pip-audit）を実行します。
-- `make check-all`: 完全チェック（品質 + セキュリティ）を実行します。
+When `htmlLabels` is enabled, Mermaid CLI generates SVG files with `<foreignObject>` elements containing HTML. PDF generation tools cannot properly render these HTML elements, causing text to disappear.
 
-#### MkDocsコマンド
+- **Affected diagrams**: Flowcharts, class diagrams, and other diagrams that use text labels
+- **Not affected**: Sequence diagrams use standard SVG text elements and work correctly in PDFs
 
-- `uv run mkdocs serve`: 開発用のローカルサーバーを起動します。
-- `uv run mkdocs build`: ドキュメントサイトをビルドします。
-- `ENABLE_PDF_EXPORT=1 uv run mkdocs build`: PDF生成を有効にしてドキュメントサイトをビルドします。
+## Configuration
 
-#### Mermaid CLI
+You can customize the plugin's behavior in `mkdocs.yml`. All options are optional:
 
-- `mmdc --version`: ローカルインストールされたMermaid CLIのバージョン確認。
-- `npx mmdc --version`: npx経由でのMermaid CLIのバージョン確認（フォールバック）。
+### Conditional Activation
 
-利用可能なすべてのコマンドについては、`make help` を実行して確認してください。
+To enable the plugin only during PDF generation, use the same environment variable as the to-pdf plugin:
 
-### 開発ワークフロー
+```yaml
+plugins:
+  - mermaid-to-svg:
+      enabled_if_env: "ENABLE_PDF_EXPORT"  # Use same env var as to-pdf plugin
+      mermaid_config:
+        htmlLabels: false
+        flowchart:
+          htmlLabels: false
+        class:
+          htmlLabels: false
+  - to-pdf:
+      enabled_if_env: ENABLE_PDF_EXPORT
+```
 
-#### 日常的な開発
+Run with:
+```bash
+ENABLE_PDF_EXPORT=1 mkdocs build
+```
 
-1. **コード変更後**:
-   ```bash
-   make check  # 品質チェック（自動修正含む）
+### Advanced Options
+
+```yaml
+plugins:
+  - mermaid-to-svg:
+      mmdc_path: "mmdc"                   # Path to Mermaid CLI
+      css_file: "custom-mermaid.css"      # Custom CSS file
+      puppeteer_config: "puppeteer.json"  # Custom Puppeteer configuration
+      error_on_fail: false                # Continue on diagram generation errors
+      log_level: "INFO"                   # Log level (DEBUG, INFO, WARNING, ERROR)
+      cleanup_generated_images: true      # Clean up generated images after build
+```
+
+## Configuration Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `enabled_if_env` | `None` | Environment variable name to conditionally enable plugin |
+| `output_dir` | `"assets/images"` | Directory to store generated SVG files |
+| `theme` | `"default"` | Mermaid theme (default, dark, forest, neutral) |
+| `mmdc_path` | `"mmdc"` | Path to `mmdc` executable |
+| `mermaid_config` | `None` | Mermaid configuration dictionary |
+| `css_file` | `None` | Path to custom CSS file |
+| `puppeteer_config` | `None` | Path to Puppeteer configuration file |
+| `error_on_fail` | `true` | Stop build on diagram generation errors |
+| `log_level` | `"INFO"` | Log level |
+| `cleanup_generated_images` | `true` | Clean up generated images after build |
+
+## PDF Generation
+
+This plugin is designed with PDF generation compatibility in mind:
+
+### Why SVG?
+
+- **Vector format**: SVG images scale beautifully at any resolution
+- **Text preservation**: SVG text remains selectable and searchable in PDFs
+- **No JS required**: Works with PDF generation tools that don't support JavaScript
+
+## Usage Example
+
+1. Write Mermaid diagrams in your Markdown:
+
+   ````markdown
+   ```mermaid
+   graph TD
+       A[Start] --> B{Decision}
+       B -->|Yes| C[Action 1]
+       B -->|No| D[Action 2]
+   ```
+   ````
+
+2. The plugin automatically converts them to SVG images during build:
+
+   ```html
+   <p><img alt="Mermaid Diagram" src="assets/images/diagram_123abc.svg" /></p>
    ```
 
-2. **テスト実行**:
-   ```bash
-   make test   # 全テスト実行
-   ```
+3. Your PDF exports will display crisp, scalable diagrams with selectable text.
 
-#### コミット前
-
-```bash
-make check  # pre-commitフックと同等のチェック
-```
-
-#### プルリクエスト前
-
-```bash
-make check-all  # 品質 + セキュリティの完全チェック
-```
-
-#### PDF生成テスト
-
-```bash
-make build-pdf
-```
+[pypi-link]: https://pypi.org/project/mkdocs-mermaid-to-svg/
+[python-image]: https://img.shields.io/pypi/pyversions/mkdocs-mermaid-to-svg?logo=python&logoColor=aaaaaa&labelColor=333333
+[linux-image]: https://img.shields.io/badge/Linux-supported-success?logo=linux&logoColor=white&labelColor=333333
+[windows-image]: https://img.shields.io/badge/Windows-supported-success?logo=windows&logoColor=white&labelColor=333333

@@ -1,31 +1,44 @@
 # mkdocs-mermaid-to-svg
 
 [![PyPI - Python Version][python-image]][pypi-link]
+[![Linux Support][linux-image]](#requirements)
+[![Windows Support][windows-image]](#requirements)
 
 An MkDocs plugin to convert Mermaid charts to SVG images.
 
-This plugin finds Mermaid code blocks and replaces them with SVG images. This is especially useful for formats that don't support JavaScript, like PDF generation.
+This plugin detects Mermaid code blocks and replaces them with SVG images. This is especially useful for formats that don't support JavaScript, like PDF output.
 
-- [Documents](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
+- [Documentation](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
 
 ## Features
 
-- **SVG-only output**: Generates high-quality SVG images from Mermaid diagrams
+- **SVG output**: Generates high-quality SVG images from Mermaid diagrams
 - **PDF compatible**: SVG images work perfectly in PDF exports
-- **Automatic conversion**: Finds and converts all Mermaid code blocks
+- **Automatic conversion**: Automatically detects and converts all Mermaid code blocks
 - **Configurable**: Supports Mermaid themes and custom configurations
-- **Environment-aware**: Can be conditionally enabled via environment variables
+- **Environment control**: Can be conditionally enabled via environment variables
 
 ## Requirements
 
-This plugin requires a Mermaid execution engine. Please install one of the following:
+This plugin requires [Node.js](https://nodejs.org/) to be installed beforehand.
 
--   [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
--   [Node.js](https://nodejs.org/) with [Puppeteer](https://pptr.dev/)
-
-For Mermaid CLI to work properly, you also need to install a browser for Puppeteer:
+### Mermaid CLI
 
 ```bash
+# Install Mermaid CLI globally
+npm install -g @mermaid-js/mermaid-cli
+
+# Or install per project
+npm install @mermaid-js/mermaid-cli
+```
+
+### Puppeteer
+
+```bash
+# Install Puppeteer
+npm install puppeteer
+
+# Install browser for Puppeteer (required)
 npx puppeteer browsers install chrome-headless-shell
 ```
 
@@ -37,63 +50,54 @@ Install the plugin using pip:
 pip install mkdocs-mermaid-to-svg
 ```
 
-Activate the plugin in `mkdocs.yml`:
-
-```yaml
-plugins:
-  - search
-  - mermaid-to-svg
-```
-
-> **Note:** If you have no `plugins` entry in your config file yet, you'll likely also want to add the `search` plugin. MkDocs enables it by default if there is no `plugins` entry set, but now you have to enable it explicitly.
-
-## Configuration
-
-You can customize the plugin's behavior in `mkdocs.yml`. All options are optional:
-
-### Basic Configuration
+Activate the plugin in `mkdocs.yml` (recommended configuration for PDF generation):
 
 ```yaml
 plugins:
   - mermaid-to-svg:
-      output_dir: "assets/images"  # Where to store generated SVG files
-      theme: "default"             # Mermaid theme (default, dark, forest, neutral)
-      background_color: "white"    # Background color for diagrams
-      width: 800                   # Image width in pixels
-      height: 600                  # Image height in pixels
-      scale: 1.0                   # Scale factor for the diagram
-```
-
-### PDF-Compatible Configuration
-
-For PDF generation, use this configuration to ensure text displays correctly:
-
-```yaml
-plugins:
-  - mermaid-to-svg:
+      # Disable HTML labels for PDF compatibility
       mermaid_config:
-        # Essential for PDF compatibility
         htmlLabels: false
         flowchart:
           htmlLabels: false
         class:
           htmlLabels: false
-        theme: "default"
+  - to-pdf:  # When used with PDF generation plugins
+      enabled_if_env: ENABLE_PDF_EXPORT
 ```
+
+### PDF Compatibility
+
+When `htmlLabels` is enabled, Mermaid CLI generates SVG files with `<foreignObject>` elements containing HTML. PDF generation tools cannot properly render these HTML elements, causing text to disappear.
+
+- **Affected diagrams**: Flowcharts, class diagrams, and other diagrams that use text labels
+- **Not affected**: Sequence diagrams use standard SVG text elements and work correctly in PDFs
+
+## Configuration
+
+You can customize the plugin's behavior in `mkdocs.yml`. All options are optional:
 
 ### Conditional Activation
 
-Enable the plugin only when generating PDFs:
+To enable the plugin only during PDF generation, use the same environment variable as the to-pdf plugin:
 
 ```yaml
 plugins:
   - mermaid-to-svg:
-      enabled_if_env: "ENABLE_MERMAID_SVG"  # Only enable if this env var is set
+      enabled_if_env: "ENABLE_PDF_EXPORT"  # Use same env var as to-pdf plugin
+      mermaid_config:
+        htmlLabels: false
+        flowchart:
+          htmlLabels: false
+        class:
+          htmlLabels: false
+  - to-pdf:
+      enabled_if_env: ENABLE_PDF_EXPORT
 ```
 
-Then run:
+Run with:
 ```bash
-ENABLE_MERMAID_SVG=1 mkdocs build
+ENABLE_PDF_EXPORT=1 mkdocs build
 ```
 
 ### Advanced Options
@@ -101,64 +105,38 @@ ENABLE_MERMAID_SVG=1 mkdocs build
 ```yaml
 plugins:
   - mermaid-to-svg:
-      mmdc_path: "/path/to/mmdc"           # Custom path to Mermaid CLI
-      temp_dir: "/tmp/mermaid"             # Custom temporary directory
+      mmdc_path: "mmdc"                   # Path to Mermaid CLI
       css_file: "custom-mermaid.css"      # Custom CSS file
       puppeteer_config: "puppeteer.json"  # Custom Puppeteer configuration
       error_on_fail: false                # Continue on diagram generation errors
-      log_level: "INFO"                   # Logging level (DEBUG, INFO, WARNING, ERROR)
+      log_level: "INFO"                   # Log level (DEBUG, INFO, WARNING, ERROR)
       cleanup_generated_images: true      # Clean up generated images after build
 ```
 
-## Available Options
+## Configuration Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `enabled_if_env` | `None` | Environment variable name to conditionally enable plugin |
 | `output_dir` | `"assets/images"` | Directory to store generated SVG files |
 | `theme` | `"default"` | Mermaid theme (default, dark, forest, neutral) |
-| `background_color` | `"white"` | Background color for diagrams |
-| `width` | `800` | Image width in pixels |
-| `height` | `600` | Image height in pixels |
-| `scale` | `1.0` | Scale factor for the diagram |
-| `mmdc_path` | `None` | Path to `mmdc` executable (auto-detected if not set) |
+| `mmdc_path` | `"mmdc"` | Path to `mmdc` executable |
 | `mermaid_config` | `None` | Mermaid configuration dictionary |
 | `css_file` | `None` | Path to custom CSS file |
 | `puppeteer_config` | `None` | Path to Puppeteer configuration file |
-| `temp_dir` | `None` | Custom temporary directory |
-| `error_on_fail` | `false` | Stop build on diagram generation errors |
-| `log_level` | `"INFO"` | Logging level |
+| `error_on_fail` | `true` | Stop build on diagram generation errors |
+| `log_level` | `"INFO"` | Log level |
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
 
 ## PDF Generation
 
-This plugin is specifically designed for PDF generation compatibility:
+This plugin is designed with PDF generation compatibility in mind:
 
 ### Why SVG?
 
-- **Vector graphics**: SVG images scale perfectly at any resolution
+- **Vector format**: SVG images scale beautifully at any resolution
 - **Text preservation**: SVG text remains selectable and searchable in PDFs
-- **No JavaScript**: Works in PDF generators that don't support JavaScript
-
-### PDF-Specific Issues and Solutions
-
-1. **HTML Labels Problem**: Mermaid CLI generates SVG files with `<foreignObject>` elements containing HTML when `htmlLabels` is enabled. PDF generation tools cannot properly render these HTML elements, causing text to disappear.
-
-   **Solution**: Set `htmlLabels: false` in your `mermaid_config`:
-   ```yaml
-   plugins:
-     - mermaid-to-svg:
-         mermaid_config:
-           htmlLabels: false
-           flowchart:
-             htmlLabels: false
-           class:
-             htmlLabels: false
-   ```
-
-2. **Affected Diagram Types**: Flowcharts, class diagrams, and other diagrams that use text labels.
-
-3. **Not Affected**: Sequence diagrams already use standard SVG text elements and work correctly in PDFs.
+- **No JS required**: Works with PDF generation tools that don't support JavaScript
 
 ## Usage Example
 
@@ -183,3 +161,5 @@ This plugin is specifically designed for PDF generation compatibility:
 
 [pypi-link]: https://pypi.org/project/mkdocs-mermaid-to-svg/
 [python-image]: https://img.shields.io/pypi/pyversions/mkdocs-mermaid-to-svg?logo=python&logoColor=aaaaaa&labelColor=333333
+[linux-image]: https://img.shields.io/badge/Linux-supported-success?logo=linux&logoColor=white&labelColor=333333
+[windows-image]: https://img.shields.io/badge/Windows-supported-success?logo=windows&logoColor=white&labelColor=333333
