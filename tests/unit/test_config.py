@@ -173,3 +173,19 @@ class TestConfigManager:
 
         # オプショナル設定であることを確認
         assert isinstance(enabled_if_env_option, config_options.Optional)
+
+    def test_error_on_fail_default_is_true(self):
+        """
+        error_on_failのデフォルト値がTrueであることをテスト
+        """
+        from mkdocs.config import config_options
+
+        scheme = ConfigManager.get_config_scheme()
+        scheme_dict = dict(scheme)
+
+        # error_on_failの設定オプションを取得
+        error_on_fail_option = scheme_dict["error_on_fail"]
+
+        # Type設定でデフォルトがTrueであることを確認
+        assert isinstance(error_on_fail_option, config_options.Type)
+        assert error_on_fail_option.default is True

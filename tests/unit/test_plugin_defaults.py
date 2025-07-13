@@ -35,7 +35,7 @@ class TestPluginDefaults:
             "cache_enabled": True,
             "cache_dir": ".mermaid_cache",
             "preserve_original": False,
-            "error_on_fail": False,
+            "error_on_fail": True,
             "log_level": "INFO",
         }
 

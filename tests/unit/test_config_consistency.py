@@ -66,7 +66,7 @@ class TestConfigConsistency:
             "cache_enabled": (bool, True),
             "cache_dir": (str, ".mermaid_cache"),
             "preserve_original": (bool, False),
-            "error_on_fail": (bool, False),
+            "error_on_fail": (bool, True),
             "log_level": (str, "INFO"),
         }
 

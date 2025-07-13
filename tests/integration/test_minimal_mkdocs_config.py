@@ -25,11 +25,11 @@ class TestMinimalMkDocsConfig:
         assert plugin.config["output_dir"] == "assets/images"
         assert plugin.config["theme"] == "default"
         assert plugin.config["preserve_original"] is False
-        assert plugin.config["error_on_fail"] is False
+        assert plugin.config["error_on_fail"] is True
         assert plugin.config["log_level"] == "INFO"
         assert plugin.config["cleanup_generated_images"] is False
         assert plugin.config["preserve_original"] is False
-        assert plugin.config["error_on_fail"] is False
+        assert plugin.config["error_on_fail"] is True
         assert plugin.config["log_level"] == "INFO"
 
         # オプショナル設定項目はNoneになっていることを確認

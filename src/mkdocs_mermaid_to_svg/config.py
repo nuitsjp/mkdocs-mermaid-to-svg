@@ -42,7 +42,7 @@ class ConfigManager:
             ),
             (
                 "error_on_fail",
-                config_options.Type(bool, default=False),
+                config_options.Type(bool, default=True),
             ),
             (
                 "log_level",
