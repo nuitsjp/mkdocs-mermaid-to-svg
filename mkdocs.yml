@@ -34,6 +34,7 @@ plugins:
         class:
           htmlLabels: false
   - to-pdf:
+      enabled_if_env: ENABLE_PDF_EXPORT
       cover_subtitle: 'MkDocs Mermaid to Image'
       toc_title: 目次
       toc_level: 3
