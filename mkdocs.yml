@@ -37,4 +37,4 @@ plugins:
       cover_subtitle: 'MkDocs Mermaid to Image'
       toc_title: 目次
       toc_level: 3
-      output_path: MkDocs-Mermaid-to-Image.pdf
+      output_path: mkdocs-mermaid-to-svg.pdf
