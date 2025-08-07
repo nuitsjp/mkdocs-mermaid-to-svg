@@ -7,7 +7,7 @@ MkDocs Mermaid to Image Pluginは、MkDocsビルドプロセス中にMermaidダ�
 ## プロジェクト構成
 
 ```
-mkdocs-mermaid-to-image/
+mkdocs-mermaid-to-svg/
 └── src/
     └── mkdocs_mermaid_to_svg/
         ├── __init__.py             # パッケージ初期化とバージョン情報
@@ -356,7 +356,7 @@ sequenceDiagram
 ```python
 # mkdocs.yml で利用可能な設定オプション
 plugins:
-  - mkdocs-mermaid-to-image:
+  - mkdocs-mermaid-to-svg:
       enabled_if_env: "ENABLE_MERMAID"        # 条件付き有効化のための環境変数
       output_dir: "assets/images"             # 生成画像のディレクトリ
       mermaid_config: {...}                   # Mermaid設定オブジェクトまたはファイルパス

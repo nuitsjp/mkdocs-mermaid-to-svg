@@ -1,10 +1,10 @@
 site_name: MkDocs Mermaid to Image Plugin
-site_url: https://nuitsjp.github.io/mkdocs-mermaid-to-image/
-repo_url: https://github.com/nuitsjp/mkdocs-mermaid-to-image
+site_url: https://nuitsjp.github.io/mkdocs-mermaid-to-svg/
+repo_url: https://github.com/nuitsjp/mkdocs-mermaid-to-svg
 
 theme:
   name: material
-  language: ja
+  language: en
 
 extra_css:
   - stylesheets/pdf-fixes.css
@@ -25,6 +25,15 @@ markdown_extensions:
 
 plugins:
   - search
+  - i18n:
+      languages:
+        - locale: en
+          name: English
+          build: true
+          default: true
+        - locale: ja
+          name: 日本語
+          build: true
   - mermaid-to-svg:
       # PDF生成時の互換性のためHTMLラベルを無効化
       mermaid_config:
@@ -39,3 +48,16 @@ plugins:
       toc_title: 目次
       toc_level: 3
       output_path: mkdocs-mermaid-to-svg.pdf
+
+nav:
+  - Home: index.md
+  - Architecture: architecture/index.md
+
+extra:
+  alternate:
+    - name: English
+      link: /
+      lang: en
+    - name: 日本語
+      link: /ja/
+      lang: ja

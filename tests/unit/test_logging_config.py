@@ -34,7 +34,7 @@ class TestStructuredFormatter:
         )
 
         formatted = formatter.format(record)
-        assert formatted == "[mkdocs-mermaid-to-image] INFO: Test message"
+        assert formatted == "[mkdocs-mermaid-to-svg] INFO: Test message"
 
     def test_format_with_context(self) -> None:
         """Test formatting with context information."""
@@ -52,7 +52,7 @@ class TestStructuredFormatter:
 
         formatted = formatter.format(record)
         expected = (
-            "[mkdocs-mermaid-to-image] INFO: Context message (key1=value1 key2=value2)"
+            "[mkdocs-mermaid-to-svg] INFO: Context message (key1=value1 key2=value2)"
         )
         assert formatted == expected
 
@@ -77,7 +77,7 @@ class TestStructuredFormatter:
 
         formatted = formatter.format(record)
         expected_start = (
-            "[mkdocs-mermaid-to-image] ERROR: Exception occurred\n"
+            "[mkdocs-mermaid-to-svg] ERROR: Exception occurred\n"
             "Traceback (most recent call last):"
         )
         assert formatted.startswith(expected_start)
@@ -98,7 +98,7 @@ class TestStructuredFormatter:
         record.context = "not a dict"
 
         formatted = formatter.format(record)
-        assert formatted == "[mkdocs-mermaid-to-image] INFO: Context message"
+        assert formatted == "[mkdocs-mermaid-to-svg] INFO: Context message"
 
 
 class TestSetupPluginLogging:

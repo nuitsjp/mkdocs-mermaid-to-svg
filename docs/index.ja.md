@@ -9,6 +9,7 @@ MermaidチャートをSVGイメージに変換するMkDocsプラグイン。
 このプラグインはMermaidコードブロックを検出し、SVGイメージに置き換えます。これはPDF出力のようにJavaScriptをサポートしないフォーマットで特に有用です。
 
 - [ドキュメント](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
+- [アーキテクチャ](architecture/index.ja.md)
 
 ## 機能
 
@@ -18,7 +19,7 @@ MermaidチャートをSVGイメージに変換するMkDocsプラグイン。
 - **設定可能**: Mermaidテーマとカスタム設定をサポート
 - **環境制御**: 環境変数により条件付きで有効化可能
 
-## 要件
+## 要件 {#requirements}
 
 このプラグインは事前に[Node.js](https://nodejs.org/)がインストールされている必要があります。
 

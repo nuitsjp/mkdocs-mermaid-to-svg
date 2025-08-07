@@ -18,7 +18,7 @@ class StructuredFormatter(logging.Formatter):
         self.include_caller = include_caller
 
     def format(self, record: logging.LogRecord) -> str:
-        logger_name = "mkdocs-mermaid-to-image"
+        logger_name = "mkdocs-mermaid-to-svg"
         level_name = record.levelname
         message = record.getMessage()
 
