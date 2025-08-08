@@ -57,18 +57,22 @@ def setup_plugin_logging(
 
     logger.setLevel(getattr(logging, level.upper()))
 
+    formatter = StructuredFormatter(include_caller=include_caller)
+
+    # コンソールハンドラー
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(getattr(logging, level.upper()))
-    console_handler.setFormatter(StructuredFormatter(include_caller=include_caller))
+    console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
+    # ファイルハンドラー（オプション）
     if log_file:
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
         file_handler = logging.FileHandler(log_path, encoding="utf-8")
         file_handler.setLevel(getattr(logging, level.upper()))
-        file_handler.setFormatter(StructuredFormatter(include_caller=include_caller))
+        file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
     logger.propagate = False
@@ -121,23 +125,11 @@ def create_error_context(
 def create_performance_context(
     execution_time_ms: float | None = None,
 ) -> LogContext:
-    context: LogContext = {"execution_time_ms": execution_time_ms}
-    return context
-
-
-# setup_plugin_logging()を削除して自動初期化を無効化
+    return LogContext(execution_time_ms=execution_time_ms)
 
 
 def get_logger(name: str) -> logging.Logger:
-    """統一ロガーファクトリー - 全モジュールが使用する標準ロガー取得関数
-
-    Args:
-        name: ロガー名（通常は__name__を使用）
-
-    Returns:
-        設定済みのロガーインスタンス
-    """
-    # プラグインロギングがセットアップされていない場合は初期化
+    """統一ロガーファクトリー - 全モジュールが使用する標準ロガー取得関数"""
     root_logger = logging.getLogger("mkdocs_mermaid_to_image")
     if not root_logger.handlers:
         setup_plugin_logging()

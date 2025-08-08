@@ -46,43 +46,44 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         return True
 
     def on_config(self, config: Any) -> Any:
+        config_dict = dict(self.config)
+        ConfigManager.validate_config(config_dict)
+
+        config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
+
+        if not self._should_be_enabled(self.config):
+            self.logger.info("Mermaid preprocessor plugin is disabled")
+            return config
+
         try:
-            config_dict = dict(self.config)
-            ConfigManager.validate_config(config_dict)
-
-            # verboseモードでない場合は、WARNINGレベルに設定
-            config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
-
-            if not self._should_be_enabled(self.config):
-                self.logger.info("Mermaid preprocessor plugin is disabled")
-                return config
-
             self.processor = MermaidProcessor(config_dict)
-
             self.logger.info("Mermaid preprocessor plugin initialized successfully")
-
-        except (MermaidConfigError, MermaidFileError) as e:
-            self.logger.error(f"Configuration error: {e!s}")
-            raise
-        except FileNotFoundError as e:
-            self.logger.error(f"Required file not found: {e!s}")
-            raise MermaidFileError(
-                f"Required file not found during plugin initialization: {e!s}",
-                operation="read",
-                suggestion="Ensure all required files exist",
-            ) from e
-        except (OSError, PermissionError) as e:
-            self.logger.error(f"File system error: {e!s}")
-            raise MermaidFileError(
-                f"File system error during plugin initialization: {e!s}",
-                operation="access",
-                suggestion="Check file permissions and disk space",
-            ) from e
         except Exception as e:
-            self.logger.error(f"Unexpected error during plugin initialization: {e!s}")
-            raise MermaidConfigError(f"Plugin configuration error: {e!s}") from e
+            self.logger.error(f"Plugin initialization failed: {e!s}")
+            self._handle_init_error(e)
 
         return config
+
+    def _handle_init_error(self, error: Exception) -> None:
+        """Initialize error handling with appropriate exception types."""
+        if isinstance(error, (MermaidConfigError, MermaidFileError)):
+            raise error
+        elif isinstance(error, FileNotFoundError):
+            raise MermaidFileError(
+                f"Required file not found during plugin initialization: {error!s}",
+                operation="read",
+                suggestion="Ensure all required files exist",
+            ) from error
+        elif isinstance(error, (OSError, PermissionError)):
+            raise MermaidFileError(
+                f"File system error during plugin initialization: {error!s}",
+                operation="access",
+                suggestion="Check file permissions and disk space",
+            ) from error
+        else:
+            raise MermaidConfigError(
+                f"Plugin configuration error: {error!s}"
+            ) from error
 
     def on_files(self, files: Any, *, config: Any) -> Any:
         if not self._should_be_enabled(self.config) or not self.processor:
@@ -101,58 +102,48 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         if not (image_paths and self.files):
             return
 
-        from mkdocs.structure.files import File
-
         for image_path in image_paths:
-            image_file_path = Path(image_path)
-            if not image_file_path.exists():
-                self.logger.warning(
-                    f"Generated image file does not exist: {image_path}"
-                )
-                continue
+            self._add_image_file_to_files(image_path, docs_dir, config)
 
-            try:
-                # docs_dirからの相対パスを計算
-                rel_path = image_file_path.relative_to(docs_dir)
-                # パスをUnix形式に正規化（MkDocsの標準）
-                rel_path_str = str(rel_path).replace("\\", "/")
+    def _add_image_file_to_files(
+        self, image_path: str, docs_dir: Path, config: Any
+    ) -> None:
+        """単一の画像ファイルをFilesオブジェクトに追加"""
+        image_file_path = Path(image_path)
+        if not image_file_path.exists():
+            self.logger.warning(f"Generated image file does not exist: {image_path}")
+            return
 
-                # 既存のファイルを効率的に検索して削除（重複回避）
-                self._remove_existing_file_by_path(rel_path_str)
+        try:
+            from mkdocs.structure.files import File
 
-                # 新しいファイルオブジェクトを作成してFilesに追加
-                file_obj = File(
-                    rel_path_str,
-                    str(docs_dir),
-                    str(config["site_dir"]),
-                    use_directory_urls=config.get("use_directory_urls", True),
-                )
-                # Fileオブジェクトのsrc_pathも確実にUnix形式になるよう修正
-                file_obj.src_path = file_obj.src_path.replace("\\", "/")
+            rel_path = image_file_path.relative_to(docs_dir)
+            rel_path_str = str(rel_path).replace("\\", "/")
+
+            self._remove_existing_file_by_path(rel_path_str)
+
+            file_obj = File(
+                rel_path_str,
+                str(docs_dir),
+                str(config["site_dir"]),
+                use_directory_urls=config.get("use_directory_urls", True),
+            )
+            file_obj.src_path = file_obj.src_path.replace("\\", "/")
+            if self.files is not None:
                 self.files.append(file_obj)
 
-            except ValueError as e:
-                self.logger.error(f"Error processing image path {image_path}: {e}")
-                continue
+        except ValueError as e:
+            self.logger.error(f"Error processing image path {image_path}: {e}")
 
     def _remove_existing_file_by_path(self, src_path: str) -> bool:
-        """指定されたsrc_pathを持つファイルを削除する
-
-        Args:
-            src_path: 削除するファイルのsrc_path
-
-        Returns:
-            削除されたファイルがあればTrue、なければFalse
-        """
-        if self.files is None:
+        """指定されたsrc_pathを持つファイルを削除する"""
+        if not self.files:
             return False
 
-        # パス比較のため正規化（Windowsのバックスラッシュをフォワードスラッシュに）
         normalized_src_path = src_path.replace("\\", "/")
 
         for file_obj in self.files:
-            normalized_file_path = file_obj.src_path.replace("\\", "/")
-            if normalized_file_path == normalized_src_path:
+            if file_obj.src_path.replace("\\", "/") == normalized_src_path:
                 self.files.remove(file_obj)
                 return True
         return False
@@ -165,23 +156,16 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             return markdown
 
         try:
-            # ソース側のdocsディレクトリ内に画像を生成
             docs_dir = Path(config["docs_dir"])
             output_dir = docs_dir / self.config["output_dir"]
 
             modified_content, image_paths = self.processor.process_page(
-                page.file.src_path,
-                markdown,
-                output_dir,
-                page_url=page.url,
+                page.file.src_path, markdown, output_dir, page_url=page.url
             )
 
             self.generated_images.extend(image_paths)
-
-            # 生成された画像をFilesオブジェクトに追加
             self._register_generated_images_to_files(image_paths, docs_dir, config)
 
-            # 画像を生成した場合、常にINFOレベルでログを出力
             if image_paths:
                 self.logger.info(
                     f"Generated {len(image_paths)} Mermaid diagrams for "
@@ -190,43 +174,65 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
 
             return modified_content
 
-        except MermaidPreprocessorError as e:
-            self.logger.error(f"Error processing {page.file.src_path}: {e!s}")
-            if self.config["error_on_fail"]:
-                raise
-            return markdown
-
-        except (FileNotFoundError, OSError, PermissionError) as e:
-            self.logger.error(
-                f"File system error processing {page.file.src_path}: {e!s}"
+        except MermaidPreprocessorError:
+            return self._handle_processing_error(
+                page.file.src_path, "preprocessor", None, markdown
             )
+        except (FileNotFoundError, OSError, PermissionError) as e:
+            return self._handle_processing_error(
+                page.file.src_path, "file_system", e, markdown
+            )
+        except ValueError as e:
+            return self._handle_processing_error(
+                page.file.src_path, "validation", e, markdown
+            )
+        except Exception as e:
+            return self._handle_processing_error(
+                page.file.src_path, "unexpected", e, markdown
+            )
+
+    def _handle_processing_error(
+        self,
+        page_path: str,
+        error_type: str,
+        error: Exception | None,
+        fallback_content: str,
+    ) -> str:
+        """統一されたエラー処理ハンドラー"""
+        if error_type == "preprocessor":
+            self.logger.error(f"Error processing {page_path}")
+            if self.config["error_on_fail"]:
+                if error:
+                    raise error
+                else:
+                    raise MermaidPreprocessorError(f"Error processing {page_path}")
+        elif error_type == "file_system":
+            self.logger.error(f"File system error processing {page_path}: {error!s}")
             if self.config["error_on_fail"]:
                 raise MermaidFileError(
-                    f"File system error processing {page.file.src_path}: {e!s}",
-                    file_path=page.file.src_path,
+                    f"File system error processing {page_path}: {error!s}",
+                    file_path=page_path,
                     operation="process",
-                    suggestion="Check file permissions and ensure output "
-                    "directory exists",
-                ) from e
-            return markdown
-        except ValueError as e:
-            self.logger.error(
-                f"Validation error processing {page.file.src_path}: {e!s}"
-            )
+                    suggestion=(
+                        "Check file permissions and ensure output directory exists"
+                    ),
+                ) from error
+        elif error_type == "validation":
+            self.logger.error(f"Validation error processing {page_path}: {error!s}")
             if self.config["error_on_fail"]:
                 raise MermaidValidationError(
-                    f"Validation error processing {page.file.src_path}: {e!s}",
+                    f"Validation error processing {page_path}: {error!s}",
                     validation_type="page_processing",
-                    invalid_value=page.file.src_path,
-                ) from e
-            return markdown
-        except Exception as e:
-            self.logger.error(
-                f"Unexpected error processing {page.file.src_path}: {e!s}"
-            )
+                    invalid_value=page_path,
+                ) from error
+        else:  # unexpected
+            self.logger.error(f"Unexpected error processing {page_path}: {error!s}")
             if self.config["error_on_fail"]:
-                raise MermaidPreprocessorError(f"Unexpected error: {e!s}") from e
-            return markdown
+                raise MermaidPreprocessorError(
+                    f"Unexpected error: {error!s}"
+                ) from error
+
+        return fallback_content
 
     def on_page_markdown(
         self, markdown: str, *, page: Any, config: Any, files: Any

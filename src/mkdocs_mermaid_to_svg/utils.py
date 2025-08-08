@@ -13,7 +13,6 @@ def generate_image_filename(
     page_file: str, block_index: int, mermaid_code: str, image_format: str
 ) -> str:
     page_name = Path(page_file).stem
-
     code_hash = hashlib.md5(
         mermaid_code.encode("utf-8"), usedforsecurity=False
     ).hexdigest()[:8]  # nosec B324
@@ -27,20 +26,23 @@ def ensure_directory(directory: str) -> None:
 
 def get_temp_file_path(suffix: str = ".mmd") -> str:
     fd, path = tempfile.mkstemp(suffix=suffix)
-
     os.close(fd)
-
     return path
+
+
+def clean_temp_file(file_path: str) -> None:
+    """一時ファイルをクリーンアップする"""
+    logger = get_logger(__name__)
+    clean_file_with_error_handling(file_path, logger, "temp_cleanup")
 
 
 def _get_cleanup_suggestion(error_type: str) -> str:
     """Get contextual suggestion based on error type."""
-    if error_type == "PermissionError":
-        return "Check file permissions or run with privileges"
-    elif error_type == "OSError":
-        return "File may be locked by another process"
-    else:
-        return "Try again or check system logs for details"
+    suggestions = {
+        "PermissionError": "Check file permissions or run with privileges",
+        "OSError": "File may be locked by another process",
+    }
+    return suggestions.get(error_type, "Try again or check system logs for details")
 
 
 def clean_file_with_error_handling(
@@ -48,18 +50,7 @@ def clean_file_with_error_handling(
     logger: logging.Logger | None = None,
     operation_type: str = "cleanup",
 ) -> tuple[bool, bool]:
-    """ファイル削除の共通処理（エラーハンドリング付き）
-
-    Args:
-        file_path: 削除するファイルのパス
-        logger: ロガーインスタンス（Noneの場合はログ出力なし）
-        operation_type: 操作の種類（ログ出力用）
-
-    Returns:
-        Tuple of (success, had_error) where:
-        - success: True if file was successfully deleted
-        - had_error: True if there was an actual error (not just non-existence)
-    """
+    """ファイル削除の共通処理（エラーハンドリング付き）"""
     if not file_path:
         return False, False
 
@@ -71,7 +62,7 @@ def clean_file_with_error_handling(
             if logger:
                 logger.debug(f"Successfully cleaned file: {file_path}")
             return True, False
-        return False, False  # File doesn't exist, not an error
+        return False, False
     except (PermissionError, OSError) as e:
         error_type = type(e).__name__
         if logger:
@@ -87,13 +78,7 @@ def clean_file_with_error_handling(
                     }
                 },
             )
-        return False, True  # Actual error occurred
-
-
-def clean_temp_file(file_path: str) -> None:
-    """一時ファイルをクリーンアップする"""
-    logger = get_logger(__name__)
-    clean_file_with_error_handling(file_path, logger, "temp_cleanup")
+        return False, True
 
 
 def get_relative_path(file_path: str, base_path: str) -> str:
@@ -104,9 +89,7 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 
     try:
         rel_path = os.path.relpath(file_path, base_path)
-        # Unix風のパス区切り文字に正規化（MkDocsは内部的にUnix風パスを使用）
-        normalized_path = rel_path.replace(os.sep, "/")
-        return normalized_path
+        return rel_path.replace(os.sep, "/")
     except ValueError as e:
         logger.warning(
             f"Cannot calculate relative path from {base_path} to {file_path}",
@@ -125,26 +108,14 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 
 
 def is_command_available(command: str) -> bool:
-    """Check if a command is available and working by executing version check
-
-    This function checks if a command is available by executing it with version flags.
-    This approach works better on Windows where commands might be .ps1 scripts.
-
-    Args:
-        command: Command string to check (e.g., 'mmdc' or 'npx mmdc')
-
-    Returns:
-        True if command exists and works, False otherwise
-    """
+    """Check if a command is available and working by executing version check"""
     if not command:
         return False
 
-    # Split command to get the first part (actual executable)
     command_parts = command.split()
     if not command_parts:
         return False
 
-    # Try to execute the command to verify it works
     logger = get_logger(__name__)
     logger.debug(f"Checking if command '{command}' is working...")
 
@@ -154,29 +125,15 @@ def is_command_available(command: str) -> bool:
 def _verify_command_execution(
     command_parts: list[str], command: str, logger: logging.Logger
 ) -> bool:
-    """Verify that a command can be executed successfully
-
-    Args:
-        command_parts: Split command parts list
-        command: Original command string for logging
-        logger: Logger instance
-
-    Returns:
-        True if any version check succeeds, False otherwise
-    """
-    # Try version check first, fallback to help if needed
+    """Verify that a command can be executed successfully"""
     version_flags = ["--version", "-v", "--help"]
 
     for flag in version_flags:
         try:
-            # On Windows, use shell=True to handle .ps1 scripts properly
             use_shell = platform.system() == "Windows"
 
             if use_shell:
-                # On Windows, explicitly use cmd.exe to avoid issues with Git Bash
                 version_cmd_str = " ".join([*command_parts, flag])
-                # Use cmd.exe explicitly to handle npm/node commands properly
-                # Input is controlled internally, not from external user input
                 result = subprocess.run(  # nosec B603,B602,B607
                     ["cmd", "/c", version_cmd_str],
                     capture_output=True,
@@ -186,7 +143,6 @@ def _verify_command_execution(
                     shell=False,  # nosec B603
                 )
             else:
-                # For shell=False, command should be a list
                 version_cmd = [*command_parts, flag]
                 result = subprocess.run(  # nosec B603
                     version_cmd,
@@ -194,10 +150,9 @@ def _verify_command_execution(
                     text=True,
                     timeout=5,
                     check=False,
-                    shell=False,  # nosec B603
+                    shell=False,
                 )
 
-            # If command executes successfully (return code 0 or 1 for help commands)
             if result.returncode in [0, 1]:
                 logger.debug(
                     f"Command '{command}' is available and working "
@@ -205,17 +160,10 @@ def _verify_command_execution(
                 )
                 return True
 
-        except subprocess.TimeoutExpired:
-            logger.debug(f"Command '{command}' timed out during '{flag}' check")
-            continue
-        except (FileNotFoundError, OSError) as e:
-            logger.debug(f"Command '{command}' execution failed with '{flag}': {e}")
-            continue
-        except Exception as e:
-            logger.debug(f"Unexpected error checking '{command}' with '{flag}': {e}")
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError, Exception) as e:
+            logger.debug(f"Command '{command}' check failed with '{flag}': {e}")
             continue
 
-    # If all version checks failed, command is not working
     logger.debug(f"Command '{command}' exists but is not working properly")
     return False
 

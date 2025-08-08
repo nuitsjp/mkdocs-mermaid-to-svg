@@ -14,40 +14,41 @@ class MarkdownProcessor:
     def extract_mermaid_blocks(self, markdown_content: str) -> list[MermaidBlock]:
         blocks = []
 
-        basic_pattern = r"```mermaid\s*\n(.*?)\n```"
-
+        # 属性付きパターンを先に処理
         attr_pattern = r"```mermaid\s*\{([^}]*)\}\s*\n(.*?)\n```"
-
         for match in re.finditer(attr_pattern, markdown_content, re.DOTALL):
-            attr_str = match.group(1).strip()
-            code = match.group(2).strip()
-
-            attributes = self._parse_attributes(attr_str)
-
+            attributes = self._parse_attributes(match.group(1).strip())
             block = MermaidBlock(
-                code=code,
+                code=match.group(2).strip(),
                 start_pos=match.start(),
                 end_pos=match.end(),
                 attributes=attributes,
             )
             blocks.append(block)
 
+        # 基本パターンを処理（重複チェック付き）
+        basic_pattern = r"```mermaid\s*\n(.*?)\n```"
         for match in re.finditer(basic_pattern, markdown_content, re.DOTALL):
-            overlaps = any(
-                match.start() >= block.start_pos and match.end() <= block.end_pos
-                for block in blocks
-            )
-            if not overlaps:
-                code = match.group(1).strip()
+            if not self._overlaps_with_existing_blocks(match, blocks):
                 block = MermaidBlock(
-                    code=code, start_pos=match.start(), end_pos=match.end()
+                    code=match.group(1).strip(),
+                    start_pos=match.start(),
+                    end_pos=match.end(),
                 )
                 blocks.append(block)
 
         blocks.sort(key=lambda x: x.start_pos)
-
         self.logger.info(f"Found {len(blocks)} Mermaid blocks")
         return blocks
+
+    def _overlaps_with_existing_blocks(
+        self, match: re.Match[str], blocks: list[MermaidBlock]
+    ) -> bool:
+        """マッチが既存ブロックと重複するかチェック"""
+        return any(
+            match.start() >= block.start_pos and match.end() <= block.end_pos
+            for block in blocks
+        )
 
     def _parse_attributes(self, attr_str: str) -> dict[str, Any]:
         attributes = {}
