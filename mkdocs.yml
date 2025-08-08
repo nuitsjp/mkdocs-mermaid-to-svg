@@ -25,15 +25,6 @@ markdown_extensions:
 
 plugins:
   - search
-  - i18n:
-      languages:
-        - locale: en
-          name: English
-          build: true
-          default: true
-        - locale: ja
-          name: 日本語
-          build: true
   - mermaid-to-svg:
       # PDF生成時の互換性のためHTMLラベルを無効化
       mermaid_config:
@@ -52,12 +43,3 @@ plugins:
 nav:
   - Home: index.md
   - Architecture: architecture/index.md
-
-extra:
-  alternate:
-    - name: English
-      link: /
-      lang: en
-    - name: 日本語
-      link: /ja/
-      lang: ja
