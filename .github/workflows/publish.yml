@@ -74,7 +74,7 @@ jobs:
       id-token: write
       contents: write  # GitHub Release作成用
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

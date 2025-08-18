@@ -28,7 +28,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0  # full history for better blame info
 
@@ -56,7 +56,7 @@ jobs:
     name: Type Check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
@@ -83,7 +83,7 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
@@ -143,7 +143,7 @@ jobs:
   #   needs: [lint, type-check, test]
   #   runs-on: ubuntu-latest
   #   steps:
-  #   - uses: actions/checkout@v4
+  #   - uses: actions/checkout@v5
 
   #   - name: Install uv
   #     uses: astral-sh/setup-uv@v3
@@ -167,7 +167,7 @@ jobs:
   #   name: Build Documentation
   #   runs-on: ubuntu-latest
   #   steps:
-  #   - uses: actions/checkout@v4
+  #   - uses: actions/checkout@v5
 
   #   - name: Install uv
   #     uses: astral-sh/setup-uv@v3
