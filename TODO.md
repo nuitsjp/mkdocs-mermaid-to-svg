@@ -1,4 +1,4 @@
-- [x] `MermaidBlock.get_image_markdown` で `output_dir` 設定を反映するロジックに改修する。現状は `assets/images` がハードコードされており、`mkdocs.yml` で出力先を変更すると生成済み SVG へのリンクが壊れてしまうため。
-- [x] `MermaidImageGenerator._build_mmdc_command` でユーザー指定の `puppeteer_config` がある場合はデフォルトの一時設定ファイルを追加しないようにする。現在は `-p` オプションが二重指定され、利用者の Puppeteer 設定が意図どおり適用されないリスクがあるため。
-- [x] `MermaidImageGenerator._validate_dependencies` で CLI パスを安全に分解できるように `shlex.split` などを用いる。空白を含むカスタムパスを設定した際に正しく検出できず Windows 環境で初期化に失敗する可能性を避けるため。
-- [x] ランタイム依存関係から `numpy` および `pillow`（必要なら `mkdocs-material`）を外し、テスト／ドキュメント用のオプション依存に分離する。プラグイン利用者が不要な重量パッケージをインストールせずに済み、配布サイズと脆弱性リスクを抑えられるため。
+- [ ] `utils.is_command_available` を `shlex.split` ベースに書き直し、`MermaidImageGenerator` と同じコマンド分解ロジックを共有する。現状は `str.split()` 依存のため空白を含む CLI パスで誤検知が発生し、プラグイン初期化が失敗するリスクがある。
+- [ ] 生成画像の参照パス計算を `MermaidProcessor` から `MermaidBlock.get_image_markdown` へ渡す `docs_dir` / `output_dir` 情報を用いて行うよう見直す。文字列再構成に頼っている現状では絶対パス指定や入れ子構成でリンクが壊れる可能性が残っている。
+- [ ] `MermaidImageGenerator` のコマンド解決・一時ファイル生成・CLI 実行責務を分離し、テストしやすい小さな協調クラスへ再構成する。単一クラスへロジックが集中しており、将来のエラー分岐追加時に影響範囲が読みにくい状態を解消する。
+- [ ] `MarkdownProcessor._parse_attributes` の実装を強化し、引用符付き値やカンマを含む属性を安全に扱えるパーサーに置き換える。単純な `split(",")` では複雑な Mermaid 属性指定が正しく反映されず、ブロック属性が欠落する恐れがある。

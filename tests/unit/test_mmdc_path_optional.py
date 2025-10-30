@@ -58,4 +58,4 @@ class TestMmdcPathOptional:
             generator = MermaidImageGenerator(config)
 
             # デフォルトの"mmdc"コマンドが使用されることを確認
-            assert generator._resolved_mmdc_command == "mmdc"
+            assert generator._resolved_mmdc_command == ["mmdc"]
