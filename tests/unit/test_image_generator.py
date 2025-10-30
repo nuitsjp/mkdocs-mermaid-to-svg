@@ -269,6 +269,27 @@ class TestMermaidImageGenerator:
         assert str(mermaid_file) in cmd
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_build_mmdc_command_user_puppeteer_config_without_default(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        """ユーザー指定のPuppeteer設定がある場合はデフォルト設定を追加しない"""
+        mock_command_available.return_value = True
+
+        user_puppeteer_config = tmp_path / "puppeteer.json"
+        user_puppeteer_config.write_text('{"args": ["--no-sandbox"]}')
+
+        basic_config["puppeteer_config"] = str(user_puppeteer_config)
+        generator = MermaidImageGenerator(basic_config)
+
+        cmd, puppeteer_config_file, _ = generator._build_mmdc_command(
+            "input.mmd", "output.png", basic_config
+        )
+
+        assert cmd.count("-p") == 1
+        assert str(user_puppeteer_config) in cmd
+        assert puppeteer_config_file is None
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     @patch("os.getenv")
     def test_build_mmdc_command_with_missing_optional_files(
         self, mock_getenv, mock_command_available, basic_config

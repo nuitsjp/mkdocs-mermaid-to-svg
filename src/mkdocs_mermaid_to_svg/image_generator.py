@@ -307,19 +307,20 @@ class MermaidImageGenerator:
         if mermaid_config_file:
             cmd.extend(["-c", mermaid_config_file])
 
-        puppeteer_config_file = self._create_puppeteer_config()
-        cmd.extend(["-p", puppeteer_config_file])
-
         if self.config.get("css_file"):
             cmd.extend(["-C", self.config["css_file"]])
 
+        puppeteer_config_file: str | None = None
         custom_puppeteer_config = self.config.get("puppeteer_config")
         if custom_puppeteer_config and Path(custom_puppeteer_config).exists():
             cmd.extend(["-p", custom_puppeteer_config])
-        elif custom_puppeteer_config:
-            self.logger.warning(
-                f"Puppeteer config file not found: {custom_puppeteer_config}"
-            )
+        else:
+            puppeteer_config_file = self._create_puppeteer_config()
+            cmd.extend(["-p", puppeteer_config_file])
+            if custom_puppeteer_config:
+                self.logger.warning(
+                    f"Puppeteer config file not found: {custom_puppeteer_config}"
+                )
 
         return cmd, puppeteer_config_file, mermaid_config_file
 
