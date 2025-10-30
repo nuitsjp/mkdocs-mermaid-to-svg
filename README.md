@@ -9,6 +9,7 @@ An MkDocs plugin to convert Mermaid charts to SVG images.
 This plugin detects Mermaid code blocks and replaces them with SVG images. This is especially useful for formats that don't support JavaScript, like PDF output.
 
 - [Documentation](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
+- [DeepWiki](https://deepwiki.com/nuitsjp/mkdocs-mermaid-to-svg)
 
 ## Features
 
