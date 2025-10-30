@@ -290,6 +290,29 @@ class TestMermaidImageGenerator:
         assert puppeteer_config_file is None
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_build_mmdc_command_with_spaces_in_mmdc_path(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        """空白を含む mmdc パスでもコマンドが正しく生成されることをテスト"""
+        path_with_space = tmp_path / "Program Files" / "Mermaid CLI" / "mmdc"
+        quoted_path = f'"{path_with_space}"'
+        custom_config = basic_config.copy()
+        custom_config["mmdc_path"] = quoted_path
+
+        mock_command_available.side_effect = (
+            lambda command: command == quoted_path
+        )
+
+        MermaidImageGenerator.clear_command_cache()
+        generator = MermaidImageGenerator(custom_config)
+
+        cmd, _, _ = generator._build_mmdc_command(
+            "input.mmd", "output.svg", custom_config
+        )
+
+        assert cmd[0] == str(path_with_space)
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     @patch("os.getenv")
     def test_build_mmdc_command_with_missing_optional_files(
         self, mock_getenv, mock_command_available, basic_config
@@ -1310,7 +1333,7 @@ class TestMermaidImageGenerator:
         mock_command_available.side_effect = mock_availability
 
         generator = MermaidImageGenerator(basic_config)
-        assert generator._resolved_mmdc_command == "npx mmdc"
+        assert generator._resolved_mmdc_command == ["npx", "mmdc"]
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_debug_logging_enabled(self, mock_command_available, basic_config):

@@ -1,4 +1,4 @@
 - [x] `MermaidBlock.get_image_markdown` で `output_dir` 設定を反映するロジックに改修する。現状は `assets/images` がハードコードされており、`mkdocs.yml` で出力先を変更すると生成済み SVG へのリンクが壊れてしまうため。
 - [x] `MermaidImageGenerator._build_mmdc_command` でユーザー指定の `puppeteer_config` がある場合はデフォルトの一時設定ファイルを追加しないようにする。現在は `-p` オプションが二重指定され、利用者の Puppeteer 設定が意図どおり適用されないリスクがあるため。
-- [ ] `MermaidImageGenerator._validate_dependencies` で CLI パスを安全に分解できるように `shlex.split` などを用いる。空白を含むカスタムパスを設定した際に正しく検出できず Windows 環境で初期化に失敗する可能性を避けるため。
+- [x] `MermaidImageGenerator._validate_dependencies` で CLI パスを安全に分解できるように `shlex.split` などを用いる。空白を含むカスタムパスを設定した際に正しく検出できず Windows 環境で初期化に失敗する可能性を避けるため。
 - [ ] ランタイム依存関係から `numpy` および `pillow`（必要なら `mkdocs-material`）を外し、テスト／ドキュメント用のオプション依存に分離する。プラグイン利用者が不要な重量パッケージをインストールせずに済み、配布サイズと脆弱性リスクを抑えられるため。

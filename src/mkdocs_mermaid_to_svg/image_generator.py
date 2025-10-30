@@ -1,6 +1,7 @@
 import json
 import os
 import platform
+import shlex
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
@@ -18,12 +19,12 @@ from .utils import (
 
 class MermaidImageGenerator:
     # Class-level command cache for performance optimization
-    _command_cache: ClassVar[dict[str, str]] = {}
+    _command_cache: ClassVar[dict[str, tuple[str, ...]]] = {}
 
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
         self.logger = get_logger(__name__)
-        self._resolved_mmdc_command: str | None = None
+        self._resolved_mmdc_command: list[str] | None = None
         self._validate_dependencies()
 
     @classmethod
@@ -41,20 +42,24 @@ class MermaidImageGenerator:
         primary_command = self.config.get("mmdc_path", "mmdc")
 
         # Check cache first
-        if primary_command in self._command_cache:
-            self._resolved_mmdc_command = self._command_cache[primary_command]
+        cached_command = self._command_cache.get(primary_command)
+        if cached_command:
+            self._resolved_mmdc_command = list(cached_command)
             self.logger.debug(
-                f"Using cached mmdc command: {self._resolved_mmdc_command} "
-                f"(cache size: {len(self._command_cache)})"
+                "Using cached mmdc command: %s (cache size: %d)",
+                " ".join(self._resolved_mmdc_command),
+                len(self._command_cache),
             )
             return
 
         # Try primary command first
         if is_command_available(primary_command):
-            self._resolved_mmdc_command = primary_command
-            self._command_cache[primary_command] = primary_command
+            command_parts = self._split_command(primary_command)
+            self._resolved_mmdc_command = command_parts
+            self._command_cache[primary_command] = tuple(command_parts)
             self.logger.debug(
-                f"Using primary mmdc command: {primary_command} (cached for future use)"
+                "Using primary mmdc command: %s (cached for future use)",
+                " ".join(command_parts),
             )
             return
 
@@ -69,11 +74,13 @@ class MermaidImageGenerator:
 
         # Try fallback command
         if is_command_available(fallback_command):
-            self._resolved_mmdc_command = fallback_command
-            self._command_cache[primary_command] = fallback_command
+            command_parts = self._split_command(fallback_command)
+            self._resolved_mmdc_command = command_parts
+            self._command_cache[primary_command] = tuple(command_parts)
             self.logger.info(
-                f"Primary command '{primary_command}' not found, "
-                f"using fallback: {fallback_command} (cached for future use)"
+                "Primary command '%s' not found, using fallback: %s (cached for future use)",
+                primary_command,
+                " ".join(command_parts),
             )
             return
 
@@ -83,6 +90,20 @@ class MermaidImageGenerator:
             f"'{fallback_command}'. Please install it with: "
             f"npm install @mermaid-js/mermaid-cli"
         )
+
+    @staticmethod
+    def _split_command(command: str) -> list[str]:
+        """Split a CLI command safely, preserving quoted segments."""
+        if not command:
+            return []
+
+        posix_mode = os.name != "nt"
+        try:
+            parts = shlex.split(command, posix=posix_mode)
+        except ValueError:
+            return [command]
+
+        return parts if parts else [command]
 
     def generate(
         self,
@@ -287,7 +308,7 @@ class MermaidImageGenerator:
         if not self._resolved_mmdc_command:
             raise MermaidCLIError("Mermaid CLI command not properly resolved")
 
-        mmdc_command_parts = self._resolved_mmdc_command.split()
+        mmdc_command_parts = list(self._resolved_mmdc_command)
 
         cmd = [
             *mmdc_command_parts,
