@@ -52,15 +52,68 @@ class MarkdownProcessor:
         )
 
     def _parse_attributes(self, attr_str: str) -> dict[str, Any]:
-        attributes = {}
-        if attr_str:
-            for attr in attr_str.split(","):
-                if ":" in attr:
-                    key, value = attr.split(":", 1)
-                    key = key.strip()
-                    value = value.strip().strip("\"'")
-                    attributes[key] = value
+        attributes: dict[str, Any] = {}
+        if not attr_str:
+            return attributes
+
+        parsed_items = self._split_attribute_string(attr_str)
+
+        for attr in parsed_items:
+            if ":" not in attr:
+                continue
+
+            key, value = attr.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+
+            if not key:
+                continue
+
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+                quote = value[0]
+                inner = value[1:-1]
+                value = inner.replace(f"\\{quote}", quote)
+
+            attributes[key] = value
+
         return attributes
+
+    @staticmethod
+    def _split_attribute_string(attr_str: str) -> list[str]:
+        parts: list[str] = []
+        buf: list[str] = []
+        in_quote: str | None = None
+        escape_next = False
+
+        for ch in attr_str:
+            if escape_next:
+                buf.append(ch)
+                escape_next = False
+                continue
+
+            if ch == "\\":
+                escape_next = True
+                continue
+
+            if ch in {'"', "'"}:
+                if in_quote == ch:
+                    in_quote = None
+                elif in_quote is None:
+                    in_quote = ch
+                buf.append(ch)
+                continue
+
+            if ch == "," and in_quote is None:
+                parts.append("".join(buf).strip())
+                buf = []
+                continue
+
+            buf.append(ch)
+
+        if buf:
+            parts.append("".join(buf).strip())
+
+        return parts
 
     def replace_blocks_with_images(  # noqa: PLR0913
         self,

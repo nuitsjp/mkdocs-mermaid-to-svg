@@ -137,6 +137,20 @@ sequenceDiagram
         expected = {"theme": "dark"}
         assert result == expected
 
+    def test_parse_attributes_with_commas_in_values(self, basic_config):
+        """カンマや引用符を含む値を正しく扱えるかテスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        attr_str = 'title: "Flow, Step", note: "Use, carefully", theme: dark'
+
+        result = processor._parse_attributes(attr_str)
+
+        assert result == {
+            "title": "Flow, Step",
+            "note": "Use, carefully",
+            "theme": "dark",
+        }
+
     def test_replace_blocks_with_images_basic(self, basic_config):
         """画像Markdownへの置換の基本テスト"""
         processor = MarkdownProcessor(basic_config)
