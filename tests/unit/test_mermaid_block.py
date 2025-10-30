@@ -109,6 +109,18 @@ class TestMermaidBlock:
         # サブディレクトリのページからは相対パスで参照する
         assert result == "![Mermaid Diagram](../assets/images/test.png)"
 
+    def test_get_image_markdown_respects_custom_output_dir(self):
+        """output_dir 設定を反映した画像Markdownが生成されることをテスト（Red）"""
+        block = MermaidBlock("graph TD\n A --> B", 0, 20)
+
+        result = block.get_image_markdown(
+            "/home/user/docs/assets/custom/test.svg",
+            "development/page.md",
+            output_dir="assets/custom",
+        )
+
+        assert result == "![Mermaid Diagram](../assets/custom/test.svg)"
+
     def test_get_filename(self):
         """ファイル名生成のテスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)

@@ -86,7 +86,8 @@ class MarkdownProcessor:
             image_markdown = block.get_image_markdown(
                 image_path,
                 page_file,
-                page_url,
+                page_url=page_url,
+                output_dir=self.config.get("output_dir", "assets/images"),
             )
 
             result = (

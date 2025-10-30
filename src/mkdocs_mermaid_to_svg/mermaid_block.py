@@ -69,18 +69,40 @@ class MermaidBlock:
         image_path: str,
         page_file: str,
         page_url: str = "",
+        output_dir: str | None = None,
     ) -> str:
         image_path_obj = Path(image_path)
 
         # 相対パスプレフィックスを計算
         relative_prefix = _calculate_relative_path_prefix(page_file)
 
-        # 相対パス付きで画像パスを構築
-        relative_image_path = f"{relative_prefix}assets/images/{image_path_obj.name}"
+        normalized_output_dir = self._normalize_output_dir(output_dir)
 
-        image_markdown = f"![Mermaid Diagram]({relative_image_path})"
+        if normalized_output_dir:
+            relative_image_path = (
+                f"{normalized_output_dir}/{image_path_obj.name}".replace("//", "/")
+            )
+        else:
+            relative_image_path = image_path_obj.name
+
+        image_markdown = f"![Mermaid Diagram]({relative_prefix}{relative_image_path})"
 
         return image_markdown
+
+    @staticmethod
+    def _normalize_output_dir(output_dir: str | None) -> str:
+        """Pluginのoutput_dir設定をMarkdown用の相対パスに正規化"""
+        default_dir = "assets/images"
+
+        if not output_dir:
+            return default_dir
+
+        normalized = Path(output_dir).as_posix().strip("/")
+
+        if normalized in {"", "."}:
+            return ""
+
+        return normalized
 
     def get_filename(self, page_file: str, index: int, image_format: str) -> str:
         return generate_image_filename(page_file, index, self.code, image_format)

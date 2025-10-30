@@ -167,7 +167,10 @@ More content."""
         assert "![Mermaid Diagram](assets/images/test.png)" in result
         assert "```mermaid" not in result
         mock_block.get_image_markdown.assert_called_once_with(
-            "/path/to/test.png", "test.md", ""
+            "/path/to/test.png",
+            "test.md",
+            page_url="",
+            output_dir="assets/images",
         )
 
     def test_replace_blocks_mismatched_lengths(self, basic_config):
