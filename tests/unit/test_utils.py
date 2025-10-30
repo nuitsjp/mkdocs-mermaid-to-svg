@@ -181,6 +181,20 @@ class TestUtilityFunctions:
         mock_run.assert_called()
 
     @patch("subprocess.run")
+    def test_is_command_available_command_with_spaces(self, mock_run):
+        """空白を含むコマンドパスでも正しくチェックできることをテスト（Red）"""
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "custom mmdc version"
+
+        command = '/usr/local/bin/Program Files/Mermaid CLI/mmdc'
+        result = is_command_available(command)
+
+        assert result is True
+        # 空白を含むパスが分割されず、そのまま引数として渡されることを期待
+        called_args = mock_run.call_args[0][0]
+        assert command in called_args
+
+    @patch("subprocess.run")
     def test_is_command_available_npx_command_package_not_found(self, mock_run):
         """npxは存在するがパッケージが見つからない場合のテスト"""
         mock_run.return_value.returncode = 2  # 失敗ケース（0,1以外）

@@ -14,6 +14,7 @@ from .utils import (
     ensure_directory,
     get_temp_file_path,
     is_command_available,
+    split_command,
 )
 
 
@@ -54,7 +55,7 @@ class MermaidImageGenerator:
 
         # Try primary command first
         if is_command_available(primary_command):
-            command_parts = self._split_command(primary_command)
+            command_parts = split_command(primary_command)
             self._resolved_mmdc_command = command_parts
             self._command_cache[primary_command] = tuple(command_parts)
             self.logger.debug(
@@ -74,7 +75,7 @@ class MermaidImageGenerator:
 
         # Try fallback command
         if is_command_available(fallback_command):
-            command_parts = self._split_command(fallback_command)
+            command_parts = split_command(fallback_command)
             self._resolved_mmdc_command = command_parts
             self._command_cache[primary_command] = tuple(command_parts)
             self.logger.info(
@@ -90,20 +91,6 @@ class MermaidImageGenerator:
             f"'{fallback_command}'. Please install it with: "
             f"npm install @mermaid-js/mermaid-cli"
         )
-
-    @staticmethod
-    def _split_command(command: str) -> list[str]:
-        """Split a CLI command safely, preserving quoted segments."""
-        if not command:
-            return []
-
-        posix_mode = os.name != "nt"
-        try:
-            parts = shlex.split(command, posix=posix_mode)
-        except ValueError:
-            return [command]
-
-        return parts if parts else [command]
 
     def generate(
         self,

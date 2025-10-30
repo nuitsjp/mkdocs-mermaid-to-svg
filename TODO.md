@@ -1,4 +1,4 @@
-- [ ] `utils.is_command_available` を `shlex.split` ベースに書き直し、`MermaidImageGenerator` と同じコマンド分解ロジックを共有する。現状は `str.split()` 依存のため空白を含む CLI パスで誤検知が発生し、プラグイン初期化が失敗するリスクがある。
+- [x] `utils.is_command_available` を `shlex.split` ベースに書き直し、`MermaidImageGenerator` と同じコマンド分解ロジックを共有する。現状は `str.split()` 依存のため空白を含む CLI パスで誤検知が発生し、プラグイン初期化が失敗するリスクがある。
 - [ ] 生成画像の参照パス計算を `MermaidProcessor` から `MermaidBlock.get_image_markdown` へ渡す `docs_dir` / `output_dir` 情報を用いて行うよう見直す。文字列再構成に頼っている現状では絶対パス指定や入れ子構成でリンクが壊れる可能性が残っている。
 - [ ] `MermaidImageGenerator` のコマンド解決・一時ファイル生成・CLI 実行責務を分離し、テストしやすい小さな協調クラスへ再構成する。単一クラスへロジックが集中しており、将来のエラー分岐追加時に影響範囲が読みにくい状態を解消する。
 - [ ] `MarkdownProcessor._parse_attributes` の実装を強化し、引用符付き値やカンマを含む属性を安全に扱えるパーサーに置き換える。単純な `split(",")` では複雑な Mermaid 属性指定が正しく反映されず、ブロック属性が欠落する恐れがある。

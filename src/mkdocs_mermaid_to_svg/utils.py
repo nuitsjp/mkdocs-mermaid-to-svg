@@ -2,9 +2,11 @@ import hashlib
 import logging
 import os
 import platform
+import shlex
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
+from typing import Iterable, List
 
 from .logging_config import get_logger
 
@@ -112,20 +114,81 @@ def is_command_available(command: str) -> bool:
     if not command:
         return False
 
-    command_parts = command.split()
-    if not command_parts:
-        return False
-
     logger = get_logger(__name__)
     logger.debug(f"Checking if command '{command}' is working...")
+    command_parts = split_command(command)
+    if not command_parts:
+        return False
 
     return _verify_command_execution(command_parts, command, logger)
 
 
+def split_command(command: str) -> list[str]:
+    """Split command string safely, preserving quoted segments."""
+    trimmed = command.strip()
+    if not trimmed:
+        return []
+
+    posix_mode = os.name != "nt"
+    try:
+        parts = shlex.split(trimmed, posix=posix_mode)
+    except ValueError:
+        return [trimmed]
+
+    if not parts:
+        return [trimmed]
+
+    if _should_treat_as_single_path(trimmed, parts):
+        return [trimmed]
+
+    return parts
+
+
+def _should_treat_as_single_path(command: str, parts: list[str]) -> bool:
+    """Heuristic to keep entire command as single path when it looks like a file path."""
+    if len(parts) <= 1:
+        return False
+
+    has_space = " " in command
+    if not has_space:
+        return False
+
+    # On Windows, os.sep is "\", but command may include "/" as well (e.g. MSYS). Check both.
+    path_separators = [os.sep]
+    if os.sep != "/":
+        path_separators.append("/")
+    if os.sep != "\\":
+        path_separators.append("\\")
+
+    if not any(sep in command for sep in path_separators):
+        return False
+
+    lowered = command.lower()
+    known_prefixes = (
+        "npx ",
+        "npm ",
+        "pnpm ",
+        "yarn ",
+        "node ",
+        "python ",
+        "pip ",
+        "uv ",
+        "cmd ",
+        "powershell ",
+        "pwsh ",
+    )
+
+    if any(lowered.startswith(prefix) for prefix in known_prefixes):
+        return False
+
+    return True
+
+
 def _verify_command_execution(
-    command_parts: list[str], command: str, logger: logging.Logger
+    command_parts: Iterable[str], command: str, logger: logging.Logger
 ) -> bool:
-    """Verify that a command can be executed successfully"""
+    """Verify that a command can be executed successfully."""
+    parts_list: List[str] = list(command_parts)
     version_flags = ["--version", "-v", "--help"]
 
     for flag in version_flags:
@@ -133,7 +196,7 @@ def _verify_command_execution(
             use_shell = platform.system() == "Windows"
 
             if use_shell:
-                version_cmd_str = " ".join([*command_parts, flag])
+                version_cmd_str = " ".join([*parts_list, flag])
                 result = subprocess.run(  # nosec B603,B602,B607
                     ["cmd", "/c", version_cmd_str],
                     capture_output=True,
@@ -143,7 +206,7 @@ def _verify_command_execution(
                     shell=False,  # nosec B603
                 )
             else:
-                version_cmd = [*command_parts, flag]
+                version_cmd = [*parts_list, flag]
                 result = subprocess.run(  # nosec B603
                     version_cmd,
                     capture_output=True,
