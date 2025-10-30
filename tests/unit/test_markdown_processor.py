@@ -171,6 +171,7 @@ More content."""
             "test.md",
             page_url="",
             output_dir="assets/images",
+            docs_dir=None,
         )
 
     def test_replace_blocks_mismatched_lengths(self, basic_config):
@@ -224,3 +225,28 @@ graph B
         # 両方のブロックが呼び出されることを確認
         block1.get_image_markdown.assert_called_once()
         block2.get_image_markdown.assert_called_once()
+
+    def test_replace_blocks_with_images_uses_docs_dir(self, basic_config):
+        """docs_dir を指定するとページ基準のパスが正しく計算される"""
+        config = {"output_dir": "custom/mermaid"}
+        processor = MarkdownProcessor(config)
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```
+"""
+
+        block = MermaidBlock("graph TD\n    A --> B", 0, len(markdown))
+        image_path = "/home/user/docs/custom/mermaid/diagram.svg"
+
+        result = processor.replace_blocks_with_images(
+            markdown,
+            [block],
+            [image_path],
+            "guide/page.md",
+            docs_dir="/home/user/docs",
+            output_dir="custom/mermaid",
+        )
+
+        assert "![Mermaid Diagram](../custom/mermaid/diagram.svg)" in result

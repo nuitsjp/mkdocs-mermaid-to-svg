@@ -25,6 +25,10 @@ class MermaidProcessor:
 
         self.markdown_processor = MarkdownProcessor(config)
         self.image_generator = MermaidImageGenerator(config)
+        self.docs_dir: Path | None = None
+
+    def set_docs_dir(self, docs_dir: str | Path) -> None:
+        self.docs_dir = Path(docs_dir)
 
     def process_page(
         self,
@@ -57,6 +61,8 @@ class MermaidProcessor:
                 context.image_paths,
                 page_file,
                 page_url,
+                docs_dir=str(self.docs_dir) if self.docs_dir else None,
+                output_dir=self.config.get("output_dir", "assets/images"),
             )
             return modified_content, context.image_paths
 

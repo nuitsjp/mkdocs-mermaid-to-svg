@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Any
 
@@ -17,15 +18,11 @@ def _calculate_relative_path_prefix(page_file: str) -> str:
         return ""
 
     page_path = Path(page_file)
-    # ディレクトリの深さを計算（ファイル名を除く）
     depth = len(page_path.parent.parts)
 
-    # ルートレベル（深さ0）の場合は相対パス不要
     if depth == 0:
         return ""
-    else:
-        # 各階層に対して "../" を追加
-        return "../" * depth
+    return "../" * depth
 
 
 class MermaidBlock:
@@ -69,29 +66,58 @@ class MermaidBlock:
         image_path: str,
         page_file: str,
         page_url: str = "",
+        *,
         output_dir: str | None = None,
+        docs_dir: str | Path | None = None,
+    ) -> str:
+        relative_prefix = _calculate_relative_path_prefix(page_file)
+
+        relative_path = self._compute_relative_path(
+            image_path=image_path,
+            page_file=page_file,
+            output_dir=output_dir,
+            docs_dir=docs_dir,
+        )
+
+        if relative_prefix:
+            image_path_for_markdown = f"{relative_prefix}{relative_path}"
+        else:
+            image_path_for_markdown = relative_path
+
+        return f"![Mermaid Diagram]({image_path_for_markdown})"
+
+    def _compute_relative_path(
+        self,
+        *,
+        image_path: str,
+        page_file: str,
+        output_dir: str | None,
+        docs_dir: str | Path | None,
     ) -> str:
         image_path_obj = Path(image_path)
+        docs_dir_path = Path(docs_dir).resolve() if docs_dir else None
 
-        # 相対パスプレフィックスを計算
-        relative_prefix = _calculate_relative_path_prefix(page_file)
+        if docs_dir_path:
+            try:
+                rel_to_docs = os.path.relpath(
+                    image_path_obj.resolve(strict=False), docs_dir_path
+                )
+                rel_to_docs = rel_to_docs.replace("\\", "/")
+                if rel_to_docs.startswith("./"):
+                    rel_to_docs = rel_to_docs[2:]
+                return rel_to_docs
+            except ValueError:
+                pass
 
         normalized_output_dir = self._normalize_output_dir(output_dir)
 
         if normalized_output_dir:
-            relative_image_path = (
-                f"{normalized_output_dir}/{image_path_obj.name}".replace("//", "/")
-            )
-        else:
-            relative_image_path = image_path_obj.name
+            return f"{normalized_output_dir}/{image_path_obj.name}".replace("//", "/")
 
-        image_markdown = f"![Mermaid Diagram]({relative_prefix}{relative_image_path})"
-
-        return image_markdown
+        return image_path_obj.name
 
     @staticmethod
     def _normalize_output_dir(output_dir: str | None) -> str:
-        """Pluginのoutput_dir設定をMarkdown用の相対パスに正規化"""
         default_dir = "assets/images"
 
         if not output_dir:

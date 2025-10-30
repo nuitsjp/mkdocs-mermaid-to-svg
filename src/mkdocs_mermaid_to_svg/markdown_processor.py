@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from typing import Any
 
 from .exceptions import MermaidParsingError
@@ -68,6 +69,9 @@ class MarkdownProcessor:
         image_paths: list[str],
         page_file: str,
         page_url: str = "",
+        *,
+        docs_dir: Path | str | None = None,
+        output_dir: str | None = None,
     ) -> str:
         if len(blocks) != len(image_paths):
             raise MermaidParsingError(
@@ -87,7 +91,10 @@ class MarkdownProcessor:
                 image_path,
                 page_file,
                 page_url=page_url,
-                output_dir=self.config.get("output_dir", "assets/images"),
+                output_dir=self.config.get("output_dir", "assets/images")
+                if output_dir is None
+                else output_dir,
+                docs_dir=docs_dir,
             )
 
             result = (

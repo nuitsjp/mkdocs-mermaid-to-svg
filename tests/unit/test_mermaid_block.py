@@ -121,6 +121,32 @@ class TestMermaidBlock:
 
         assert result == "![Mermaid Diagram](../assets/custom/test.svg)"
 
+    def test_get_image_markdown_with_docs_dir_root_page(self):
+        """docs_dir 情報がある場合にルートページからの相対パスが正しいことをテスト"""
+        block = MermaidBlock("graph TD\n A --> B", 0, 20)
+
+        result = block.get_image_markdown(
+            "/home/user/docs/static/mermaid/test.svg",
+            "index.md",
+            docs_dir="/home/user/docs",
+            output_dir="static/mermaid",
+        )
+
+        assert result == "![Mermaid Diagram](static/mermaid/test.svg)"
+
+    def test_get_image_markdown_with_docs_dir_subpage(self):
+        """サブページからの相対パスが docs_dir に基づいて計算されることをテスト"""
+        block = MermaidBlock("graph TD\n A --> B", 0, 20)
+
+        result = block.get_image_markdown(
+            "/home/user/docs/static/mermaid/test.svg",
+            "guide/chapter/page.md",
+            docs_dir="/home/user/docs",
+            output_dir="static/mermaid",
+        )
+
+        assert result == "![Mermaid Diagram](../../static/mermaid/test.svg)"
+
     def test_get_filename(self):
         """ファイル名生成のテスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)

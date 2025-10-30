@@ -159,6 +159,9 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             docs_dir = Path(config["docs_dir"])
             output_dir = docs_dir / self.config["output_dir"]
 
+            if hasattr(self.processor, "set_docs_dir"):
+                self.processor.set_docs_dir(docs_dir)
+
             modified_content, image_paths = self.processor.process_page(
                 page.file.src_path, markdown, output_dir, page_url=page.url
             )
