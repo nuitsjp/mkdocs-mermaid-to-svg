@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -1389,6 +1390,86 @@ class TestMermaidImageGenerator:
             result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_generate_uses_injected_collaborators(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        mock_command_available.return_value = True
+
+        output_path = tmp_path / "output.svg"
+        mermaid_code = "graph TD; A-->B"
+
+        class StubResolver:
+            def __init__(self) -> None:
+                self.called = False
+
+            def resolve(self) -> list[str]:
+                self.called = True
+                return ["mmdc"]
+
+        class StubArtifacts:
+            def __init__(self, source_path: Path) -> None:
+                self.source_path = str(source_path)
+                self.puppeteer_config_file: str | None = None
+                self.mermaid_config_file: str | None = None
+                self.cleaned = False
+
+            def cleanup(self, logger: Any) -> None:
+                self.cleaned = True
+
+        class StubArtifactManager:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, str, dict[str, Any]]] = []
+                self.created_artifacts: list[StubArtifacts] = []
+
+            def prepare(
+                self, code: str, destination: str, config: dict[str, Any]
+            ) -> StubArtifacts:
+                artifacts_path = tmp_path / "diagram.mmd"
+                artifacts_path.write_text(code, encoding="utf-8")
+                self.calls.append((code, destination, config.copy()))
+                artifact = StubArtifacts(artifacts_path)
+                self.created_artifacts.append(artifact)
+                return artifact
+
+        class StubExecutor:
+            def __init__(self) -> None:
+                self.commands: list[list[str]] = []
+
+            def run(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+                self.commands.append(cmd)
+                output_index = cmd.index("-o") + 1
+                Path(cmd[output_index]).write_text("<svg></svg>", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        resolver = StubResolver()
+        artifact_manager = StubArtifactManager()
+        executor = StubExecutor()
+
+        generator = MermaidImageGenerator(
+            basic_config,
+            command_resolver=resolver,
+            artifact_manager=artifact_manager,
+            cli_executor=executor,
+        )
+
+        assert generator.generate(mermaid_code, str(output_path), {})
+
+        assert resolver.called
+        assert artifact_manager.calls[0][0] == mermaid_code
+        assert artifact_manager.calls[0][1] == str(output_path)
+        executed_command = executor.commands[0]
+        expected_source = artifact_manager.created_artifacts[0].source_path
+
+        assert executed_command[0] == "mmdc"
+        assert "-i" in executed_command
+        assert executed_command[executed_command.index("-i") + 1] == expected_source
+        assert "-o" in executed_command
+        assert executed_command[executed_command.index("-o") + 1] == str(output_path)
+        assert "-e" in executed_command
+        assert executed_command[executed_command.index("-e") + 1] == "svg"
+        assert artifact_manager.created_artifacts[0].cleaned is True
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_unexpected_error_handling(self, mock_command_available, basic_config):

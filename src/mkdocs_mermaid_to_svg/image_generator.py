@@ -3,6 +3,7 @@ import os
 import platform
 import subprocess  # nosec B404
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -17,13 +18,240 @@ from .utils import (
 )
 
 
+@dataclass
+class GenerationArtifacts:
+    source_path: str
+    puppeteer_config_file: str | None
+    mermaid_config_file: str | None
+    cleanup_entries: tuple[tuple[str, str], ...]
+
+    def cleanup(self, logger: Any) -> None:
+        for label, path in self.cleanup_entries:
+            try:
+                clean_temp_file(path)
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.warning(f"Failed to clean up {label} '{path}': {exc}")
+
+
+class MermaidCommandResolver:
+    def __init__(
+        self,
+        config: dict[str, Any],
+        logger: Any,
+        command_cache: dict[str, tuple[str, ...]],
+    ) -> None:
+        self.config = config
+        self.logger = logger
+        self._command_cache = command_cache
+
+    def resolve(self) -> list[str]:
+        primary_command = self.config.get("mmdc_path", "mmdc")
+
+        cached_command = self._command_cache.get(primary_command)
+        if cached_command:
+            self.logger.debug(
+                "Using cached mmdc command: %s (cache size: %d)",
+                " ".join(cached_command),
+                len(self._command_cache),
+            )
+            return list(cached_command)
+
+        primary_parts = self._attempt_resolve(primary_command)
+        if primary_parts:
+            self._command_cache[primary_command] = tuple(primary_parts)
+            self.logger.debug(
+                "Using primary mmdc command: %s (cached for future use)",
+                " ".join(primary_parts),
+            )
+            return primary_parts
+
+        fallback_command = self._determine_fallback(primary_command)
+        fallback_parts = self._attempt_resolve(fallback_command)
+        if fallback_parts:
+            self._command_cache[primary_command] = tuple(fallback_parts)
+            self.logger.info(
+                "Primary command '%s' not found, using fallback: %s "
+                "(cached for future use)",
+                primary_command,
+                " ".join(fallback_parts),
+            )
+            return fallback_parts
+
+        raise MermaidCLIError(
+            f"Mermaid CLI not found. Tried '{primary_command}' and "
+            f"'{fallback_command}'. Please install it with: "
+            f"npm install @mermaid-js/mermaid-cli"
+        )
+
+    def _attempt_resolve(self, command: str) -> list[str] | None:
+        if not is_command_available(command):
+            return None
+
+        parts = split_command(command)
+        if parts:
+            return parts
+        return None
+
+    @staticmethod
+    def _determine_fallback(primary_command: str) -> str:
+        if primary_command == "mmdc":
+            return "npx mmdc"
+        if primary_command == "npx mmdc":
+            return "mmdc"
+        return f"npx {primary_command}"
+
+
+class MermaidCLIExecutor:
+    def __init__(self, logger: Any) -> None:
+        self.logger = logger
+
+    def run(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+        self.logger.debug(f"Executing mermaid CLI command: {' '.join(cmd)}")
+
+        use_shell = platform.system() == "Windows"
+
+        if use_shell:
+            cmd_str = " ".join(cmd)
+            full_cmd = ["cmd", "/c", cmd_str]
+            return subprocess.run(  # nosec B603,B602,B607
+                full_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                shell=False,  # nosec B603
+            )
+
+        return subprocess.run(  # nosec B603
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            shell=False,
+        )
+
+
+class MermaidArtifactManager:
+    def __init__(self, config: dict[str, Any], logger: Any) -> None:
+        self.config = config
+        self.logger = logger
+
+    def prepare(
+        self, mermaid_code: str, output_path: str, _runtime_config: dict[str, Any]
+    ) -> GenerationArtifacts:
+        cleanup_entries: list[tuple[str, str]] = []
+
+        temp_file = get_temp_file_path(".mmd")
+        with Path(temp_file).open("w", encoding="utf-8") as file_obj:
+            file_obj.write(mermaid_code)
+        cleanup_entries.append(("temp_file", temp_file))
+
+        ensure_directory(str(Path(output_path).parent))
+
+        mermaid_config_file, should_cleanup_mermaid = self._resolve_mermaid_config()
+        if should_cleanup_mermaid and mermaid_config_file:
+            cleanup_entries.append(("mermaid_config_file", mermaid_config_file))
+
+        puppeteer_config_file, should_cleanup_puppeteer = (
+            self._resolve_puppeteer_config()
+        )
+        if should_cleanup_puppeteer and puppeteer_config_file:
+            cleanup_entries.append(("puppeteer_config_file", puppeteer_config_file))
+
+        return GenerationArtifacts(
+            source_path=temp_file,
+            puppeteer_config_file=puppeteer_config_file,
+            mermaid_config_file=mermaid_config_file,
+            cleanup_entries=tuple(cleanup_entries),
+        )
+
+    def _resolve_mermaid_config(self) -> tuple[str | None, bool]:
+        mermaid_config = self.config.get("mermaid_config")
+
+        if isinstance(mermaid_config, str):
+            return mermaid_config, False
+
+        config_to_write = (
+            mermaid_config
+            if isinstance(mermaid_config, dict)
+            else {
+                "htmlLabels": False,
+                "flowchart": {"htmlLabels": False},
+                "class": {"htmlLabels": False},
+            }
+        )
+
+        try:
+            config_file = get_temp_file_path(".json")
+            with Path(config_file).open("w", encoding="utf-8") as file_obj:
+                json.dump(config_to_write, file_obj, indent=2)
+
+            self.logger.debug(f"Created Mermaid config file: {config_file}")
+            return config_file, True
+        except Exception as exc:  # pragma: no cover - defensive logging
+            self.logger.warning(f"Failed to create Mermaid config file: {exc}")
+            return None, False
+
+    def _resolve_puppeteer_config(self) -> tuple[str | None, bool]:
+        custom_config = self.config.get("puppeteer_config")
+
+        if custom_config and Path(custom_config).exists():
+            return custom_config, False
+
+        if custom_config:
+            self.logger.warning(f"Puppeteer config file not found: {custom_config}")
+
+        config_file = self._create_default_puppeteer_config()
+        return config_file, True
+
+    def _create_default_puppeteer_config(self) -> str:
+        import shutil
+
+        puppeteer_config: dict[str, Any] = {
+            "args": [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-web-security",
+            ]
+        }
+
+        chrome_path = shutil.which("google-chrome") or shutil.which("chromium-browser")
+        if chrome_path:
+            puppeteer_config["executablePath"] = chrome_path
+
+        if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+            puppeteer_config["args"].extend(["--single-process", "--no-zygote"])
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as file_obj:
+            json.dump(puppeteer_config, file_obj)
+            return file_obj.name
+
+
 class MermaidImageGenerator:
     # Class-level command cache for performance optimization
     _command_cache: ClassVar[dict[str, tuple[str, ...]]] = {}
 
-    def __init__(self, config: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        config: dict[str, Any],
+        *,
+        command_resolver: MermaidCommandResolver | None = None,
+        artifact_manager: MermaidArtifactManager | None = None,
+        cli_executor: MermaidCLIExecutor | None = None,
+    ) -> None:
         self.config = config
         self.logger = get_logger(__name__)
+        self.command_resolver = command_resolver or MermaidCommandResolver(
+            config, self.logger, self._command_cache
+        )
+        self.artifact_manager = artifact_manager or MermaidArtifactManager(
+            config, self.logger
+        )
+        self.cli_executor = cli_executor or MermaidCLIExecutor(self.logger)
         self._resolved_mmdc_command: list[str] | None = None
         self._validate_dependencies()
 
@@ -38,59 +266,8 @@ class MermaidImageGenerator:
         return len(cls._command_cache)
 
     def _validate_dependencies(self) -> None:
-        """Validate and resolve the mmdc command with fallback support."""
-        primary_command = self.config.get("mmdc_path", "mmdc")
-
-        # Check cache first
-        cached_command = self._command_cache.get(primary_command)
-        if cached_command:
-            self._resolved_mmdc_command = list(cached_command)
-            self.logger.debug(
-                "Using cached mmdc command: %s (cache size: %d)",
-                " ".join(self._resolved_mmdc_command),
-                len(self._command_cache),
-            )
-            return
-
-        # Try primary command first
-        if is_command_available(primary_command):
-            command_parts = split_command(primary_command)
-            self._resolved_mmdc_command = command_parts
-            self._command_cache[primary_command] = tuple(command_parts)
-            self.logger.debug(
-                "Using primary mmdc command: %s (cached for future use)",
-                " ".join(command_parts),
-            )
-            return
-
-        # Determine fallback command
-        if primary_command == "mmdc":
-            fallback_command = "npx mmdc"
-        elif primary_command == "npx mmdc":
-            fallback_command = "mmdc"
-        else:
-            # Custom command, try npx variant
-            fallback_command = f"npx {primary_command}"
-
-        # Try fallback command
-        if is_command_available(fallback_command):
-            command_parts = split_command(fallback_command)
-            self._resolved_mmdc_command = command_parts
-            self._command_cache[primary_command] = tuple(command_parts)
-            self.logger.info(
-                "Primary command '%s' not found, using fallback: %s "
-                "(cached for future use)",
-                primary_command,
-                " ".join(command_parts),
-            )
-            return
-
-        # Both failed
-        raise MermaidCLIError(
-            f"Mermaid CLI not found. Tried '{primary_command}' and "
-            f"'{fallback_command}'. Please install it with: "
-            f"npm install @mermaid-js/mermaid-cli"
-        )
+        """Resolve and cache the Mermaid CLI command."""
+        self._resolved_mmdc_command = self.command_resolver.resolve()
 
     def generate(
         self,
@@ -99,20 +276,18 @@ class MermaidImageGenerator:
         config: dict[str, Any],
         page_file: str | None = None,
     ) -> bool:
-        temp_files = self._TempFileManager()
+        artifacts: GenerationArtifacts | None = None
+        cmd: list[str] = []
 
         try:
-            temp_files.temp_file = get_temp_file_path(".mmd")
-
-            with Path(temp_files.temp_file).open("w", encoding="utf-8") as f:
-                f.write(mermaid_code)
-
-            ensure_directory(str(Path(output_path).parent))
-
-            cmd, temp_files.puppeteer_config_file, temp_files.mermaid_config_file = (
-                self._build_mmdc_command(temp_files.temp_file, output_path, config)
+            artifacts = self.artifact_manager.prepare(mermaid_code, output_path, config)
+            cmd, _, _ = self._build_mmdc_command(
+                artifacts.source_path,
+                output_path,
+                config,
+                puppeteer_config_file=artifacts.puppeteer_config_file,
+                mermaid_config_file=artifacts.mermaid_config_file,
             )
-
             result = self._execute_mermaid_command(cmd)
 
             if not self._validate_generation_result(result, output_path, mermaid_code):
@@ -130,32 +305,8 @@ class MermaidImageGenerator:
         except Exception as e:
             return self._handle_unexpected_error(e, output_path, mermaid_code)
         finally:
-            temp_files.cleanup_all(self.logger)
-
-    class _TempFileManager:
-        """一時ファイル管理のヘルパークラス"""
-
-        def __init__(self) -> None:
-            self.temp_file: str | None = None
-            self.puppeteer_config_file: str | None = None
-            self.mermaid_config_file: str | None = None
-
-        def cleanup_all(self, logger: Any) -> None:
-            """全ての一時ファイルをクリーンアップ"""
-            cleanup_files = [
-                ("temp_file", self.temp_file),
-                ("puppeteer_config_file", self.puppeteer_config_file),
-                ("mermaid_config_file", self.mermaid_config_file),
-            ]
-
-            for file_type, file_path in cleanup_files:
-                if file_path:
-                    try:
-                        clean_temp_file(file_path)
-                    except Exception as e:
-                        logger.warning(
-                            f"Failed to clean up {file_type} '{file_path}': {e}"
-                        )
+            if artifacts:
+                artifacts.cleanup(self.logger)
 
     def _validate_generation_result(
         self,
@@ -261,36 +412,14 @@ class MermaidImageGenerator:
             ) from e
         return False
 
-    def _create_mermaid_config_file(self) -> str | None:
-        """Create a temporary Mermaid configuration file for PDF compatibility."""
-        mermaid_config = self.config.get("mermaid_config")
-
-        if isinstance(mermaid_config, str):
-            return mermaid_config
-
-        config_to_write = (
-            mermaid_config
-            if isinstance(mermaid_config, dict)
-            else {
-                "htmlLabels": False,
-                "flowchart": {"htmlLabels": False},
-                "class": {"htmlLabels": False},
-            }
-        )
-
-        try:
-            config_file = get_temp_file_path(".json")
-            with Path(config_file).open("w", encoding="utf-8") as f:
-                json.dump(config_to_write, f, indent=2)
-
-            self.logger.debug(f"Created Mermaid config file: {config_file}")
-            return config_file
-        except Exception as e:
-            self.logger.warning(f"Failed to create Mermaid config file: {e}")
-            return None
-
     def _build_mmdc_command(
-        self, input_file: str, output_file: str, config: dict[str, Any]
+        self,
+        input_file: str,
+        output_file: str,
+        config: dict[str, Any],
+        *,
+        puppeteer_config_file: str | None = None,
+        mermaid_config_file: str | None = None,
     ) -> tuple[list[str], str | None, str | None]:
         if not self._resolved_mmdc_command:
             raise MermaidCLIError("Mermaid CLI command not properly resolved")
@@ -311,76 +440,49 @@ class MermaidImageGenerator:
         if theme != "default":
             cmd.extend(["-t", theme])
 
-        mermaid_config_file = self._create_mermaid_config_file()
-        if mermaid_config_file:
-            cmd.extend(["-c", mermaid_config_file])
+        fallback_manager = (
+            self.artifact_manager
+            if hasattr(self.artifact_manager, "_resolve_mermaid_config")
+            else MermaidArtifactManager(self.config, self.logger)
+        )
+
+        used_mermaid_config = mermaid_config_file
+        returned_mermaid_config = mermaid_config_file
+        if used_mermaid_config is None:
+            used_mermaid_config, should_cleanup_mermaid = (
+                fallback_manager._resolve_mermaid_config()
+            )
+            if should_cleanup_mermaid:
+                returned_mermaid_config = used_mermaid_config
+
+        if used_mermaid_config:
+            cmd.extend(["-c", used_mermaid_config])
 
         if self.config.get("css_file"):
             cmd.extend(["-C", self.config["css_file"]])
 
-        puppeteer_config_file: str | None = None
         custom_puppeteer_config = self.config.get("puppeteer_config")
+        returned_puppeteer_config: str | None = None
         if custom_puppeteer_config and Path(custom_puppeteer_config).exists():
             cmd.extend(["-p", custom_puppeteer_config])
         else:
-            puppeteer_config_file = self._create_puppeteer_config()
-            cmd.extend(["-p", puppeteer_config_file])
-            if custom_puppeteer_config:
-                self.logger.warning(
-                    f"Puppeteer config file not found: {custom_puppeteer_config}"
+            fallback_used_config = puppeteer_config_file
+            if fallback_used_config is None:
+                fallback_used_config, should_cleanup_puppeteer = (
+                    fallback_manager._resolve_puppeteer_config()
                 )
+                if should_cleanup_puppeteer:
+                    returned_puppeteer_config = fallback_used_config
+            else:
+                returned_puppeteer_config = puppeteer_config_file
 
-        return cmd, puppeteer_config_file, mermaid_config_file
+            if fallback_used_config:
+                cmd.extend(["-p", fallback_used_config])
 
-    def _create_puppeteer_config(self) -> str:
-        """Create puppeteer config for better browser compatibility."""
-        import shutil
-
-        puppeteer_config: dict[str, Any] = {
-            "args": [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-web-security",
-            ]
-        }
-
-        chrome_path = shutil.which("google-chrome") or shutil.which("chromium-browser")
-        if chrome_path:
-            puppeteer_config["executablePath"] = chrome_path
-
-        if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
-            puppeteer_config["args"].extend(["--single-process", "--no-zygote"])
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(puppeteer_config, f)
-            return f.name
+        return cmd, returned_puppeteer_config, returned_mermaid_config
 
     def _execute_mermaid_command(
         self, cmd: list[str]
     ) -> subprocess.CompletedProcess[str]:
-        """Execute mermaid command with appropriate shell settings for the platform."""
-        self.logger.debug(f"Executing mermaid CLI command: {' '.join(cmd)}")
-
-        use_shell = platform.system() == "Windows"
-
-        if use_shell:
-            cmd_str = " ".join(cmd)
-            full_cmd = ["cmd", "/c", cmd_str]
-            return subprocess.run(  # nosec B603,B602,B607
-                full_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-                shell=False,  # nosec B603
-            )
-        else:
-            return subprocess.run(  # nosec B603
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-                shell=False,
-            )
+        """Execute the Mermaid CLI command via the configured executor."""
+        return self.cli_executor.run(cmd)
