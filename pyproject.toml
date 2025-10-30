@@ -27,9 +27,6 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "mkdocs>=1.4.0",
-    "mkdocs-material>=8.0.0",
-    "pillow>=11.3.0",
-    "numpy>=1.20.0",
 ]
 
 [project.urls]
@@ -150,6 +147,9 @@ dev = [
     "pip-audit>=2.6.0",
     "twine>=5.0.0",
     "mkdocs-to-pdf>=0.10.1",
+    "mkdocs-material>=8.0.0",
+    "pillow>=11.3.0",
+    "numpy>=1.20.0",
 ]
 
 docs = [

@@ -1097,20 +1097,20 @@ name = "mkdocs-mermaid-to-svg"
 source = { editable = "." }
 dependencies = [
     { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
-    { name = "numpy", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pillow" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "bandit" },
     { name = "hypothesis" },
+    { name = "mkdocs-material" },
     { name = "mkdocs-mermaid-to-svg" },
     { name = "mkdocs-to-pdf" },
     { name = "mypy" },
+    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "numpy", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pillow" },
     { name = "pip-audit" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -1133,20 +1133,18 @@ docs = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "mkdocs", specifier = ">=1.4.0" },
-    { name = "mkdocs-material", specifier = ">=8.0.0" },
-    { name = "numpy", specifier = ">=1.20.0" },
-    { name = "pillow", specifier = ">=11.3.0" },
-]
+requires-dist = [{ name = "mkdocs", specifier = ">=1.4.0" }]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "bandit", specifier = ">=1.7.0" },
     { name = "hypothesis", specifier = ">=6.0.0" },
+    { name = "mkdocs-material", specifier = ">=8.0.0" },
     { name = "mkdocs-mermaid-to-svg", editable = "." },
     { name = "mkdocs-to-pdf", specifier = ">=0.10.1" },
     { name = "mypy", specifier = ">=1.10.0" },
+    { name = "numpy", specifier = ">=1.20.0" },
+    { name = "pillow", specifier = ">=11.3.0" },
     { name = "pip-audit", specifier = ">=2.6.0" },
     { name = "pre-commit", specifier = ">=3.7.0" },
     { name = "pytest", specifier = ">=8.0.0" },
