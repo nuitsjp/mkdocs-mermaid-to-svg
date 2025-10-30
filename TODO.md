@@ -1,4 +1,4 @@
-- [x] `utils.is_command_available` を `shlex.split` ベースに書き直し、`MermaidImageGenerator` と同じコマンド分解ロジックを共有する。現状は `str.split()` 依存のため空白を含む CLI パスで誤検知が発生し、プラグイン初期化が失敗するリスクがある。
-- [x] 生成画像の参照パス計算を `MermaidProcessor` から `MermaidBlock.get_image_markdown` へ渡す `docs_dir` / `output_dir` 情報を用いて行うよう見直す。文字列再構成に頼っている現状では絶対パス指定や入れ子構成でリンクが壊れる可能性が残っている。
-- [ ] `MermaidImageGenerator` のコマンド解決・一時ファイル生成・CLI 実行責務を分離し、テストしやすい小さな協調クラスへ再構成する。単一クラスへロジックが集中しており、将来のエラー分岐追加時に影響範囲が読みにくい状態を解消する。
-- [ ] `MarkdownProcessor._parse_attributes` の実装を強化し、引用符付き値やカンマを含む属性を安全に扱えるパーサーに置き換える。単純な `split(",")` では複雑な Mermaid 属性指定が正しく反映されず、ブロック属性が欠落する恐れがある。
+- [x] `MermaidProcessor` から docs_dir の setter 依存を排除し、ページ処理時にドキュメントルートを注入できるようにする。状態を持たない API に変えることで、プラグイン以外のエントリポイントでも誤設定なく再利用しやすくなる。
+- [ ] `MermaidImageGenerator` の責務を整理し、コマンド解決・一時ファイル管理・CLI 実行を分離した協調クラスにリファクタリングする。現在は 1 クラスに処理が集中し、エラー分岐のテストが複雑化している。
+- [ ] `MarkdownProcessor._parse_attributes` に CSV/quoted 値対応のパーサーを導入し、エスケープやカンマを含む属性を正しく解釈できるようにする。現状の単純分割では複雑な Mermaid オプションが欠落する。
+- [ ] Mermaid 図の出力パス計算を専用の ImagePathResolver（仮）に切り出し、`MermaidBlock` がファイルシステム知識と Markdown 生成を両立させている状態を解消する。相対パス計算を一箇所に集約して OS 差異や設定追加へ追従しやすくする。

@@ -102,6 +102,47 @@ graph TD
         mock_block.get_filename.assert_called_once_with("test.md", 0, "svg")
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_process_page_injects_docs_dir(self, mock_command_available, basic_config):
+        """process_page 呼び出し時に docs_dir を渡しているかをテスト"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(basic_config)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "test_0_abc123.png"
+        mock_block.generate_image.return_value = True
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        replacement = "![Mermaid](../assets/images/test.svg)"
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value=replacement
+        )
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```"""
+
+        docs_dir = "/home/user/project/docs"
+
+        result_content, result_paths = processor.process_page(
+            "guide/page.md",
+            markdown,
+            "/home/user/project/docs/assets/images",
+            docs_dir=docs_dir,
+        )
+
+        assert result_content == replacement
+        assert result_paths == [
+            "/home/user/project/docs/assets/images/test_0_abc123.png"
+        ]
+        processor.markdown_processor.replace_blocks_with_images.assert_called_once()
+        _, kwargs = processor.markdown_processor.replace_blocks_with_images.call_args
+        assert kwargs["docs_dir"] == docs_dir
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_no_blocks(self, mock_command_available, basic_config):
         """Mermaidブロックがない場合は元の内容が返るかテスト"""
         mock_command_available.return_value = True

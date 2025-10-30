@@ -1,7 +1,6 @@
 import json
 import os
 import platform
-import shlex
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
@@ -79,7 +78,8 @@ class MermaidImageGenerator:
             self._resolved_mmdc_command = command_parts
             self._command_cache[primary_command] = tuple(command_parts)
             self.logger.info(
-                "Primary command '%s' not found, using fallback: %s (cached for future use)",
+                "Primary command '%s' not found, using fallback: %s "
+                "(cached for future use)",
                 primary_command,
                 " ".join(command_parts),
             )

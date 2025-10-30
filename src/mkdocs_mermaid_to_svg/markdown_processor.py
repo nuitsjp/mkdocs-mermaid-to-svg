@@ -62,7 +62,7 @@ class MarkdownProcessor:
                     attributes[key] = value
         return attributes
 
-    def replace_blocks_with_images(
+    def replace_blocks_with_images(  # noqa: PLR0913
         self,
         markdown_content: str,
         blocks: list[MermaidBlock],

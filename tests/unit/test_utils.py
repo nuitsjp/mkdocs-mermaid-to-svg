@@ -186,7 +186,7 @@ class TestUtilityFunctions:
         mock_run.return_value.returncode = 0
         mock_run.return_value.stdout = "custom mmdc version"
 
-        command = '/usr/local/bin/Program Files/Mermaid CLI/mmdc'
+        command = "/usr/local/bin/Program Files/Mermaid CLI/mmdc"
         result = is_command_available(command)
 
         assert result is True

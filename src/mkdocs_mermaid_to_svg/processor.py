@@ -25,10 +25,6 @@ class MermaidProcessor:
 
         self.markdown_processor = MarkdownProcessor(config)
         self.image_generator = MermaidImageGenerator(config)
-        self.docs_dir: Path | None = None
-
-    def set_docs_dir(self, docs_dir: str | Path) -> None:
-        self.docs_dir = Path(docs_dir)
 
     def process_page(
         self,
@@ -36,6 +32,7 @@ class MermaidProcessor:
         markdown_content: str,
         output_dir: Union[str, Path],
         page_url: str = "",
+        docs_dir: Union[str, Path] | None = None,
     ) -> tuple[str, list[str]]:
         blocks = self.markdown_processor.extract_mermaid_blocks(markdown_content)
 
@@ -55,13 +52,14 @@ class MermaidProcessor:
             self._process_single_block(block, i, context)
 
         if context.successful_blocks:
+            docs_dir_str = str(Path(docs_dir)) if docs_dir is not None else None
             modified_content = self.markdown_processor.replace_blocks_with_images(
                 markdown_content,
                 context.successful_blocks,
                 context.image_paths,
                 page_file,
                 page_url,
-                docs_dir=str(self.docs_dir) if self.docs_dir else None,
+                docs_dir=docs_dir_str,
                 output_dir=self.config.get("output_dir", "assets/images"),
             )
             return modified_content, context.image_paths

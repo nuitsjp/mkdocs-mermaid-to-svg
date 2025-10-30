@@ -5,8 +5,8 @@ import platform
 import shlex
 import subprocess  # nosec B404
 import tempfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List
 
 from .logging_config import get_logger
 
@@ -145,7 +145,7 @@ def split_command(command: str) -> list[str]:
 
 
 def _should_treat_as_single_path(command: str, parts: list[str]) -> bool:
-    """Heuristic to keep entire command as single path when it looks like a file path."""
+    """Return True when command should be treated as a single executable path."""
     if len(parts) <= 1:
         return False
 
@@ -153,7 +153,8 @@ def _should_treat_as_single_path(command: str, parts: list[str]) -> bool:
     if not has_space:
         return False
 
-    # On Windows, os.sep is "\", but command may include "/" as well (e.g. MSYS). Check both.
+    # On Windows os.sep is "\"; commands may also include "/" (MSYS).
+    # Include "\\" to account for escaped separators.
     path_separators = [os.sep]
     if os.sep != "/":
         path_separators.append("/")
@@ -178,17 +179,14 @@ def _should_treat_as_single_path(command: str, parts: list[str]) -> bool:
         "pwsh ",
     )
 
-    if any(lowered.startswith(prefix) for prefix in known_prefixes):
-        return False
-
-    return True
+    return not any(lowered.startswith(prefix) for prefix in known_prefixes)
 
 
 def _verify_command_execution(
     command_parts: Iterable[str], command: str, logger: logging.Logger
 ) -> bool:
     """Verify that a command can be executed successfully."""
-    parts_list: List[str] = list(command_parts)
+    parts_list: list[str] = list(command_parts)
     version_flags = ["--version", "-v", "--help"]
 
     for flag in version_flags:

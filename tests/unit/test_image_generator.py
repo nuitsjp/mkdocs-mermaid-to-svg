@@ -299,9 +299,7 @@ class TestMermaidImageGenerator:
         custom_config = basic_config.copy()
         custom_config["mmdc_path"] = quoted_path
 
-        mock_command_available.side_effect = (
-            lambda command: command == quoted_path
-        )
+        mock_command_available.side_effect = lambda command: command == quoted_path
 
         MermaidImageGenerator.clear_command_cache()
         generator = MermaidImageGenerator(custom_config)
