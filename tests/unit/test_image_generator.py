@@ -95,8 +95,10 @@ class TestMermaidImageGenerator:
         mock_command_available.return_value = True
         # WindowsファイルシステムでもLinuxでも互換性があるパスを使用
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+        mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
-        mock_temp_path.return_value = temp_file_path
+        # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
+        mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
         mock_subprocess.return_value = Mock(returncode=1, stderr="Error message")
 
         generator = MermaidImageGenerator(basic_config)
@@ -110,7 +112,7 @@ class TestMermaidImageGenerator:
             )
 
             assert result is False
-            # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
+            # Temp file (.mmd), mermaid config (.json), puppeteer (.json) cleaned
             assert mock_clean.call_count == 3
             # パス比較を正規化 - WindowsとLinuxで異なるパス区切り文字に対応
             normalized_temp_path = str(Path(temp_file_path))
@@ -137,8 +139,10 @@ class TestMermaidImageGenerator:
         """出力ファイルが生成されない場合の失敗テスト"""
         mock_command_available.return_value = True
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+        mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
-        mock_temp_path.return_value = temp_file_path
+        # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
+        mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
         mock_subprocess.return_value = Mock(returncode=0, stderr="")
         mock_exists.return_value = False  # 出力ファイルが作成されない
 
@@ -151,7 +155,7 @@ class TestMermaidImageGenerator:
             result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
-            # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
+            # Temp file (.mmd), mermaid config (.json), puppeteer (.json) cleaned
             assert mock_clean.call_count == 3
             # パス比較を正規化 - WindowsとLinuxで異なるパス区切り文字に対応
             normalized_temp_path = str(Path(temp_file_path))
@@ -176,8 +180,10 @@ class TestMermaidImageGenerator:
         """タイムアウト時の画像生成失敗テスト"""
         mock_command_available.return_value = True
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
+        mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
-        mock_temp_path.return_value = temp_file_path
+        # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
+        mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
         mock_subprocess.side_effect = subprocess.TimeoutExpired("mmdc", 30)
 
         generator = MermaidImageGenerator(basic_config)
@@ -189,7 +195,7 @@ class TestMermaidImageGenerator:
             result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
-            # Temp file (.mmd), puppeteer (.json), mermaid config (.json) cleaned
+            # Temp file (.mmd), mermaid config (.json), puppeteer (.json) cleaned
             assert mock_clean.call_count == 3
             # パス比較を正規化 - WindowsとLinuxで異なるパス区切り文字に対応
             normalized_temp_path = str(Path(temp_file_path))

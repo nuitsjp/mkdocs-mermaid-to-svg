@@ -1,0 +1,13 @@
+# pip-audit ignore configuration
+# Temporarily ignore security advisories that cannot be resolved yet
+
+ignore:
+  # brotli DoS vulnerability (GHSA-2qfp-q593-8484)
+  # Version 1.2.0 with the fix is not yet available on PyPI as of 2025-11-01
+  # This is a transitive dependency via fonttools[woff] for WeasyPrint PDF export
+  # Risk assessment: Low - brotli is only used for WOFF font decompression during PDF generation,
+  # not for untrusted network data decompression. DoS attack surface is minimal.
+  # TODO: Update to brotli>=1.2.0 once available on PyPI
+  - vulnerability-id: GHSA-2qfp-q593-8484
+    reason: Fix not yet released on PyPI (1.2.0 pending). Low risk - only used for font decompression in PDF export, not for untrusted data.
+    expires: "2026-01-31"

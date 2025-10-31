@@ -41,6 +41,9 @@ jobs:
     - name: Set up Python
       run: uv python pin ${{ env.PYTHON_VERSION }}
 
+    - name: Upgrade pip to fix security vulnerability
+      run: uv pip install --upgrade pip>=25.3
+
     - name: Install dependencies
       run: uv sync --all-extras
 
@@ -49,7 +52,7 @@ jobs:
 
     - name: Check for security issues
       run: |
-        uv run pip-audit
+        uv run pip-audit --ignore-vuln GHSA-2qfp-q593-8484 --desc
         uv run bandit -c pyproject.toml -r src/
 
   type-check:
