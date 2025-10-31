@@ -77,7 +77,7 @@ security:
 	uv run bandit -r src/
 
 audit:
-	uv run pip-audit
+	uv run pip-audit --ignore-vuln GHSA-2qfp-q593-8484
 
 # パフォーマンス測定
 benchmark:

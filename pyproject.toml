@@ -135,6 +135,7 @@ mkdocs-mermaid-to-svg = { workspace = true }
 [dependency-groups]
 dev = [
     "mkdocs-mermaid-to-svg",
+    "pip>=25.3",
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
     "pytest-xdist>=3.5.0",
