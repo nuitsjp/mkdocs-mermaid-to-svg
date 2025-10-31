@@ -21,15 +21,20 @@ from .utils import clean_generated_images
 
 
 class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped-call]
+    """Mermaid記法ブロックをSVG画像へ変換するMkDocsプラグイン"""
+
     config_scheme = ConfigManager.get_config_scheme()
 
     def __init__(self) -> None:
+        """Markdown処理の前段で必要となる状態とロガーを初期化する"""
         super().__init__()
+        # プロセッサや生成物を初期化して、Markdown処理中の状態管理に備える
         self.processor: Optional[MermaidProcessor] = None
         self.generated_images: list[str] = []
         self.files: Optional[Files] = None
         self.logger = get_logger(__name__)
 
+        # CLI引数からserveモードや詳細ログ出力モードかどうかを判定
         self.is_serve_mode: bool = "serve" in sys.argv
         self.is_verbose_mode: bool = "--verbose" in sys.argv or "-v" in sys.argv
 
@@ -46,6 +51,8 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         return True
 
     def on_config(self, config: Any) -> Any:
+        """MkDocs設定を取り込みプラグインを有効化する準備を整える"""
+        # mkdocs.ymlから受け取った設定を検証し、プラグイン用設定に整形
         config_dict = dict(self.config)
         ConfigManager.validate_config(config_dict)
 
@@ -56,6 +63,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             return config
 
         try:
+            # MermaidProcessorを生成し、後続のMarkdown処理を引き受けさせる
             self.processor = MermaidProcessor(config_dict)
             self.logger.info("Mermaid preprocessor plugin initialized successfully")
         except Exception as e:
@@ -65,7 +73,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         return config
 
     def _handle_init_error(self, error: Exception) -> None:
-        """Initialize error handling with appropriate exception types."""
+        """初期化時の例外を分類し利用者向けの例外へ変換して再送出する"""
         if isinstance(error, (MermaidConfigError, MermaidFileError)):
             raise error
         elif isinstance(error, FileNotFoundError):
@@ -86,6 +94,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             ) from error
 
     def on_files(self, files: Any, *, config: Any) -> Any:
+        """ビルド対象ファイル一覧から生成物の追跡を開始する"""
         if not self._should_be_enabled(self.config) or not self.processor:
             return files
 
@@ -103,6 +112,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             return
 
         for image_path in image_paths:
+            # 生成済み画像をMkDocsのビルド対象として登録
             self._add_image_file_to_files(image_path, docs_dir, config)
 
     def _add_image_file_to_files(
@@ -120,6 +130,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             rel_path = image_file_path.relative_to(docs_dir)
             rel_path_str = str(rel_path).replace("\\", "/")
 
+            # 既に同じパスのファイルが登録されていれば置き換え
             self._remove_existing_file_by_path(rel_path_str)
 
             file_obj = File(
@@ -142,6 +153,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
 
         normalized_src_path = src_path.replace("\\", "/")
 
+        # 既存Filesリストから一致するエントリを探し出し除去
         for file_obj in self.files:
             if file_obj.src_path.replace("\\", "/") == normalized_src_path:
                 self.files.remove(file_obj)
@@ -179,18 +191,22 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             return modified_content
 
         except MermaidPreprocessorError:
+            # Mermaid変換で失敗した場合は設定に応じて例外を投げるか元Markdownを返す
             return self._handle_processing_error(
                 page.file.src_path, "preprocessor", None, markdown
             )
         except (FileNotFoundError, OSError, PermissionError) as e:
+            # ファイルI/O周りの失敗は利用者にリカバリー策を提示
             return self._handle_processing_error(
                 page.file.src_path, "file_system", e, markdown
             )
         except ValueError as e:
+            # Mermaid入力の検証エラーを拾い、必要なら例外を伝播させる
             return self._handle_processing_error(
                 page.file.src_path, "validation", e, markdown
             )
         except Exception as e:
+            # 予期しない例外は最後の手段としてまとめて処理
             return self._handle_processing_error(
                 page.file.src_path, "unexpected", e, markdown
             )
@@ -241,6 +257,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
     def on_page_markdown(
         self, markdown: str, *, page: Any, config: Any, files: Any
     ) -> Optional[str]:
+        """ビルド対象MarkdownからMermaidブロックを検出し変換する"""
         if not self._should_be_enabled(self.config):
             return markdown
 
@@ -250,6 +267,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         return self._process_mermaid_diagrams(markdown, page, config)
 
     def on_post_build(self, *, config: Any) -> None:
+        """静的サイト出力後に生成画像の記録やクリーンアップを行う"""
         if not self._should_be_enabled(self.config):
             return
 
@@ -264,12 +282,13 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             clean_generated_images(self.generated_images, self.logger)
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
+        """開発サーバー起動時のフックで追加処理が不要であることを示す"""
         if not self._should_be_enabled(self.config):
             return server
 
         return server
 
 
-# Backward compatibility: alias for the old name
-# This will be removed in a future version
+# 後方互換性のため旧プラグイン名をエイリアスとして公開
+# 将来のバージョンで削除予定
 MermaidToImagePlugin = MermaidSvgConverterPlugin

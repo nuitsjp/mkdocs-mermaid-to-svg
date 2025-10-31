@@ -8,11 +8,15 @@ from .mermaid_block import MermaidBlock
 
 
 class MarkdownProcessor:
+    """Markdown内のMermaid記法ブロック抽出と差し替えを担当するコンポーネント"""
+
     def __init__(self, config: dict[str, Any]) -> None:
+        """設定値とロガーを保持し後続処理で参照できるようにする"""
         self.config = config
         self.logger = get_logger(__name__)
 
     def extract_mermaid_blocks(self, markdown_content: str) -> list[MermaidBlock]:
+        """Markdown本文からMermaidブロックを検出してメタ情報付きで返す"""
         blocks = []
 
         # 属性付きパターンを先に処理
@@ -52,6 +56,7 @@ class MarkdownProcessor:
         )
 
     def _parse_attributes(self, attr_str: str) -> dict[str, Any]:
+        """Mermaidコードブロックに付与された属性文字列を辞書へ変換する"""
         attributes: dict[str, Any] = {}
         if not attr_str:
             return attributes
@@ -80,6 +85,7 @@ class MarkdownProcessor:
 
     @staticmethod
     def _split_attribute_string(attr_str: str) -> list[str]:
+        """カンマ区切りの属性リストを引用符の有無を考慮して分割する"""
         parts: list[str] = []
         buf: list[str] = []
         in_quote: str | None = None
@@ -126,6 +132,7 @@ class MarkdownProcessor:
         docs_dir: Path | str | None = None,
         output_dir: str | None = None,
     ) -> str:
+        """抽出済みMermaidブロックを生成済み画像の参照Markdownに差し替える"""
         if len(blocks) != len(image_paths):
             raise MermaidParsingError(
                 "Number of blocks and image paths must match",
@@ -133,6 +140,7 @@ class MarkdownProcessor:
                 mermaid_code=f"Expected {len(blocks)} images, got {len(image_paths)}",
             )
 
+        # 末尾から置換するためブロック開始位置の降順に並べ替える
         sorted_blocks = sorted(
             zip(blocks, image_paths), key=lambda x: x[0].start_pos, reverse=True
         )
@@ -150,6 +158,7 @@ class MarkdownProcessor:
                 docs_dir=docs_dir,
             )
 
+            # 末尾位置から順に置換し、先頭ブロックのインデックスがずれないようにする
             result = (
                 result[: block.start_pos] + image_markdown + result[block.end_pos :]
             )

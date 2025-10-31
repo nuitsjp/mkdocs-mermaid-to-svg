@@ -20,12 +20,15 @@ from .utils import (
 
 @dataclass
 class GenerationArtifacts:
+    """Mermaid CLI実行に必要な一時ファイルや構成をまとめて扱う"""
+
     source_path: str
     puppeteer_config_file: str | None
     mermaid_config_file: str | None
     cleanup_entries: tuple[tuple[str, str], ...]
 
     def cleanup(self, logger: Any) -> None:
+        """生成後に不要となる一時ファイルを順次削除する"""
         for label, path in self.cleanup_entries:
             try:
                 clean_temp_file(path)
@@ -34,6 +37,8 @@ class GenerationArtifacts:
 
 
 class MermaidCommandResolver:
+    """Mermaid CLI実行コマンドを設定と環境から解決する"""
+
     def __init__(
         self,
         config: dict[str, Any],
@@ -45,10 +50,12 @@ class MermaidCommandResolver:
         self._command_cache = command_cache
 
     def resolve(self) -> list[str]:
+        """設定された優先コマンドとフォールバックを順に探索する"""
         primary_command = self.config.get("mmdc_path", "mmdc")
 
         cached_command = self._command_cache.get(primary_command)
         if cached_command:
+            # 以前解決した結果があれば即座に返して無駄な探索を避ける
             self.logger.debug(
                 "Using cached mmdc command: %s (cache size: %d)",
                 " ".join(cached_command),
@@ -59,6 +66,7 @@ class MermaidCommandResolver:
         primary_parts = self._attempt_resolve(primary_command)
         if primary_parts:
             self._command_cache[primary_command] = tuple(primary_parts)
+            # 優先コマンドが利用できた場合はキャッシュへ登録
             self.logger.debug(
                 "Using primary mmdc command: %s (cached for future use)",
                 " ".join(primary_parts),
@@ -84,6 +92,7 @@ class MermaidCommandResolver:
         )
 
     def _attempt_resolve(self, command: str) -> list[str] | None:
+        """コマンドの存在確認と引数分割を行い利用可能なら返す"""
         if not is_command_available(command):
             return None
 
@@ -94,6 +103,7 @@ class MermaidCommandResolver:
 
     @staticmethod
     def _determine_fallback(primary_command: str) -> str:
+        """優先コマンド失敗時に試すフォールバック文字列を決める"""
         if primary_command == "mmdc":
             return "npx mmdc"
         if primary_command == "npx mmdc":
@@ -102,10 +112,13 @@ class MermaidCommandResolver:
 
 
 class MermaidCLIExecutor:
+    """Mermaid CLIコマンドを実行環境に応じて実行する"""
+
     def __init__(self, logger: Any) -> None:
         self.logger = logger
 
     def run(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+        """プラットフォーム差異を吸収しながらコマンドを実行する"""
         self.logger.debug(f"Executing mermaid CLI command: {' '.join(cmd)}")
 
         use_shell = platform.system() == "Windows"
@@ -133,6 +146,8 @@ class MermaidCLIExecutor:
 
 
 class MermaidArtifactManager:
+    """Mermaid CLIが参照する入力ファイルや設定ファイルを用意する"""
+
     def __init__(self, config: dict[str, Any], logger: Any) -> None:
         self.config = config
         self.logger = logger
@@ -140,11 +155,13 @@ class MermaidArtifactManager:
     def prepare(
         self, mermaid_code: str, output_path: str, _runtime_config: dict[str, Any]
     ) -> GenerationArtifacts:
+        """Mermaidコードと設定から一時ファイル群を生成する"""
         cleanup_entries: list[tuple[str, str]] = []
 
         temp_file = get_temp_file_path(".mmd")
         with Path(temp_file).open("w", encoding="utf-8") as file_obj:
             file_obj.write(mermaid_code)
+        # Mermaidコードを一時ファイル化し、後で削除できるよう記録
         cleanup_entries.append(("temp_file", temp_file))
 
         ensure_directory(str(Path(output_path).parent))
@@ -156,6 +173,7 @@ class MermaidArtifactManager:
         puppeteer_config_file, should_cleanup_puppeteer = (
             self._resolve_puppeteer_config()
         )
+        # Puppeteer設定を既存ファイルまたは生成ファイルから取得
         if should_cleanup_puppeteer and puppeteer_config_file:
             cleanup_entries.append(("puppeteer_config_file", puppeteer_config_file))
 
@@ -167,6 +185,7 @@ class MermaidArtifactManager:
         )
 
     def _resolve_mermaid_config(self) -> tuple[str | None, bool]:
+        """Mermaid設定ファイルを既存指定かテンポラリで用意する"""
         mermaid_config = self.config.get("mermaid_config")
 
         if isinstance(mermaid_config, str):
@@ -194,6 +213,7 @@ class MermaidArtifactManager:
             return None, False
 
     def _resolve_puppeteer_config(self) -> tuple[str | None, bool]:
+        """Puppeteer設定ファイルのパスを決定し必要に応じて生成する"""
         custom_config = self.config.get("puppeteer_config")
 
         if custom_config and Path(custom_config).exists():
@@ -206,6 +226,7 @@ class MermaidArtifactManager:
         return config_file, True
 
     def _create_default_puppeteer_config(self) -> str:
+        """標準的なヘッドレス実行に適したPuppeteer設定を生成する"""
         import shutil
 
         puppeteer_config: dict[str, Any] = {
@@ -219,6 +240,7 @@ class MermaidArtifactManager:
 
         chrome_path = shutil.which("google-chrome") or shutil.which("chromium-browser")
         if chrome_path:
+            # ローカルにChrome系バイナリがあれば使用
             puppeteer_config["executablePath"] = chrome_path
 
         if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
@@ -232,7 +254,9 @@ class MermaidArtifactManager:
 
 
 class MermaidImageGenerator:
-    # Class-level command cache for performance optimization
+    """Mermaid CLIを使ってSVG画像を生成するメインコーディネーター"""
+
+    # コマンド解決結果を再利用して呼び出し負荷を減らす
     _command_cache: ClassVar[dict[str, tuple[str, ...]]] = {}
 
     def __init__(
@@ -243,6 +267,7 @@ class MermaidImageGenerator:
         artifact_manager: MermaidArtifactManager | None = None,
         cli_executor: MermaidCLIExecutor | None = None,
     ) -> None:
+        """依存コンポーネントを受け取り初回のCLI解決を実行する"""
         self.config = config
         self.logger = get_logger(__name__)
         self.command_resolver = command_resolver or MermaidCommandResolver(
@@ -257,16 +282,16 @@ class MermaidImageGenerator:
 
     @classmethod
     def clear_command_cache(cls) -> None:
-        """Clear the command cache (useful for testing)."""
+        """コマンドキャッシュをリセットする（主にテスト用）"""
         cls._command_cache.clear()
 
     @classmethod
     def get_cache_size(cls) -> int:
-        """Get the current cache size."""
+        """現在のキャッシュエントリ数を返す"""
         return len(cls._command_cache)
 
     def _validate_dependencies(self) -> None:
-        """Resolve and cache the Mermaid CLI command."""
+        """Mermaid CLIコマンドを解決しインスタンスにキャッシュする"""
         self._resolved_mmdc_command = self.command_resolver.resolve()
 
     def generate(
@@ -276,10 +301,12 @@ class MermaidImageGenerator:
         config: dict[str, Any],
         page_file: str | None = None,
     ) -> bool:
+        """MermaidコードからSVG生成までの一連の処理を管理する"""
         artifacts: GenerationArtifacts | None = None
         cmd: list[str] = []
 
         try:
+            # 実行に必要な一時ファイル群を作成
             artifacts = self.artifact_manager.prepare(mermaid_code, output_path, config)
             cmd, _, _ = self._build_mmdc_command(
                 artifacts.source_path,
@@ -288,6 +315,7 @@ class MermaidImageGenerator:
                 puppeteer_config_file=artifacts.puppeteer_config_file,
                 mermaid_config_file=artifacts.mermaid_config_file,
             )
+            # Mermaid CLIを呼び出し結果を評価
             result = self._execute_mermaid_command(cmd)
 
             if not self._validate_generation_result(result, output_path, mermaid_code):
@@ -421,11 +449,13 @@ class MermaidImageGenerator:
         puppeteer_config_file: str | None = None,
         mermaid_config_file: str | None = None,
     ) -> tuple[list[str], str | None, str | None]:
+        """mmdcコマンドラインを構築し使用した設定ファイル情報を返す"""
         if not self._resolved_mmdc_command:
             raise MermaidCLIError("Mermaid CLI command not properly resolved")
 
         mmdc_command_parts = list(self._resolved_mmdc_command)
 
+        # ベースとなる必須パラメータを組み立てる
         cmd = [
             *mmdc_command_parts,
             "-i",
@@ -466,6 +496,7 @@ class MermaidImageGenerator:
         if custom_puppeteer_config and Path(custom_puppeteer_config).exists():
             cmd.extend(["-p", custom_puppeteer_config])
         else:
+            # 設定が存在しない場合は生成済み／新規生成の設定ファイルを利用
             fallback_used_config = puppeteer_config_file
             if fallback_used_config is None:
                 fallback_used_config, should_cleanup_puppeteer = (
@@ -484,5 +515,5 @@ class MermaidImageGenerator:
     def _execute_mermaid_command(
         self, cmd: list[str]
     ) -> subprocess.CompletedProcess[str]:
-        """Execute the Mermaid CLI command via the configured executor."""
+        """構成済みエグゼキューターを通じてCLIを実行する"""
         return self.cli_executor.run(cmd)

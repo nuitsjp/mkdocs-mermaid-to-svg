@@ -4,16 +4,13 @@ from typing import Any
 
 
 class MermaidPreprocessorError(Exception):
-    def __init__(self, message: str, **context_params: Any) -> None:
-        """Initialize the exception with a message and optional context parameters.
+    """Mermaidプラグイン全体の基底例外として文脈情報を保持する"""
 
-        Args:
-            message: Human-readable error message
-            **context_params: Arbitrary context parameters for error details
-        """
+    def __init__(self, message: str, **context_params: Any) -> None:
+        """エラーメッセージと任意の文脈情報を保持する基本例外クラス"""
         details = {k: v for k, v in context_params.items() if v is not None}
 
-        # Truncate long mermaid content for readability
+        # Mermaidコードが長すぎる場合は頭出しのみ残して読みやすくする
         for key in ["mermaid_content", "mermaid_code"]:
             if (
                 key in details
@@ -27,6 +24,8 @@ class MermaidPreprocessorError(Exception):
 
 
 class MermaidCLIError(MermaidPreprocessorError):
+    """Mermaid CLI実行時の異常を表す派生例外"""
+
     def __init__(
         self,
         message: str,
@@ -34,20 +33,15 @@ class MermaidCLIError(MermaidPreprocessorError):
         return_code: int | None = None,
         stderr: str | None = None,
     ) -> None:
-        """Initialize CLI error with command details.
-
-        Args:
-            message: Human-readable error message
-            command: The command that failed
-            return_code: Exit code of the failed command
-            stderr: Standard error output from the command
-        """
+        """Mermaid CLI実行時の失敗情報を保持する例外"""
         super().__init__(
             message, command=command, return_code=return_code, stderr=stderr
         )
 
 
 class MermaidConfigError(MermaidPreprocessorError):
+    """設定値の異常を通知する派生例外"""
+
     def __init__(
         self,
         message: str,
@@ -55,14 +49,7 @@ class MermaidConfigError(MermaidPreprocessorError):
         config_value: str | int | None = None,
         suggestion: str | None = None,
     ) -> None:
-        """Initialize configuration error with context.
-
-        Args:
-            message: Human-readable error message
-            config_key: The configuration key that caused the error
-            config_value: The invalid configuration value
-            suggestion: Suggested fix for the configuration error
-        """
+        """設定値の誤りを報告する例外"""
         super().__init__(
             message,
             config_key=config_key,
@@ -72,6 +59,8 @@ class MermaidConfigError(MermaidPreprocessorError):
 
 
 class MermaidParsingError(MermaidPreprocessorError):
+    """Mermaidコード解析時の失敗を通知する派生例外"""
+
     def __init__(
         self,
         message: str,
@@ -79,14 +68,7 @@ class MermaidParsingError(MermaidPreprocessorError):
         line_number: int | None = None,
         mermaid_code: str | None = None,
     ) -> None:
-        """Initialize parsing error with source context.
-
-        Args:
-            message: Human-readable error message
-            source_file: The file where the parsing error occurred
-            line_number: Line number where the error was found
-            mermaid_code: The problematic Mermaid code block
-        """
+        """Mermaidコードの解析段階で発生した問題を表す例外"""
         super().__init__(
             message,
             source_file=source_file,
@@ -96,6 +78,8 @@ class MermaidParsingError(MermaidPreprocessorError):
 
 
 class MermaidFileError(MermaidPreprocessorError):
+    """ファイルI/Oに関する問題を通知する派生例外"""
+
     def __init__(
         self,
         message: str,
@@ -103,20 +87,15 @@ class MermaidFileError(MermaidPreprocessorError):
         operation: str | None = None,
         suggestion: str | None = None,
     ) -> None:
-        """Initialize file operation error with context.
-
-        Args:
-            message: Human-readable error message
-            file_path: Path to the file that caused the error
-            operation: The file operation that failed (read, write, create, etc.)
-            suggestion: Suggested fix for the file error
-        """
+        """ファイル入出力に関する失敗を表す例外"""
         super().__init__(
             message, file_path=file_path, operation=operation, suggestion=suggestion
         )
 
 
 class MermaidValidationError(MermaidPreprocessorError):
+    """入力検証の失敗を通知する派生例外"""
+
     def __init__(
         self,
         message: str,
@@ -124,14 +103,7 @@ class MermaidValidationError(MermaidPreprocessorError):
         invalid_value: str | None = None,
         expected_format: str | None = None,
     ) -> None:
-        """Initialize validation error with context.
-
-        Args:
-            message: Human-readable error message
-            validation_type: Type of validation that failed
-            invalid_value: The value that failed validation
-            expected_format: Expected format or pattern
-        """
+        """入力値の検証に失敗した際の例外"""
         super().__init__(
             message,
             validation_type=validation_type,
@@ -141,6 +113,8 @@ class MermaidValidationError(MermaidPreprocessorError):
 
 
 class MermaidImageError(MermaidPreprocessorError):
+    """画像生成処理の失敗を通知する派生例外"""
+
     def __init__(
         self,
         message: str,
@@ -149,15 +123,7 @@ class MermaidImageError(MermaidPreprocessorError):
         mermaid_content: str | None = None,
         suggestion: str | None = None,
     ) -> None:
-        """Initialize image generation error with context.
-
-        Args:
-            message: Human-readable error message
-            image_format: Target image format (png, svg, etc.)
-            image_path: Path where image should be generated
-            mermaid_content: Mermaid diagram content that failed to render
-            suggestion: Suggested fix for the image generation error
-        """
+        """画像生成プロセスでの失敗を表す例外"""
         super().__init__(
             message,
             image_format=image_format,

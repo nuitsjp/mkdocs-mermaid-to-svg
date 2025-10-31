@@ -66,7 +66,7 @@ plugins:
   - to-pdf:  # When used with PDF generation plugins
       enabled_if_env: ENABLE_PDF_EXPORT
 
-> **Note**  
+> **Note**
 > `mermaid_config` を省略しても、プラグインは PDF 互換性のために `htmlLabels` を無効化した一時設定を自動生成します。ここで示した設定例は、追加のカスタマイズを行いたい場合のみ必要です。
 ```
 
@@ -132,7 +132,7 @@ plugins:
 | `log_level` | `"WARNING"` | 実際には `mkdocs build --verbose/-v` 指定時は `"DEBUG"`、それ以外は `"WARNING"` に自動設定 |
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
 
-> **Log level behaviour**  
+> **Log level behaviour**
 > `log_level` の設定値は MkDocs 実行時のフラグによって上書きされます。`mkdocs build --verbose` または `-v` を付けた場合は `"DEBUG"`、付けない場合は `"WARNING"` で固定され、`mkdocs.yml` で任意値を指定しても現在は反映されません。
 
 ## PDF Generation

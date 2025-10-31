@@ -7,8 +7,11 @@ from .exceptions import MermaidFileError
 
 
 class ConfigManager:
+    """MkDocsプラグイン設定の定義と検証を担う"""
+
     @staticmethod
     def get_config_scheme() -> tuple[tuple[str, Any], ...]:
+        """MkDocsに渡す設定スキーマを定義する"""
         return (
             (
                 "enabled_if_env",
@@ -58,6 +61,7 @@ class ConfigManager:
 
     @staticmethod
     def validate_config(config: dict[str, Any]) -> bool:
+        """設定ファイルで指定されたパス類を検証し存在しない場合は例外を投げる"""
         # オプションパラメータのチェック（存在する場合のみ）
         if (
             "css_file" in config

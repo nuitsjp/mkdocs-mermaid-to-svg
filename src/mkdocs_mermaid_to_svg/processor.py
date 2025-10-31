@@ -19,7 +19,10 @@ class ProcessingContext:
 
 
 class MermaidProcessor:
+    """Markdown解析と画像生成を統合してページ単位で処理する"""
+
     def __init__(self, config: dict[str, Any]) -> None:
+        """構成要素を初期化し、後続処理で利用するインスタンスを準備する"""
         self.config = config
         self.logger = get_logger(__name__)
 
@@ -34,6 +37,7 @@ class MermaidProcessor:
         page_url: str = "",
         docs_dir: Union[str, Path] | None = None,
     ) -> tuple[str, list[str]]:
+        """1ページ分のMarkdownからMermaid図を検出し画像生成・差し替えする"""
         blocks = self.markdown_processor.extract_mermaid_blocks(markdown_content)
 
         if not blocks:
@@ -48,6 +52,7 @@ class MermaidProcessor:
             successful_blocks=successful_blocks,
         )
 
+        # 抽出した各ブロックを順に処理し、生成に成功したものだけを記録
         for i, block in enumerate(blocks):
             self._process_single_block(block, i, context)
 
@@ -72,7 +77,7 @@ class MermaidProcessor:
         index: int,
         context: ProcessingContext,
     ) -> None:
-        """単一ブロックの処理"""
+        """単一Mermaidブロックの画像生成と結果記録を行う"""
         try:
             image_filename = block.get_filename(context.page_file, index, "svg")
             image_path = Path(context.output_dir) / image_filename

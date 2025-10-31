@@ -6,14 +6,7 @@ from .utils import generate_image_filename
 
 
 def _calculate_relative_path_prefix(page_file: str) -> str:
-    """ページファイルパスから適切な相対パスプレフィックスを計算する
-
-    Args:
-        page_file: ページファイルのパス（例: "appendix/mkdocs-architecture.md"）
-
-    Returns:
-        相対パスプレフィックス（例: "../" or "../../../"）
-    """
+    """ページファイルの深さに応じた相対パスの接頭辞を計算する"""
     if not page_file:
         return ""
 
@@ -22,10 +15,13 @@ def _calculate_relative_path_prefix(page_file: str) -> str:
 
     if depth == 0:
         return ""
+
     return "../" * depth
 
 
 class ImagePathResolver:
+    """生成された画像ファイルをMarkdownから参照しやすいパスに変換する"""
+
     def __init__(self, default_output_dir: str = "assets/images") -> None:
         self.default_output_dir = default_output_dir
 
@@ -37,6 +33,7 @@ class ImagePathResolver:
         output_dir: str | None,
         docs_dir: str | Path | None,
     ) -> str:
+        """ページ位置を考慮してMarkdown内で使用する相対パスを返す"""
         relative_prefix = _calculate_relative_path_prefix(page_file)
         relative_path = self._resolve_relative_path(
             image_path=image_path,
@@ -44,6 +41,7 @@ class ImagePathResolver:
             docs_dir=docs_dir,
         )
 
+        # ページ深度がある場合は適切なプレフィックスを付与
         if relative_prefix:
             return f"{relative_prefix}{relative_path}"
         return relative_path
@@ -55,6 +53,7 @@ class ImagePathResolver:
         output_dir: str | None,
         docs_dir: str | Path | None,
     ) -> str:
+        """docs_dirや出力設定を踏まえた相対パスを計算する"""
         image_path_obj = Path(image_path)
         docs_dir_path = Path(docs_dir).resolve() if docs_dir else None
 
@@ -79,6 +78,7 @@ class ImagePathResolver:
         return image_path_obj.name
 
     def _normalize_output_dir(self, output_dir: str | None) -> str:
+        """output_dir設定をスラッシュ区切りへ正規化する"""
         if not output_dir:
             return self.default_output_dir
 
@@ -91,6 +91,8 @@ class ImagePathResolver:
 
 
 class MermaidBlock:
+    """Markdown内のMermaidコードブロックを表し画像生成を仲介する"""
+
     _default_path_resolver = ImagePathResolver()
 
     def __init__(
@@ -100,6 +102,7 @@ class MermaidBlock:
         end_pos: int,
         attributes: dict[str, Any] | None = None,
     ):
+        """ブロックのコードと位置情報、任意属性を保持する"""
         self.code = code.strip()
         self.start_pos = start_pos
         self.end_pos = end_pos
@@ -119,8 +122,10 @@ class MermaidBlock:
         config: dict[str, Any],
         page_file: str | None = None,
     ) -> bool:
+        """Mermaid CLI用の設定を整え画像生成処理を呼び出す"""
         merged_config = config.copy()
 
+        # ブロックごとにテーマ指定があれば優先する
         if "theme" in self.attributes:
             merged_config["theme"] = self.attributes["theme"]
 
@@ -138,6 +143,7 @@ class MermaidBlock:
         output_dir: str | None = None,
         docs_dir: str | Path | None = None,
     ) -> str:
+        """生成済み画像をMarkdownリンクとして利用できる形式に整形する"""
         markdown_path = self._path_resolver.to_markdown_path(
             image_path=image_path,
             page_file=page_file,
@@ -148,4 +154,5 @@ class MermaidBlock:
         return f"![Mermaid Diagram]({markdown_path})"
 
     def get_filename(self, page_file: str, index: int, image_format: str) -> str:
+        """ブロック内容に基づく安定したファイル名を生成する"""
         return generate_image_filename(page_file, index, self.code, image_format)

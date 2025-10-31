@@ -14,6 +14,7 @@ from .logging_config import get_logger
 def generate_image_filename(
     page_file: str, block_index: int, mermaid_code: str, image_format: str
 ) -> str:
+    """ページ名とコードハッシュから衝突しにくい画像ファイル名を生成する"""
     page_name = Path(page_file).stem
     code_hash = hashlib.md5(
         mermaid_code.encode("utf-8"), usedforsecurity=False
@@ -23,10 +24,12 @@ def generate_image_filename(
 
 
 def ensure_directory(directory: str) -> None:
+    """出力先ディレクトリが存在しなければ再帰的に作成する"""
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 
 def get_temp_file_path(suffix: str = ".mmd") -> str:
+    """安全に作成した一時ファイルパスを返しハンドルはすぐ閉じる"""
     fd, path = tempfile.mkstemp(suffix=suffix)
     os.close(fd)
     return path
@@ -39,7 +42,7 @@ def clean_temp_file(file_path: str) -> None:
 
 
 def _get_cleanup_suggestion(error_type: str) -> str:
-    """Get contextual suggestion based on error type."""
+    """エラー種別に応じた復旧策をメッセージとして返す"""
     suggestions = {
         "PermissionError": "Check file permissions or run with privileges",
         "OSError": "File may be locked by another process",
@@ -84,6 +87,7 @@ def clean_file_with_error_handling(
 
 
 def get_relative_path(file_path: str, base_path: str) -> str:
+    """基準パスからの相対パスを計算しPOSIX形式に揃える"""
     if not file_path or not base_path:
         return file_path
 
@@ -110,7 +114,7 @@ def get_relative_path(file_path: str, base_path: str) -> str:
 
 
 def is_command_available(command: str) -> bool:
-    """Check if a command is available and working by executing version check"""
+    """バージョン確認等を走らせてコマンドが利用可能か判定する"""
     if not command:
         return False
 
@@ -124,7 +128,7 @@ def is_command_available(command: str) -> bool:
 
 
 def split_command(command: str) -> list[str]:
-    """Split command string safely, preserving quoted segments."""
+    """引用符を保持しながらコマンド文字列を安全に分割する"""
     trimmed = command.strip()
     if not trimmed:
         return []
@@ -145,7 +149,7 @@ def split_command(command: str) -> list[str]:
 
 
 def _should_treat_as_single_path(command: str, parts: list[str]) -> bool:
-    """Return True when command should be treated as a single executable path."""
+    """バックスラッシュ等を含むパスを1要素のコマンドとして扱うべきか判定する"""
     if len(parts) <= 1:
         return False
 
@@ -185,7 +189,7 @@ def _should_treat_as_single_path(command: str, parts: list[str]) -> bool:
 def _verify_command_execution(
     command_parts: Iterable[str], command: str, logger: logging.Logger
 ) -> bool:
-    """Verify that a command can be executed successfully."""
+    """コマンドが実際に実行できるかバージョンオプションで確認する"""
     parts_list: list[str] = list(command_parts)
     version_flags = ["--version", "-v", "--help"]
 
