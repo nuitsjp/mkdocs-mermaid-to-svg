@@ -98,7 +98,9 @@ class TestMermaidImageGenerator:
         # WindowsファイルシステムでもLinuxでも互換性があるパスを使用
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
         mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
-        puppeteer_config_path = str(Path(tempfile.gettempdir()) / "puppeteer-config.json")
+        puppeteer_config_path = str(
+            Path(tempfile.gettempdir()) / "puppeteer-config.json"
+        )
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
         # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
         mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
@@ -151,7 +153,9 @@ class TestMermaidImageGenerator:
         mock_command_available.return_value = True
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
         mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
-        puppeteer_config_path = str(Path(tempfile.gettempdir()) / "puppeteer-config.json")
+        puppeteer_config_path = str(
+            Path(tempfile.gettempdir()) / "puppeteer-config.json"
+        )
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
         # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
         mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
@@ -201,7 +205,9 @@ class TestMermaidImageGenerator:
         mock_command_available.return_value = True
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
         mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
-        puppeteer_config_path = str(Path(tempfile.gettempdir()) / "puppeteer-config.json")
+        puppeteer_config_path = str(
+            Path(tempfile.gettempdir()) / "puppeteer-config.json"
+        )
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
         # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
         mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
@@ -641,9 +647,9 @@ class TestMermaidImageGenerator:
                 if PILLOW_AVAILABLE:
                     # Pillowが利用可能でも、モック環境では簡単な比較にとどめる
                     assert output_path.exists(), "Output file should exist"
-                    assert (
-                        output_path.stat().st_size > 0
-                    ), "Output file should not be empty"
+                    assert output_path.stat().st_size > 0, (
+                        "Output file should not be empty"
+                    )
                     # モック環境では常に成功とみなす
                     similarity_ok, similarity_msg = True, "Mock comparison passed"
                 else:
@@ -1173,9 +1179,9 @@ class TestMermaidImageGenerator:
             generator2 = MermaidImageGenerator(basic_config)
 
             # キャッシュが存在するなら、is_command_availableは1度だけ呼ばれるはず
-            assert (
-                mock_cmd.call_count == 1
-            ), "キャッシュが有効なら、コマンドチェックは1回だけ実行されるはず"
+            assert mock_cmd.call_count == 1, (
+                "キャッシュが有効なら、コマンドチェックは1回だけ実行されるはず"
+            )
 
             # 両方のインスタンスが同じ解決済みコマンドを持つはず
             assert (
@@ -1216,9 +1222,9 @@ class TestMermaidImageGenerator:
                 generators.append(MermaidImageGenerator(basic_config))
 
             # キャッシュが有効なら、is_command_availableは1回だけ呼ばれるはず
-            assert (
-                mock_cmd.call_count == 1
-            ), f"キャッシュ有効時は1回だけチェック。実際{mock_cmd.call_count}回"
+            assert mock_cmd.call_count == 1, (
+                f"キャッシュ有効時は1回だけチェック。実際{mock_cmd.call_count}回"
+            )
 
     def test_command_cache_invalidation_on_config_change(self):
         """設定変更時のキャッシュクリアテスト（成功するテスト）"""
@@ -1265,20 +1271,20 @@ class TestMermaidImageGenerator:
             MermaidImageGenerator(basic_config2)
 
             # 異なるコマンドパスなので、それぞれ別々にキャッシュされるはず
-            assert (
-                mock_cmd.call_count == 2
-            ), f"異なるコマンドパスは別々チェック。実際{mock_cmd.call_count}回"
-            assert (
-                MermaidImageGenerator.get_cache_size() == 2
-            ), "キャッシュには2つのエントリがあるはず"
+            assert mock_cmd.call_count == 2, (
+                f"異なるコマンドパスは別々チェック。実際{mock_cmd.call_count}回"
+            )
+            assert MermaidImageGenerator.get_cache_size() == 2, (
+                "キャッシュには2つのエントリがあるはず"
+            )
 
             # 3rd instance with first config again (should hit cache)
             MermaidImageGenerator(basic_config1)
 
             # キャッシュヒットするので、追加のコマンドチェックは不要
-            assert (
-                mock_cmd.call_count == 2
-            ), f"キャッシュヒット時は追加チェック不要。実際は{mock_cmd.call_count}回"
+            assert mock_cmd.call_count == 2, (
+                f"キャッシュヒット時は追加チェック不要。実際は{mock_cmd.call_count}回"
+            )
 
     def test_different_mmdc_paths_separate_cache(self):
         """異なるコマンドパスの個別キャッシュテスト（成功するテスト）"""
@@ -1338,12 +1344,12 @@ class TestMermaidImageGenerator:
                 generators.append(MermaidImageGenerator(config))
 
             # 3つの異なるコマンドパスなので、3回チェックされるはず
-            assert (
-                mock_cmd.call_count == 3
-            ), f"3つの異なるコマンドパスは別々チェック。実際{mock_cmd.call_count}回"
-            assert (
-                MermaidImageGenerator.get_cache_size() == 3
-            ), "キャッシュには3つのエントリがあるはず"
+            assert mock_cmd.call_count == 3, (
+                f"3つの異なるコマンドパスは別々チェック。実際{mock_cmd.call_count}回"
+            )
+            assert MermaidImageGenerator.get_cache_size() == 3, (
+                "キャッシュには3つのエントリがあるはず"
+            )
 
             # 各コマンドパスがキャッシュに含まれているはず
             for config in configs:

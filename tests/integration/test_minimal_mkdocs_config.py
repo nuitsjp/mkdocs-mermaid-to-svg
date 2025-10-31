@@ -120,6 +120,6 @@ plugins:
                 missing_defaults.append(config_name)
 
         # 全ての設定項目がデフォルト値を持つことを確認
-        assert (
-            len(missing_defaults) == 0
-        ), f"These config options lack default values: {missing_defaults}"
+        assert len(missing_defaults) == 0, (
+            f"These config options lack default values: {missing_defaults}"
+        )

@@ -382,9 +382,9 @@ class TestMermaidToImagePlugin:
         plugin._register_generated_images_to_files(image_paths, docs_dir, mock_config)
 
         # ファイル数が変わらないことを確認（置換されたため）
-        assert (
-            len(files) == initial_file_count
-        ), "File count should remain the same after duplicate replacement"
+        assert len(files) == initial_file_count, (
+            "File count should remain the same after duplicate replacement"
+        )
 
         # ファイルパスが正しいことを確認（OS依存のパス区切り文字を考慮）
         file_paths = [f.src_path for f in files]
