@@ -7,8 +7,6 @@ Python未経験者へのヒント：
 - pytest の tmp_path fixture を使うと、一時ディレクトリが簡単に扱えます。
 """
 
-from pathlib import Path
-
 import pytest
 
 

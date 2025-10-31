@@ -107,7 +107,7 @@ main() {
     # === Setup Python Environments ===
     install_or_upgrade pip python3-pip          # pipの導入・更新
     sudo apt-get install -y python3.12-venv     # python3-venvパッケージの導入（仮想環境作成に必要）
-    
+
     # uvをインストール（公式のインストール方法を使用）
     if ! command -v uv &> /dev/null; then
         print_step "Installing uv..."
@@ -117,7 +117,7 @@ main() {
     else
         print_success "uv already installed"
     fi
-    
+
     # uvで仮想環境を作成（既存の.venvがある場合はスキップ）
     if [ ! -d ".venv" ]; then
         print_step "Creating virtual environment with uv..."
@@ -126,10 +126,10 @@ main() {
     else
         print_warning "Virtual environment already exists, skipping creation"
     fi
-    
+
     # Pythonバージョンをピン止め
     uv python pin $PYTHON_VERSION
-    
+
     # プロジェクトと全依存関係をインストール
     print_step "Installing project dependencies..."
     uv pip install -e .                         # プロジェクトを開発モード（editable）でインストール
@@ -138,7 +138,7 @@ main() {
 
     # === Setup Node.js Environment ===
     print_step "Setting up Node.js environment..."
-    
+
     # Install or update nvm
     if ! command -v nvm &> /dev/null; then
         print_step "Installing nvm..."
@@ -181,12 +181,12 @@ main() {
 
     # === VERIFICATION ===
     print_step "Verifying installation..."
-    
+
     # Run tests to verify plugin functionality
     print_step "Running test suite..."
     uv run pytest tests
     print_success "All tests passed"
-    
+
     # Build documentation to verify MkDocs integration
     print_step "Building documentation..."
     uv run mkdocs build
