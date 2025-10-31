@@ -204,6 +204,27 @@ class TestMermaidBlock:
         # 3階層深いページからは ../../../assets/images/ で参照する必要がある
         assert result == "![Mermaid Diagram](../../../assets/images/test.svg)"
 
+    def test_get_image_markdown_uses_docs_dir_resolution(self, tmp_path):
+        """docs_dir と output_dir の情報を使ってパスを解決できることを確認"""
+        docs_dir = tmp_path / "docs"
+        docs_dir.mkdir()
+        output_dir = docs_dir / "assets" / "images"
+        output_dir.mkdir(parents=True)
+
+        image_path = output_dir / "sample.svg"
+        image_path.write_text("<svg></svg>", encoding="utf-8")
+
+        block = MermaidBlock("graph TD\nA-->B", 0, 10)
+
+        result = block.get_image_markdown(
+            str(image_path),
+            "guide/page.md",
+            docs_dir=str(docs_dir),
+            output_dir="assets/images",
+        )
+
+        assert result == "![Mermaid Diagram](../assets/images/sample.svg)"
+
     def test_get_image_markdown_depth_edge_cases(self):
         """ページ深度計算のエッジケースをテスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
