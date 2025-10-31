@@ -25,7 +25,74 @@ def _calculate_relative_path_prefix(page_file: str) -> str:
     return "../" * depth
 
 
+class ImagePathResolver:
+    def __init__(self, default_output_dir: str = "assets/images") -> None:
+        self.default_output_dir = default_output_dir
+
+    def to_markdown_path(
+        self,
+        *,
+        image_path: str | Path,
+        page_file: str,
+        output_dir: str | None,
+        docs_dir: str | Path | None,
+    ) -> str:
+        relative_prefix = _calculate_relative_path_prefix(page_file)
+        relative_path = self._resolve_relative_path(
+            image_path=image_path,
+            output_dir=output_dir,
+            docs_dir=docs_dir,
+        )
+
+        if relative_prefix:
+            return f"{relative_prefix}{relative_path}"
+        return relative_path
+
+    def _resolve_relative_path(
+        self,
+        *,
+        image_path: str | Path,
+        output_dir: str | None,
+        docs_dir: str | Path | None,
+    ) -> str:
+        image_path_obj = Path(image_path)
+        docs_dir_path = Path(docs_dir).resolve() if docs_dir else None
+
+        if docs_dir_path:
+            try:
+                rel_to_docs = os.path.relpath(
+                    image_path_obj.resolve(strict=False), docs_dir_path
+                )
+                rel_to_docs = rel_to_docs.replace("\\", "/")
+                if rel_to_docs.startswith("./"):
+                    rel_to_docs = rel_to_docs[2:]
+                if not rel_to_docs.startswith("../") and rel_to_docs != "..":
+                    return rel_to_docs
+            except ValueError:
+                pass
+
+        normalized_output_dir = self._normalize_output_dir(output_dir)
+
+        if normalized_output_dir:
+            return f"{normalized_output_dir}/{image_path_obj.name}".replace("//", "/")
+
+        return image_path_obj.name
+
+    def _normalize_output_dir(self, output_dir: str | None) -> str:
+        if not output_dir:
+            return self.default_output_dir
+
+        normalized = Path(output_dir).as_posix().strip("/")
+
+        if normalized in {"", "."}:
+            return ""
+
+        return normalized
+
+
 class MermaidBlock:
+    _default_path_resolver = ImagePathResolver()
+
     def __init__(
         self,
         code: str,
@@ -37,6 +104,7 @@ class MermaidBlock:
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.attributes = attributes or {}
+        self._path_resolver = self._default_path_resolver
 
     def __repr__(self) -> str:
         return (
@@ -70,65 +138,14 @@ class MermaidBlock:
         output_dir: str | None = None,
         docs_dir: str | Path | None = None,
     ) -> str:
-        relative_prefix = _calculate_relative_path_prefix(page_file)
-
-        relative_path = self._compute_relative_path(
+        markdown_path = self._path_resolver.to_markdown_path(
             image_path=image_path,
             page_file=page_file,
             output_dir=output_dir,
             docs_dir=docs_dir,
         )
 
-        if relative_prefix:
-            image_path_for_markdown = f"{relative_prefix}{relative_path}"
-        else:
-            image_path_for_markdown = relative_path
-
-        return f"![Mermaid Diagram]({image_path_for_markdown})"
-
-    def _compute_relative_path(
-        self,
-        *,
-        image_path: str,
-        page_file: str,
-        output_dir: str | None,
-        docs_dir: str | Path | None,
-    ) -> str:
-        image_path_obj = Path(image_path)
-        docs_dir_path = Path(docs_dir).resolve() if docs_dir else None
-
-        if docs_dir_path:
-            try:
-                rel_to_docs = os.path.relpath(
-                    image_path_obj.resolve(strict=False), docs_dir_path
-                )
-                rel_to_docs = rel_to_docs.replace("\\", "/")
-                if rel_to_docs.startswith("./"):
-                    rel_to_docs = rel_to_docs[2:]
-                return rel_to_docs
-            except ValueError:
-                pass
-
-        normalized_output_dir = self._normalize_output_dir(output_dir)
-
-        if normalized_output_dir:
-            return f"{normalized_output_dir}/{image_path_obj.name}".replace("//", "/")
-
-        return image_path_obj.name
-
-    @staticmethod
-    def _normalize_output_dir(output_dir: str | None) -> str:
-        default_dir = "assets/images"
-
-        if not output_dir:
-            return default_dir
-
-        normalized = Path(output_dir).as_posix().strip("/")
-
-        if normalized in {"", "."}:
-            return ""
-
-        return normalized
+        return f"![Mermaid Diagram]({markdown_path})"
 
     def get_filename(self, page_file: str, index: int, image_format: str) -> str:
         return generate_image_filename(page_file, index, self.code, image_format)
