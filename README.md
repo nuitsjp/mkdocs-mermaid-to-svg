@@ -65,6 +65,9 @@ plugins:
           htmlLabels: false
   - to-pdf:  # When used with PDF generation plugins
       enabled_if_env: ENABLE_PDF_EXPORT
+
+> **Note**  
+> `mermaid_config` を省略した場合でも、プラグインが自動的に `htmlLabels` を無効化した一時設定ファイルを生成します。PDF 互換性のための基本設定は既定で有効になっているため、上記の明示的な指定はカスタム設定を適用したい場合にのみ必要です。
 ```
 
 ### PDF Compatibility
@@ -110,7 +113,7 @@ plugins:
       css_file: "custom-mermaid.css"      # Custom CSS file
       puppeteer_config: "puppeteer.json"  # Custom Puppeteer configuration
       error_on_fail: false                # Continue on diagram generation errors
-      log_level: "INFO"                   # Log level (DEBUG, INFO, WARNING, ERROR)
+      log_level: "WARNING"                # Currently derived from mkdocs CLI flags (see note below)
       cleanup_generated_images: true      # Clean up generated images after build
 ```
 
@@ -126,8 +129,11 @@ plugins:
 | `css_file` | `None` | Path to custom CSS file |
 | `puppeteer_config` | `None` | Path to Puppeteer configuration file |
 | `error_on_fail` | `true` | Stop build on diagram generation errors |
-| `log_level` | `"INFO"` | Log level |
+| `log_level` | `"WARNING"` | 実際には `mkdocs build --verbose/-v` 指定時は `"DEBUG"`、それ以外は `"WARNING"` に自動設定 |
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
+
+> **Log level behaviour**  
+> `log_level` の設定値は MkDocs 実行時のフラグによって上書きされます。`mkdocs build --verbose` または `-v` を付与するとプラグインは `"DEBUG"` ログを出力し、付与しない場合は `"WARNING"` に固定されます。任意の値を `mkdocs.yml` で指定しても現在は反映されません。
 
 ## PDF Generation
 
