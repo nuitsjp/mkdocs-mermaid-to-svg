@@ -74,7 +74,7 @@ mkdocs-mermaid-to-svg/
         ├── image_generator.py      # MermaidImageGenerator plus CLI resolver/executor/artifact manager
         ├── mermaid_block.py        # MermaidBlock & ImagePathResolver for per-block rendering metadata
         ├── config.py               # ConfigManager schema, validation, and file existence checks
-        ├── types.py                # Shared Literal/TypedDict definitions for typing and logging helpers
+        ├── types.py                # LogContext TypedDict shared with logging utilities
         ├── exceptions.py           # Structured exception hierarchy used across the pipeline
         ├── logging_config.py       # Structured logging setup and contextual adapters
         └── utils.py                # Shared helpers (filenames, temp files, CLI detection, cleanup)
@@ -110,13 +110,6 @@ graph TD
         H --> U
     end
 
-    subgraph "Shared Types"
-        B --> T[types.py]
-        G --> T
-        H --> T
-        F --> T
-    end
-
     subgraph "External Dependencies"
         MkDocs[MkDocs Framework]
         MermaidCLI["@mermaid-js/mermaid-cli"]
@@ -124,6 +117,7 @@ graph TD
 
     A -.->|implements| MkDocs
     H -->|executes| MermaidCLI
+    F --> T[types.py]
 ```
 
 ## Class Architecture
