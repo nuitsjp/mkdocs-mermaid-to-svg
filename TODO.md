@@ -1,4 +1,0 @@
-- [x] `MermaidProcessor` から docs_dir の setter 依存を排除し、ページ処理時にドキュメントルートを注入できるようにする。状態を持たない API に変えることで、プラグイン以外のエントリポイントでも誤設定なく再利用しやすくなる。
-- [x] `MermaidImageGenerator` の責務を整理し、コマンド解決・一時ファイル管理・CLI 実行を分離した協調クラスにリファクタリングする。現在は 1 クラスに処理が集中し、エラー分岐のテストが複雑化している。
-- [x] `MarkdownProcessor._parse_attributes` に CSV/quoted 値対応のパーサーを導入し、エスケープやカンマを含む属性を正しく解釈できるようにする。現状の単純分割では複雑な Mermaid オプションが欠落する。
-- [x] Mermaid 図の出力パス計算を専用の ImagePathResolver（仮）に切り出し、`MermaidBlock` がファイルシステム知識と Markdown 生成を両立させている状態を解消する。相対パス計算を一箇所に集約して OS 差異や設定追加へ追従しやすくする。
