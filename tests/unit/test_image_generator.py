@@ -83,9 +83,11 @@ class TestMermaidImageGenerator:
     @patch("mkdocs_mermaid_to_svg.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file")
     @patch("tempfile.NamedTemporaryFile")
+    @patch("json.dump")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_subprocess_error(
         self,
+        mock_json_dump,
         mock_named_temp_file,
         mock_clean,
         mock_temp_path,
@@ -107,6 +109,7 @@ class TestMermaidImageGenerator:
         # NamedTemporaryFileのモック設定
         mock_temp_file = Mock()
         mock_temp_file.name = puppeteer_config_path
+        mock_temp_file.write = Mock()  # writeメソッドを追加
         mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
         mock_temp_file.__exit__ = Mock(return_value=False)
         mock_named_temp_file.return_value = mock_temp_file
@@ -138,9 +141,11 @@ class TestMermaidImageGenerator:
     @patch("mkdocs_mermaid_to_svg.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file")
     @patch("tempfile.NamedTemporaryFile")
+    @patch("json.dump")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_no_output_file(
         self,
+        mock_json_dump,
         mock_named_temp_file,
         mock_clean,
         mock_temp_path,
@@ -162,6 +167,7 @@ class TestMermaidImageGenerator:
         # NamedTemporaryFileのモック設定
         mock_temp_file = Mock()
         mock_temp_file.name = puppeteer_config_path
+        mock_temp_file.write = Mock()  # writeメソッドを追加
         mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
         mock_temp_file.__exit__ = Mock(return_value=False)
         mock_named_temp_file.return_value = mock_temp_file
@@ -191,9 +197,11 @@ class TestMermaidImageGenerator:
     @patch("mkdocs_mermaid_to_svg.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file")
     @patch("tempfile.NamedTemporaryFile")
+    @patch("json.dump")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_timeout(
         self,
+        mock_json_dump,
         mock_named_temp_file,
         mock_clean,
         mock_temp_path,
@@ -214,6 +222,7 @@ class TestMermaidImageGenerator:
         # NamedTemporaryFileのモック設定
         mock_temp_file = Mock()
         mock_temp_file.name = puppeteer_config_path
+        mock_temp_file.write = Mock()  # writeメソッドを追加
         mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
         mock_temp_file.__exit__ = Mock(return_value=False)
         mock_named_temp_file.return_value = mock_temp_file
