@@ -82,9 +82,11 @@ class TestMermaidImageGenerator:
     @patch("subprocess.run")
     @patch("mkdocs_mermaid_to_svg.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file")
+    @patch("tempfile.NamedTemporaryFile")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_subprocess_error(
         self,
+        mock_named_temp_file,
         mock_clean,
         mock_temp_path,
         mock_subprocess,
@@ -96,9 +98,16 @@ class TestMermaidImageGenerator:
         # WindowsファイルシステムでもLinuxでも互換性があるパスを使用
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
         mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
+        puppeteer_config_path = str(Path(tempfile.gettempdir()) / "puppeteer-config.json")
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
         # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
         mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
+        # NamedTemporaryFileのモック設定
+        mock_temp_file = Mock()
+        mock_temp_file.name = puppeteer_config_path
+        mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
+        mock_temp_file.__exit__ = Mock(return_value=False)
+        mock_named_temp_file.return_value = mock_temp_file
         mock_subprocess.return_value = Mock(returncode=1, stderr="Error message")
 
         generator = MermaidImageGenerator(basic_config)
@@ -126,9 +135,11 @@ class TestMermaidImageGenerator:
     @patch("os.path.exists")
     @patch("mkdocs_mermaid_to_svg.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file")
+    @patch("tempfile.NamedTemporaryFile")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_failure_no_output_file(
         self,
+        mock_named_temp_file,
         mock_clean,
         mock_temp_path,
         mock_exists,
@@ -140,9 +151,16 @@ class TestMermaidImageGenerator:
         mock_command_available.return_value = True
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
         mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
+        puppeteer_config_path = str(Path(tempfile.gettempdir()) / "puppeteer-config.json")
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
         # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
         mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
+        # NamedTemporaryFileのモック設定
+        mock_temp_file = Mock()
+        mock_temp_file.name = puppeteer_config_path
+        mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
+        mock_temp_file.__exit__ = Mock(return_value=False)
+        mock_named_temp_file.return_value = mock_temp_file
         mock_subprocess.return_value = Mock(returncode=0, stderr="")
         mock_exists.return_value = False  # 出力ファイルが作成されない
 
@@ -168,9 +186,11 @@ class TestMermaidImageGenerator:
     @patch("subprocess.run")
     @patch("mkdocs_mermaid_to_svg.image_generator.get_temp_file_path")
     @patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file")
+    @patch("tempfile.NamedTemporaryFile")
     @patch.dict("os.environ", {"CI": "", "GITHUB_ACTIONS": ""}, clear=True)
     def test_generate_timeout(
         self,
+        mock_named_temp_file,
         mock_clean,
         mock_temp_path,
         mock_subprocess,
@@ -181,9 +201,16 @@ class TestMermaidImageGenerator:
         mock_command_available.return_value = True
         temp_file_path = str(Path(tempfile.gettempdir()) / "test.mmd")
         mermaid_config_path = str(Path(tempfile.gettempdir()) / "mermaid-config.json")
+        puppeteer_config_path = str(Path(tempfile.gettempdir()) / "puppeteer-config.json")
         output_path = str(Path(tempfile.gettempdir()) / "output.png")
         # get_temp_file_pathは複数回呼ばれるので、異なるパスを返す
         mock_temp_path.side_effect = [temp_file_path, mermaid_config_path]
+        # NamedTemporaryFileのモック設定
+        mock_temp_file = Mock()
+        mock_temp_file.name = puppeteer_config_path
+        mock_temp_file.__enter__ = Mock(return_value=mock_temp_file)
+        mock_temp_file.__exit__ = Mock(return_value=False)
+        mock_named_temp_file.return_value = mock_temp_file
         mock_subprocess.side_effect = subprocess.TimeoutExpired("mmdc", 30)
 
         generator = MermaidImageGenerator(basic_config)
