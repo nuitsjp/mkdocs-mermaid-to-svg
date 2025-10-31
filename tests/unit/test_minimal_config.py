@@ -42,9 +42,9 @@ class TestMinimalConfig:
         ]
 
         for essential in essential_with_defaults:
-            assert has_defaults.get(essential, False), (
-                f"{essential} should have a default value for minimal configuration"
-            )
+            assert has_defaults.get(
+                essential, False
+            ), f"{essential} should have a default value for minimal configuration"
 
     def test_オプショナル設定はデフォルトNoneまたは空文字(self):
         """オプショナルな設定項目はデフォルトでNoneまたは空文字で問題なく動作することを確認。"""
@@ -64,9 +64,9 @@ class TestMinimalConfig:
                     hasattr(config_option, "default")
                     and config_option.default in [None, ""]
                 )
-                assert is_optional, (
-                    f"{config_name} should be optional or have None/empty default"
-                )
+                assert (
+                    is_optional
+                ), f"{config_name} should be optional or have None/empty default"
 
     def test_最小設定での設定検証通過(self):
         """最小設定で設定検証が通過することを確認。"""
