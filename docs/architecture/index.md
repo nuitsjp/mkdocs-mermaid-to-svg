@@ -2,7 +2,63 @@
 
 ## Overview
 
-The MkDocs Mermaid to Image Plugin is a comprehensive solution that converts Mermaid diagrams to static SVG images during the MkDocs build process. This plugin enables PDF output generation and offline viewing of documentation containing Mermaid diagrams by leveraging the Mermaid CLI (`@mermaid-js/mermaid-cli`) to transform code blocks into static images.
+The MkDocs Mermaid to SVG plugin turns Mermaid code fences into static SVG images during a MkDocs build so that PDF export and offline browsing work without client-side JavaScript. During `on_config` the plugin validates the configuration, honours the optional `enabled_if_env` gate, and wires up a `MermaidProcessor` instance. When MkDocs renders pages, `on_page_markdown` delegates to the processor (unless we are serving live content) and collects every generated asset so that `on_post_build` can register or clean them via `Files`.
+
+Key runtime traits:
+
+- Configuration is validated and augmented with derived values such as `log_level` based on `--verbose` flags.
+- The plugin can be disabled entirely through `enabled_if_env` or by running MkDocs in `serve` mode.
+- Generated assets are tracked in-memory so that they can be injected into `Files` and removed when `cleanup_generated_images` is enabled.
+- Errors are normalised through `_handle_processing_error`, mapping low-level failures onto the typed exception hierarchy in `exceptions.py`.
+
+## Processing Pipeline
+
+1. **MkDocs hook** – `MermaidSvgConverterPlugin.on_page_markdown` short-circuits for `serve` mode and otherwise invokes `_process_mermaid_diagrams`.
+2. **Page processing** – `MermaidProcessor.process_page` extracts all Mermaid blocks, iterates them with a `ProcessingContext`, and collects rewritten Markdown plus image paths.
+3. **Markdown extraction** – `MarkdownProcessor` finds both attribute-rich and plain Mermaid fences, parses attributes into dictionaries, and keeps positional information for later replacement.
+4. **Image generation** – Each `MermaidBlock.generate_image` call hands the diagram code to `MermaidImageGenerator`, which resolves the CLI command, prepares temp artifacts, executes `mmdc`, and validates outputs.
+5. **Markdown rewrite** – Successful blocks replace their source spans with image Markdown that respects the page depth, docs root, and configured `output_dir` via `ImagePathResolver`.
+
+## Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant MkDocs
+    participant Plugin as MermaidSvgConverterPlugin
+    participant Processor as MermaidProcessor
+    participant MD as MarkdownProcessor
+    participant Block as MermaidBlock
+    participant Generator as MermaidImageGenerator
+    participant CLI as Mermaid CLI
+    participant Files as MkDocs Files
+
+    MkDocs->>Plugin: on_page_markdown(markdown, page, config)
+    Plugin->>Plugin: _should_be_enabled(config)
+    alt Disabled or serve mode
+        Plugin-->>MkDocs: return original markdown
+    else Enabled
+        Plugin->>Processor: process_page(page.file.src_path, markdown, output_dir, page_url, docs_dir)
+        Processor->>MD: extract_mermaid_blocks(markdown)
+        MD-->>Processor: blocks
+        loop For each Mermaid block
+            Processor->>Block: generate_image(output_path, generator, config, page_file)
+            Block->>Generator: generate(code, output_path, runtime_config, page_file)
+            Generator->>CLI: run mmdc command
+            CLI-->>Generator: CompletedProcess
+            alt Command succeeded
+                Generator-->>Block: True
+            else Command failed
+                Generator-->>Block: False or raises error
+            end
+        end
+        Processor->>MD: replace_blocks_with_images(markdown, blocks, image_paths, page_file, page_url, docs_dir, output_dir)
+        MD-->>Processor: modified_markdown
+        Processor-->>Plugin: modified_markdown, image_paths
+        Plugin->>Plugin: _register_generated_images_to_files(image_paths, docs_dir, config)
+        Plugin->>Files: append generated File entries
+        Plugin-->>MkDocs: modified markdown
+    end
+```
 
 ## Project Structure
 
@@ -10,18 +66,18 @@ The MkDocs Mermaid to Image Plugin is a comprehensive solution that converts Mer
 mkdocs-mermaid-to-svg/
 └── src/
     └── mkdocs_mermaid_to_svg/
-        ├── __init__.py             # Package initialization and version information
-        ├── _version.py             # Version management
-        ├── plugin.py               # Main MkDocs plugin class (MermaidSvgConverterPlugin)
-        ├── processor.py            # Page processing orchestrator (MermaidProcessor)
-        ├── markdown_processor.py   # Markdown parsing and transformation (MarkdownProcessor)
-        ├── image_generator.py      # Image generation via Mermaid CLI (MermaidImageGenerator)
-        ├── mermaid_block.py        # Mermaid block representation (MermaidBlock)
-        ├── config.py               # Configuration schema and validation (ConfigManager)
-        ├── types.py                # Type definitions and TypedDict classes
-        ├── exceptions.py           # Custom exception hierarchy
-        ├── logging_config.py       # Structured logging configuration
-        └── utils.py                # Utility functions and helpers
+        ├── __init__.py             # Package init and version exposure
+        ├── _version.py             # Version string wiring for mkdocs
+        ├── plugin.py               # MermaidSvgConverterPlugin MkDocs entry point and lifecycle hooks
+        ├── processor.py            # MermaidProcessor and ProcessingContext coordinating block/image handling
+        ├── markdown_processor.py   # MarkdownProcessor + helpers to extract and rewrite Mermaid fences
+        ├── image_generator.py      # MermaidImageGenerator plus CLI resolver/executor/artifact manager
+        ├── mermaid_block.py        # MermaidBlock & ImagePathResolver for per-block rendering metadata
+        ├── config.py               # ConfigManager schema, validation, and file existence checks
+        ├── types.py                # Shared Literal/TypedDict definitions for typing and logging helpers
+        ├── exceptions.py           # Structured exception hierarchy used across the pipeline
+        ├── logging_config.py       # Structured logging setup and contextual adapters
+        └── utils.py                # Shared helpers (filenames, temp files, CLI detection, cleanup)
 ```
 
 ## Component Dependencies
@@ -32,41 +88,42 @@ graph TD
         A[plugin.py] --> B[processor.py]
         A --> C[config.py]
         A --> D[exceptions.py]
-        A --> E[utils.py]
         A --> F[logging_config.py]
+        A --> U[utils.py]
     end
 
     subgraph "Processing Pipeline"
         B --> G[markdown_processor.py]
         B --> H[image_generator.py]
-        B --> E
+        B --> U
     end
 
-    subgraph "Data Models & Helpers"
+    subgraph "Markdown Handling"
         G --> I[mermaid_block.py]
-        G --> E
-        H --> D
-        H --> E
-        I --> E
+        I --> U
+    end
+
+    subgraph "Image Generation Internals"
+        H --> J[MermaidCommandResolver]
+        H --> K[MermaidArtifactManager]
+        H --> L[MermaidCLIExecutor]
+        H --> U
+    end
+
+    subgraph "Shared Types"
+        B --> T[types.py]
+        G --> T
+        H --> T
+        F --> T
     end
 
     subgraph "External Dependencies"
         MkDocs[MkDocs Framework]
-        MermaidCLI["Mermaid CLI (@mermaid-js/mermaid-cli)"]
+        MermaidCLI["@mermaid-js/mermaid-cli"]
     end
 
     A -.->|implements| MkDocs
     H -->|executes| MermaidCLI
-
-    style A fill:#e1f5fe,stroke:#333,stroke-width:2px
-    style B fill:#e8f5e8,stroke:#333,stroke-width:2px
-    style G fill:#e0f7fa
-    style H fill:#e0f7fa
-    style I fill:#f3e5f5
-    style C fill:#fff3e0
-    style D fill:#fce4ec
-    style E fill:#f3e5f5
-    style F fill:#f3e5f5
 ```
 
 ## Class Architecture
@@ -75,23 +132,13 @@ graph TD
 classDiagram
     direction TB
 
-    class BasePlugin {
-        <<interface>>
-        +on_config(config)
-        +on_files(files, config)
-        +on_page_markdown(markdown, page, config, files)
-        +on_post_build(config)
-        +on_serve(server, config, builder)
-    }
-
     class MermaidSvgConverterPlugin {
-        +ConfigManager config_scheme
-        +MermaidProcessor processor
-        +Logger logger
-        +list~str~ generated_images
-        +Files files
-        +bool is_serve_mode
-        +bool is_verbose_mode
+        -MermaidProcessor~None~ processor
+        -list~str~ generated_images
+        -Files~None~ files
+        -Logger logger
+        -bool is_serve_mode
+        -bool is_verbose_mode
         +on_config(config) Any
         +on_files(files, config) Files
         +on_page_markdown(markdown, page, config, files) str
@@ -100,43 +147,39 @@ classDiagram
         -_should_be_enabled(config) bool
         -_process_mermaid_diagrams(markdown, page, config) str
         -_register_generated_images_to_files(image_paths, docs_dir, config) None
+        -_add_image_file_to_files(image_path, docs_dir, config) None
         -_remove_existing_file_by_path(src_path) bool
+        -_handle_init_error(error) None
+        -_handle_processing_error(page_path, error_type, error, fallback) str
     }
-    MermaidSvgConverterPlugin --|> BasePlugin
 
     class MermaidProcessor {
         +dict config
         +Logger logger
         +MarkdownProcessor markdown_processor
         +MermaidImageGenerator image_generator
-        +process_page(page_file, markdown, output_dir, page_url) tuple~str, list~str~~
+        +process_page(page_file, markdown, output_dir, page_url, docs_dir) tuple~str, list~str~~
+        -_process_single_block(block, index, context) None
+        -_handle_generation_failure(index, page_file, image_path) None
+        -_handle_file_system_error(error, index, page_file, image_path) None
+        -_handle_unexpected_error(error, index, page_file) None
+    }
+
+    class ProcessingContext {
+        +str page_file
+        +str|Path output_dir
+        +list~str~ image_paths
+        +list~Any~ successful_blocks
     }
 
     class MarkdownProcessor {
         +dict config
         +Logger logger
-        +extract_mermaid_blocks(markdown) List~MermaidBlock~
-        +replace_blocks_with_images(markdown, blocks, paths, page_file, page_url) str
+        +extract_mermaid_blocks(markdown) list~MermaidBlock~
+        +replace_blocks_with_images(markdown, blocks, paths, page_file, page_url, docs_dir, output_dir) str
         -_parse_attributes(attr_str) dict
-    }
-
-    class MermaidImageGenerator {
-        +dict config
-        +Logger logger
-        +str _resolved_mmdc_command
-        +ClassVar dict _command_cache
-        +generate(code, output_path, config) bool
-        +clear_command_cache() None
-        +get_cache_size() int
-        -_validate_dependencies() None
-        -_build_mmdc_command(input_file, output_path, config) tuple
-        -_execute_mermaid_command(cmd) CompletedProcess
-        -_create_mermaid_config_file() str
-        -_handle_command_failure(result, cmd) bool
-        -_handle_missing_output(output_path, mermaid_code) bool
-        -_handle_timeout_error(cmd) bool
-        -_handle_file_error(e, output_path) bool
-        -_handle_unexpected_error(e, output_path, mermaid_code) bool
+        -_split_attribute_string(attr_str) list~str~
+        -_overlaps_with_existing_blocks(match, blocks) bool
     }
 
     class MermaidBlock {
@@ -144,374 +187,85 @@ classDiagram
         +dict attributes
         +int start_pos
         +int end_pos
-        +generate_image(output_path, generator, config) bool
+        +generate_image(output_path, generator, config, page_file) bool
         +get_filename(page_file, index, format) str
-        +get_image_markdown(image_path, page_file, preserve_original, page_url) str
+        +get_image_markdown(image_path, page_file, page_url, output_dir, docs_dir) str
     }
 
-    class ConfigManager {
-        <<static>>
-        +get_config_scheme() tuple
-        +validate_config(config) bool
+    class ImagePathResolver {
+        +to_markdown_path(image_path, page_file, output_dir, docs_dir) str
+        -_resolve_relative_path(image_path, output_dir, docs_dir) str
+        -_normalize_output_dir(output_dir) str
     }
 
-    class MermaidPreprocessorError {<<exception>>}
-    class MermaidCLIError {<<exception>>}
-    class MermaidConfigError {<<exception>>}
-    class MermaidParsingError {<<exception>>}
-    class MermaidFileError {<<exception>>}
-    class MermaidValidationError {<<exception>>}
-    class MermaidImageError {<<exception>>}
-
-    MermaidCLIError --|> MermaidPreprocessorError
-    MermaidConfigError --|> MermaidPreprocessorError
-    MermaidParsingError --|> MermaidPreprocessorError
-    MermaidFileError --|> MermaidPreprocessorError
-    MermaidValidationError --|> MermaidPreprocessorError
-    MermaidImageError --|> MermaidPreprocessorError
-
-    MermaidSvgConverterPlugin o-- MermaidProcessor
-    MermaidSvgConverterPlugin ..> ConfigManager : uses
-    MermaidProcessor o-- MarkdownProcessor
-    MermaidProcessor o-- MermaidImageGenerator
-    MarkdownProcessor --> MermaidBlock : creates
-    MermaidBlock --> MermaidImageGenerator : uses
-    MermaidImageGenerator --> MermaidCLIError : may throw
-    MermaidImageGenerator --> MermaidImageError : may throw
+    MermaidSvgConverterPlugin --> MermaidProcessor
+    MermaidProcessor --> ProcessingContext
+    MermaidProcessor --> MarkdownProcessor
+    MermaidProcessor --> MermaidImageGenerator
+    MarkdownProcessor --> MermaidBlock
+    MermaidBlock --> ImagePathResolver
 ```
-
-## Processing Flow
-
-### 1. Plugin Initialization (`on_config`)
 
 ```mermaid
-sequenceDiagram
-    participant MkDocs
-    participant Plugin as MermaidSvgConverterPlugin
-    participant CfgMgr as ConfigManager
-    participant Proc as MermaidProcessor
+classDiagram
+    direction TB
 
-    MkDocs->>Plugin: on_config(config)
+    class MermaidImageGenerator {
+        +dict config
+        +Logger logger
+        +generate(mermaid_code, output_path, runtime_config, page_file) bool
+        +clear_command_cache() None
+        +get_cache_size() int
+        -_validate_dependencies() None
+        -_validate_generation_result(result, output_path, mermaid_code) bool
+        -_log_successful_generation(output_path, page_file) None
+        -_build_mmdc_command(input_file, output_file, runtime_config, puppeteer_config_file, mermaid_config_file) tuple
+        -_execute_mermaid_command(cmd) CompletedProcess
+        -_handle_command_failure(result, cmd) bool
+        -_handle_missing_output(output_path, mermaid_code) bool
+        -_handle_timeout_error(cmd) bool
+        -_handle_file_error(error, output_path) bool
+        -_handle_unexpected_error(error, output_path, mermaid_code) bool
+    }
 
-    Note over Plugin: Extract config dictionary from self.config
-    Plugin->>CfgMgr: validate_config(config_dict)
-    CfgMgr-->>Plugin: validation result
-    alt Validation fails
-        Plugin->>MkDocs: raise MermaidConfigError
-    end
+    class MermaidCommandResolver {
+        +resolve() list~str~
+        -_attempt_resolve(command) list~str~?
+        -_determine_fallback(primary_command) str
+    }
 
-    Note over Plugin: Set log level based on verbose mode
-    alt Verbose mode enabled
-        Plugin->>Plugin: config_dict["log_level"] = "DEBUG"
-    else Normal mode
-        Plugin->>Plugin: config_dict["log_level"] = "WARNING"
-    end
+    class MermaidArtifactManager {
+        +prepare(mermaid_code, output_path, runtime_config) GenerationArtifacts
+        -_resolve_mermaid_config() tuple~str|None, bool~
+        -_resolve_puppeteer_config() tuple~str|None, bool~
+        -_create_default_puppeteer_config() str
+    }
 
-    Plugin->>Plugin: _should_be_enabled(self.config)
-    Note over Plugin: Check enabled_if_env environment variable
-    alt Plugin disabled
-        Plugin->>Plugin: logger.info("Plugin is disabled")
-        Plugin-->>MkDocs: return config
-    end
+    class MermaidCLIExecutor {
+        +run(cmd) CompletedProcess
+    }
 
-    Plugin->>Proc: new MermaidProcessor(config_dict)
-    Proc->>Proc: Initialize MarkdownProcessor(config)
-    Proc->>Proc: Initialize MermaidImageGenerator(config)
-    Proc-->>Plugin: processor instance
+    class GenerationArtifacts {
+        +str source_path
+        +str? puppeteer_config_file
+        +str? mermaid_config_file
+        +tuple cleanup_entries
+        +cleanup(logger) None
+    }
 
-    Plugin->>Plugin: logger.info("Plugin initialized successfully")
-    Plugin-->>MkDocs: return config
+    MermaidImageGenerator --> MermaidCommandResolver
+    MermaidImageGenerator --> MermaidArtifactManager
+    MermaidImageGenerator --> MermaidCLIExecutor
+    MermaidArtifactManager --> GenerationArtifacts
 ```
 
-### 2. File Registration (`on_files`)
-
-```mermaid
-sequenceDiagram
-    participant MkDocs
-    participant Plugin as MermaidSvgConverterPlugin
-
-    MkDocs->>Plugin: on_files(files, config)
-
-    alt Plugin disabled or no processor
-        Plugin-->>MkDocs: return files (no processing)
-    end
-
-    Plugin->>Plugin: self.files = files
-    Plugin->>Plugin: self.generated_images = []
-    Plugin-->>MkDocs: return files
-```
-
-### 3. Page Processing (`on_page_markdown`)
-
-```mermaid
-sequenceDiagram
-    participant MkDocs
-    participant Plugin as MermaidSvgConverterPlugin
-    participant Proc as MermaidProcessor
-    participant MdProc as MarkdownProcessor
-    participant Block as MermaidBlock
-    participant ImgGen as MermaidImageGenerator
-
-    MkDocs->>Plugin: on_page_markdown(markdown, page, config, files)
-
-    alt Plugin disabled
-        Plugin-->>MkDocs: return markdown (unchanged)
-    end
-
-    alt Serve mode detected
-        Plugin-->>MkDocs: return markdown (skip processing)
-    end
-
-    Plugin->>Proc: process_page(page.file.src_path, markdown, output_dir, page.url)
-    Proc->>MdProc: extract_mermaid_blocks(markdown)
-    MdProc-->>Proc: blocks: List[MermaidBlock]
-
-    alt No Mermaid blocks found
-        Proc-->>Plugin: (markdown, [])
-        Plugin-->>MkDocs: return markdown
-    end
-
-    loop For each Mermaid block
-        Proc->>Block: generate_image(output_path, image_generator, config)
-        Block->>ImgGen: generate(code, output_path, merged_config)
-        ImgGen-->>Block: success: bool
-        Block-->>Proc: success: bool
-
-        alt Image generation successful
-            Proc->>Proc: Add to image_paths list
-            Proc->>Proc: Add to successful_blocks list
-        else Failed and error_on_fail=false
-            Proc->>Proc: Log warning, continue processing
-        else Failed and error_on_fail=true
-            Proc->>Proc: Continue (error handled upstream)
-        end
-    end
-
-    alt Successful blocks exist
-        Proc->>MdProc: replace_blocks_with_images(markdown, successful_blocks, image_paths, page_file, page_url)
-        MdProc-->>Proc: modified_markdown
-        Proc-->>Plugin: (modified_markdown, image_paths)
-    else No successful blocks
-        Proc-->>Plugin: (markdown, [])
-    end
-
-    Plugin->>Plugin: Update generated_images list
-    Plugin->>Plugin: _register_generated_images_to_files()
-    Plugin-->>MkDocs: return modified_markdown
-```
-
-### 4. Image Generation (`MermaidImageGenerator.generate`)
-
-```mermaid
-sequenceDiagram
-    participant ImgGen as MermaidImageGenerator
-    participant Utils
-    participant Subprocess
-    participant FileSystem
-
-    ImgGen->>Utils: get_temp_file_path(".mmd")
-    Utils-->>ImgGen: temp_file_path
-
-    ImgGen->>FileSystem: write mermaid_code to temp_file
-    ImgGen->>FileSystem: ensure_directory(output_path.parent)
-
-    ImgGen->>ImgGen: _build_mmdc_command(temp_file, output_path, config)
-    Note over ImgGen: Create Puppeteer config for CI environments<br/>with --no-sandbox and browser settings
-    ImgGen-->>ImgGen: (cmd: list[str], puppeteer_config_file: str, mermaid_config_file: str)
-
-    ImgGen->>Subprocess: run(cmd) with 30s timeout
-    Subprocess-->>ImgGen: result: CompletedProcess
-
-    alt Command execution failed
-        ImgGen->>ImgGen: _handle_command_failure()
-        alt error_on_fail=true
-            ImgGen->>ImgGen: raise MermaidCLIError
-        end
-        ImgGen-->>Block: return False
-    end
-
-    alt Output file not created
-        ImgGen->>ImgGen: _handle_missing_output()
-        alt error_on_fail=true
-            ImgGen->>ImgGen: raise MermaidImageError
-        end
-        ImgGen-->>Block: return False
-    end
-
-    ImgGen->>ImgGen: logger.info("Generated image: ...")
-    ImgGen-->>Block: return True
-
-    note over ImgGen: Finally block: Clean up temporary files
-    ImgGen->>Utils: clean_temp_file(temp_file)
-    ImgGen->>Utils: clean_temp_file(puppeteer_config_file)
-    ImgGen->>Utils: clean_temp_file(mermaid_config_file)
-```
-
-## Configuration Management
-
-The plugin configuration is managed through `mkdocs.yml` and validated using the `ConfigManager` class.
-
-### Configuration Schema
-
-```python
-# Available configuration options in mkdocs.yml
-plugins:
-  - mkdocs-mermaid-to-svg:
-      enabled_if_env: "ENABLE_MERMAID"        # Environment variable for conditional activation
-      output_dir: "assets/images"             # Directory for generated images
-      mermaid_config: {...}                   # Mermaid configuration object or file path
-      theme: "default"                        # Mermaid theme: default, dark, forest, neutral
-      css_file: "path/to/custom.css"          # Optional CSS file for styling
-      puppeteer_config: "path/to/config.json" # Optional Puppeteer configuration
-      temp_dir: "/tmp"                        # Temporary directory for processing
-      preserve_original: false                # Keep original Mermaid blocks alongside images
-      error_on_fail: false                    # Stop build on image generation failure
-      log_level: "INFO"                       # Logging level
-      cleanup_generated_images: false         # Clean up generated images after build
-```
-
-### Validation Logic
-
-The `ConfigManager.validate_config()` method ensures:
-- File paths (CSS, Puppeteer config) exist when specified
-- Configuration consistency across all options
-
-## Environment-Specific Behavior
-
-### Mode Detection
-
-The plugin automatically detects the execution environment:
-
-```python
-# src/mkdocs_mermaid_to_svg/plugin.py
-class MermaidSvgConverterPlugin(BasePlugin):
-    def __init__(self) -> None:
-        self.is_serve_mode: bool = "serve" in sys.argv
-        self.is_verbose_mode: bool = "--verbose" in sys.argv or "-v" in sys.argv
-```
-
-### Conditional Activation
-
-Plugin activation can be controlled via environment variables:
-
-```python
-def _should_be_enabled(self, config: dict[str, Any]) -> bool:
-    enabled_if_env = config.get("enabled_if_env")
-
-    if enabled_if_env is not None:
-        # Check if environment variable exists and has non-empty value
-        env_value = os.environ.get(enabled_if_env)
-        return env_value is not None and env_value.strip() != ""
-
-    # Default: always enabled if no conditional environment variable set
-    return True
-```
-
-### Logging Strategy
-
-Log levels are dynamically adjusted based on verbose mode:
-
-```python
-# Adjust log level based on verbose mode
-config_dict["log_level"] = "DEBUG" if self.is_verbose_mode else "WARNING"
-```
-
-## File Management Strategy
-
-### Generated Image Registration
-
-Generated images are dynamically registered with MkDocs' file system to ensure proper copying to the site directory:
-
-```python
-def _register_generated_images_to_files(self, image_paths: list[str], docs_dir: Path, config: Any) -> None:
-    from mkdocs.structure.files import File
-
-    for image_path in image_paths:
-        image_file_path = Path(image_path)
-        if image_file_path.exists():
-            rel_path = image_file_path.relative_to(docs_dir)
-            # Normalize path for cross-platform compatibility
-            rel_path_str = str(rel_path).replace("\\", "/")
-
-            # Remove existing file to avoid duplicates
-            self._remove_existing_file_by_path(rel_path_str)
-
-            # Create and register new File object
-            file_obj = File(rel_path_str, str(docs_dir), str(config["site_dir"]), ...)
-            self.files.append(file_obj)
-```
-
-### Image Placement Strategy
-
-- **Development Mode**: Images are generated in `docs_dir/output_dir` for immediate viewing
-- **Build Mode**: MkDocs automatically copies registered images to the site directory
-- **Cleanup**: Optional automatic cleanup after build completion via `cleanup_generated_images`
-
-## Error Handling Architecture
-
-### Exception Hierarchy
-
-```mermaid
-graph TD
-    A[MermaidPreprocessorError]
-    B[MermaidCLIError] --> A
-    C[MermaidConfigError] --> A
-    D[MermaidParsingError] --> A
-    E[MermaidFileError] --> A
-    F[MermaidValidationError] --> A
-    G[MermaidImageError] --> A
-
-    style A fill:#fce4ec,stroke:#c51162,stroke-width:2px
-    style B fill:#e3f2fd,stroke:#1976d2,stroke-width:1px
-    style C fill:#e3f2fd,stroke:#1976d2,stroke-width:1px
-    style D fill:#e3f2fd,stroke:#1976d2,stroke-width:1px
-    style E fill:#e3f2fd,stroke:#1976d2,stroke-width:1px
-    style F fill:#e3f2fd,stroke:#1976d2,stroke-width:1px
-    style G fill:#e3f2fd,stroke:#1976d2,stroke-width:1px
-```
-
-### Error Handling Strategy
-
-1. **Configuration Errors**: Detected during `on_config` and immediately stop the build process
-2. **CLI Execution Errors**: Handled based on `error_on_fail` configuration:
-   - `true`: Stop build and raise exception
-   - `false`: Log error and continue (skip failed diagrams)
-3. **File System Errors**: Comprehensive handling with detailed error context and suggestions
-4. **Validation Errors**: Input validation with specific error messages and remediation guidance
-
-### Error Context and Logging
-
-All custom exceptions include contextual information for debugging:
-
-```python
-class MermaidCLIError(MermaidPreprocessorError):
-    def __init__(self, message: str, command: str = None, return_code: int = None, stderr: str = None):
-        super().__init__(message, command=command, return_code=return_code, stderr=stderr)
-```
-
-This comprehensive error handling ensures robust operation across different environments and provides clear guidance for troubleshooting issues.
-
-## Performance Optimizations
-
-### Command Caching
-
-The `MermaidImageGenerator` implements class-level command caching to avoid repeated CLI detection:
-
-```python
-class MermaidImageGenerator:
-    _command_cache: ClassVar[dict[str, str]] = {}
-
-    def _validate_dependencies(self) -> None:
-        # Check cache first before trying to resolve mmdc command
-        if primary_command in self._command_cache:
-            self._resolved_mmdc_command = self._command_cache[primary_command]
-            return
-```
-
-### Batch Processing
-
-The plugin processes all Mermaid blocks in a page as a batch operation, minimizing I/O overhead and maintaining consistency across diagrams within the same document.
-
-### Temporary File Management
-
-Efficient temporary file handling with automatic cleanup ensures minimal disk usage and prevents resource leaks during the build process.
+## Configuration Highlights
+
+- `enabled_if_env` toggles the plugin unless a non-empty environment variable is present.
+- `output_dir` controls where SVGs are written relative to `docs_dir` and feeds directly into Markdown rewriting logic.
+- `theme`, `css_file`, and `mermaid_config` influence Mermaid CLI rendering; dictionary Mermaid configs are serialised to a temp file.
+- `puppeteer_config` can point at an existing file; otherwise the artifact manager writes a Chrome-friendly default and tears it down afterward.
+- `mmdc_path` (and its fallback logic) is resolved through `MermaidCommandResolver`, with results cached across generations.
+- `cleanup_generated_images` toggles post-build removal using `utils.clean_generated_images`.
+- `log_level` is derived from CLI verbosity or `MKDOCS_MERMAID_LOG_LEVEL` and applied through `logging_config.setup_plugin_logging`.
+- `error_on_fail` guards whether failures raise typed exceptions (`MermaidFileError`, `MermaidImageError`, etc.) or silently preserve the original Markdown block.
