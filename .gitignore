@@ -38,6 +38,7 @@ env/
 # Testing
 .coverage
 .pytest_cache/
+# Coverage reports
 htmlcov/
 .mypy_cache/
 .ruff_cache/
