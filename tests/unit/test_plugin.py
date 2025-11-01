@@ -122,6 +122,81 @@ class TestMermaidToImagePlugin:
         with pytest.raises(MermaidFileError):
             plugin.on_config(mock_config)
 
+    def test_on_config_requires_attr_list_when_image_id_enabled(self, plugin):
+        """attr_list未設定でimage_id_enabled=Trueの場合に例外が発生するかテスト"""
+        plugin.config = {
+            "output_dir": "assets/images",
+            "image_format": "png",
+            "mmdc_path": "mmdc",
+            "theme": "default",
+            "background_color": "white",
+            "width": 800,
+            "height": 600,
+            "scale": 1.0,
+            "css_file": None,
+            "puppeteer_config": None,
+            "mermaid_config": None,
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+            "cleanup_generated_images": False,
+            "image_id_enabled": True,
+            "image_id_prefix": "mermaid-diagram",
+        }
+
+        config_values = {
+            "markdown_extensions": ["toc"],
+            "docs_dir": "/tmp/docs",
+            "site_dir": "/tmp/site",
+        }
+        mock_config = Mock()
+        mock_config.__getitem__ = Mock(side_effect=config_values.__getitem__)
+        mock_config.get = Mock(side_effect=config_values.get)
+
+        with pytest.raises(
+            MermaidConfigError, match="attr_list extension must be enabled"
+        ):
+            plugin.on_config(mock_config)
+
+    def test_on_config_accepts_attr_list_when_image_id_enabled(self, plugin):
+        """attr_list設定済みでimage_id_enabled=Trueの場合は成功するかテスト"""
+        plugin.config = {
+            "output_dir": "assets/images",
+            "image_format": "png",
+            "mmdc_path": "mmdc",
+            "theme": "default",
+            "background_color": "white",
+            "width": 800,
+            "height": 600,
+            "scale": 1.0,
+            "css_file": None,
+            "puppeteer_config": None,
+            "mermaid_config": None,
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+            "cleanup_generated_images": False,
+            "image_id_enabled": True,
+            "image_id_prefix": "mermaid-diagram",
+        }
+
+        config_values = {
+            "markdown_extensions": ["toc", "attr_list"],
+            "docs_dir": "/tmp/docs",
+            "site_dir": "/tmp/site",
+        }
+        mock_config = Mock()
+        mock_config.__getitem__ = Mock(side_effect=config_values.__getitem__)
+        mock_config.get = Mock(side_effect=config_values.get)
+
+        with (
+            patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor"),
+            patch("mkdocs_mermaid_to_svg.plugin.get_logger") as mock_logger,
+        ):
+            mock_logger.return_value = Mock()
+            result = plugin.on_config(mock_config)
+            assert result == mock_config
+
     def test_on_files_disabled(self, plugin):
         """プラグイン無効時のon_filesの挙動をテスト"""
         plugin.config = {}

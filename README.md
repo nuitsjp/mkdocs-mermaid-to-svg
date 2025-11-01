@@ -56,6 +56,8 @@ Activate the plugin in `mkdocs.yml` (recommended configuration for PDF generatio
 ```yaml
 plugins:
   - mermaid-to-svg:
+      image_id_enabled: true
+      image_id_prefix: mermaid-diagram
       # Disable HTML labels for PDF compatibility
       mermaid_config:
         htmlLabels: false
@@ -115,6 +117,26 @@ plugins:
       error_on_fail: false                # Continue on diagram generation errors
       log_level: "WARNING"                # Currently derived from mkdocs CLI flags (see note below)
       cleanup_generated_images: true      # Clean up generated images after build
+      image_id_enabled: true              # Emit unique ids on rendered <img> tags
+      image_id_prefix: "mermaid-diagram"  # Override id prefix (requires attr_list)
+```
+
+> **Mermaid image IDs**
+> Set `image_id_enabled: true` to add deterministic IDs (e.g. `mermaid-diagram-guide-1`) to every generated image. This allows per-diagram CSS targeting and PDF sizing tweaks.
+>
+> - Enable the Markdown [`attr_list`](https://python-markdown.github.io/extensions/attr_list/) extension, otherwise MkDocs will treat `{#...}` literally.
+> - Override the prefix with `image_id_prefix`. Custom IDs can also be supplied per code fence using `{id: "custom-id"}` attributes.
+
+Example configuration:
+
+```yaml
+markdown_extensions:
+  - attr_list
+
+plugins:
+  - mermaid-to-svg:
+      image_id_enabled: true
+      image_id_prefix: "diagram"
 ```
 
 ## Configuration Options
@@ -131,6 +153,8 @@ plugins:
 | `error_on_fail` | `true` | Stop build on diagram generation errors |
 | `log_level` | `"WARNING"` | 実際には `mkdocs build --verbose/-v` 指定時は `"DEBUG"`、それ以外は `"WARNING"` に自動設定 |
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
+| `image_id_enabled` | `false` | Attach `{#id}` suffixes to generated image Markdown (requires `attr_list`) |
+| `image_id_prefix` | `"mermaid-diagram"` | Prefix used for generated IDs when `image_id_enabled` is true |
 
 > **Log level behaviour**
 > `log_level` の設定値は MkDocs 実行時のフラグによって上書きされます。`mkdocs build --verbose` または `-v` を付与するとプラグインは `"DEBUG"` ログを出力し、付与しない場合は `"WARNING"` に固定されます。任意の値を `mkdocs.yml` で指定しても現在は反映されません。

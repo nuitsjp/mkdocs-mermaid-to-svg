@@ -89,17 +89,22 @@ class TestMermaidBlock:
     def test_get_image_markdown_basic(self):
         """画像Markdown生成の基本テスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
+        block.set_render_context(image_id="mermaid-diagram-index-1")
 
         # ルートレベルのページの場合
         result = block.get_image_markdown(
             "/home/user/docs/assets/images/test.png", "index.md"
         )
 
-        assert result == "![Mermaid Diagram](assets/images/test.png)"
+        assert (
+            result
+            == "![Mermaid Diagram](assets/images/test.png){#mermaid-diagram-index-1}"
+        )
 
     def test_get_image_markdown_subdirectory(self):
         """サブディレクトリのページでの画像Markdown生成テスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
+        block.set_render_context(image_id="mermaid-diagram-page-1")
 
         # development/page.md のようなサブディレクトリのページの場合
         result = block.get_image_markdown(
@@ -107,11 +112,15 @@ class TestMermaidBlock:
         )
 
         # サブディレクトリのページからは相対パスで参照する
-        assert result == "![Mermaid Diagram](../assets/images/test.png)"
+        assert (
+            result
+            == "![Mermaid Diagram](../assets/images/test.png){#mermaid-diagram-page-1}"
+        )
 
     def test_get_image_markdown_respects_custom_output_dir(self):
         """output_dir 設定を反映した画像Markdownが生成されることをテスト（Red）"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
+        block.set_render_context(image_id="mermaid-diagram-page-2")
 
         result = block.get_image_markdown(
             "/home/user/docs/assets/custom/test.svg",
@@ -119,11 +128,15 @@ class TestMermaidBlock:
             output_dir="assets/custom",
         )
 
-        assert result == "![Mermaid Diagram](../assets/custom/test.svg)"
+        assert (
+            result
+            == "![Mermaid Diagram](../assets/custom/test.svg){#mermaid-diagram-page-2}"
+        )
 
     def test_get_image_markdown_with_docs_dir_root_page(self):
         """docs_dir 情報がある場合にルートページからの相対パスが正しいことをテスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
+        block.set_render_context(image_id="mermaid-diagram-index-2")
 
         result = block.get_image_markdown(
             "/home/user/docs/static/mermaid/test.svg",
@@ -132,11 +145,15 @@ class TestMermaidBlock:
             output_dir="static/mermaid",
         )
 
-        assert result == "![Mermaid Diagram](static/mermaid/test.svg)"
+        assert (
+            result
+            == "![Mermaid Diagram](static/mermaid/test.svg){#mermaid-diagram-index-2}"
+        )
 
     def test_get_image_markdown_with_docs_dir_subpage(self):
         """サブページからの相対パスが docs_dir に基づいて計算されることをテスト"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
+        block.set_render_context(image_id="mermaid-diagram-page-3")
 
         result = block.get_image_markdown(
             "/home/user/docs/static/mermaid/test.svg",
@@ -145,7 +162,10 @@ class TestMermaidBlock:
             output_dir="static/mermaid",
         )
 
-        assert result == "![Mermaid Diagram](../../static/mermaid/test.svg)"
+        assert (
+            result == "![Mermaid Diagram](../../static/mermaid/test.svg)"
+            "{#mermaid-diagram-page-3}"
+        )
 
     def test_get_filename(self):
         """ファイル名生成のテスト"""
@@ -183,6 +203,7 @@ class TestMermaidBlock:
     def test_get_image_markdown_subdirectory_relative_path(self):
         """サブディレクトリのページで適切な相対パスが生成されることをテスト（失敗予定）"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
+        block.set_render_context(image_id="mermaid-diagram-mkdocs-architecture-1")
 
         # appendix/mkdocs-architecture.md のようなサブディレクトリのページの場合
         result = block.get_image_markdown(
@@ -190,11 +211,15 @@ class TestMermaidBlock:
         )
 
         # サブディレクトリのページからは ../assets/images/ で参照する必要がある
-        assert result == "![Mermaid Diagram](../assets/images/test.svg)"
+        assert (
+            result == "![Mermaid Diagram](../assets/images/test.svg)"
+            "{#mermaid-diagram-mkdocs-architecture-1}"
+        )
 
     def test_get_image_markdown_deep_subdirectory_relative_path(self):
         """深いサブディレクトリのページで適切な相対パスが生成されることをテスト（失敗予定）"""
         block = MermaidBlock("graph TD\n A --> B", 0, 20)
+        block.set_render_context(image_id="mermaid-diagram-tutorial-1")
 
         # docs/guide/advanced/tutorial.md のような深いサブディレクトリのページの場合
         result = block.get_image_markdown(
@@ -202,7 +227,10 @@ class TestMermaidBlock:
         )
 
         # 3階層深いページからは ../../../assets/images/ で参照する必要がある
-        assert result == "![Mermaid Diagram](../../../assets/images/test.svg)"
+        assert (
+            result == "![Mermaid Diagram](../../../assets/images/test.svg)"
+            "{#mermaid-diagram-tutorial-1}"
+        )
 
     def test_get_image_markdown_uses_docs_dir_resolution(self, tmp_path):
         """docs_dir と output_dir の情報を使ってパスを解決できることを確認"""
@@ -215,6 +243,7 @@ class TestMermaidBlock:
         image_path.write_text("<svg></svg>", encoding="utf-8")
 
         block = MermaidBlock("graph TD\nA-->B", 0, 10)
+        block.set_render_context(image_id="mermaid-diagram-page-4")
 
         result = block.get_image_markdown(
             str(image_path),
@@ -223,7 +252,10 @@ class TestMermaidBlock:
             output_dir="assets/images",
         )
 
-        assert result == "![Mermaid Diagram](../assets/images/sample.svg)"
+        assert (
+            result == "![Mermaid Diagram](../assets/images/sample.svg)"
+            "{#mermaid-diagram-page-4}"
+        )
 
     def test_get_image_markdown_depth_edge_cases(self):
         """ページ深度計算のエッジケースをテスト"""

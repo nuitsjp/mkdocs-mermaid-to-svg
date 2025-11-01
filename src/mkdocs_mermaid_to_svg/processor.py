@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Union
@@ -88,6 +89,9 @@ class MermaidProcessor:
 
             if success:
                 context.image_paths.append(str(image_path))
+                if self.config.get("image_id_enabled", False):
+                    image_id = self._generate_image_id(block, context.page_file, index)
+                    block.set_render_context(image_id=image_id)
                 context.successful_blocks.append(block)
             elif not self.config["error_on_fail"]:
                 self._handle_generation_failure(
@@ -151,3 +155,50 @@ class MermaidProcessor:
 
         if self.config["error_on_fail"]:
             raise MermaidPreprocessorError(error_msg) from error
+
+    def _generate_image_id(self, block: Any, page_file: str, index: int) -> str:
+        """Mermaid画像に付与する一意なIDを決定する"""
+        prefix = self._slugify(
+            str(self.config.get("image_id_prefix", "mermaid-diagram"))
+        )
+        if not prefix:
+            prefix = "mermaid-diagram"
+
+        attributes = getattr(block, "attributes", {}) or {}
+        override = attributes.get("id")
+        if override:
+            return self._ensure_valid_start(str(override), prefix)
+
+        page_slug = self._slugify(Path(page_file).stem)
+        sequence = index + 1
+
+        if page_slug:
+            candidate = f"{prefix}-{page_slug}-{sequence}"
+        else:
+            candidate = f"{prefix}-{sequence}"
+
+        return self._ensure_valid_start(candidate, prefix)
+
+    @staticmethod
+    def _slugify(value: str) -> str:
+        """IDとして利用できるよう文字列を正規化する"""
+        trimmed = value.strip().lower()
+        if not trimmed:
+            return ""
+
+        sanitized = re.sub(r"[^a-z0-9_-]+", "-", trimmed)
+        sanitized = re.sub(r"-{2,}", "-", sanitized)
+        return sanitized.strip("-")
+
+    def _ensure_valid_start(self, identifier: str, prefix: str) -> str:
+        """IDが空や数字から始まる場合に接頭辞を付与して補正する"""
+        fallback = prefix or "mermaid-diagram"
+        sanitized = self._slugify(identifier)
+
+        if not sanitized:
+            return fallback
+
+        if sanitized[0].isdigit():
+            sanitized = f"{fallback}-{sanitized}"
+
+        return sanitized

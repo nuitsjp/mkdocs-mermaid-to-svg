@@ -1,5 +1,6 @@
 import os
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -61,6 +62,9 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         if not self._should_be_enabled(self.config):
             self.logger.info("Mermaid preprocessor plugin is disabled")
             return config
+
+        if config_dict.get("image_id_enabled", False):
+            self._ensure_attr_list_extension_enabled(config)
 
         try:
             # MermaidProcessorを生成し、後続のMarkdown処理を引き受けさせる
@@ -253,6 +257,67 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
                 ) from error
 
         return fallback_content
+
+    def _ensure_attr_list_extension_enabled(self, mkdocs_config: Any) -> None:
+        """attr_list拡張が有効でない場合に利用者へ明示的に通知する"""
+        extensions = self._extract_markdown_extensions(mkdocs_config)
+
+        if self._has_attr_list_extension(extensions):
+            return
+
+        raise MermaidConfigError(
+            "image_id_enabled requires that the attr_list extension must be enabled.",
+            config_key="markdown_extensions",
+            suggestion=(
+                "Add 'attr_list' to markdown_extensions in mkdocs.yml or disable "
+                "image_id_enabled."
+            ),
+        )
+
+    @staticmethod
+    def _extract_markdown_extensions(config: Any) -> list[Any]:
+        """MkDocs設定からmarkdown_extensionsのリストを取得する"""
+        extensions_value: Any = None
+        try:
+            extensions_value = config["markdown_extensions"]
+        except (KeyError, TypeError):
+            if hasattr(config, "get"):
+                extensions_value = config.get("markdown_extensions", None)
+
+        return MermaidSvgConverterPlugin._normalize_extensions(extensions_value)
+
+    @staticmethod
+    def _normalize_extensions(value: Any) -> list[Any]:
+        """markdown_extensions設定をリストへ正規化する"""
+        if value is None:
+            return []
+
+        if isinstance(value, list):
+            return value
+
+        if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+            return list(value)
+
+        return []
+
+    @staticmethod
+    def _has_attr_list_extension(extensions: list[Any]) -> bool:
+        """attr_list拡張が有効かどうかを判定する"""
+        attr_identifiers = {"attr_list", "markdown.extensions.attr_list"}
+
+        for extension in extensions:
+            if isinstance(extension, str):
+                normalized = extension.split(":")[0].lower()
+                if normalized in attr_identifiers or normalized.endswith("attr_list"):
+                    return True
+            elif isinstance(extension, dict):
+                for key in extension:
+                    normalized = str(key).split(":")[0].lower()
+                    if normalized in attr_identifiers or normalized.endswith(
+                        "attr_list"
+                    ):
+                        return True
+        return False
 
     def on_page_markdown(
         self, markdown: str, *, page: Any, config: Any, files: Any

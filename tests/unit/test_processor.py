@@ -102,6 +102,99 @@ graph TD
         mock_block.get_filename.assert_called_once_with("test.md", 0, "svg")
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_process_page_assigns_image_id_when_enabled(
+        self, mock_command_available, basic_config
+    ):
+        """image_id_enabled=True のときに set_render_context が呼ばれることをテスト"""
+        mock_command_available.return_value = True
+        basic_config["image_id_enabled"] = True
+        processor = MermaidProcessor(basic_config)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "guide_0_abc123.svg"
+        mock_block.generate_image.return_value = True
+        mock_block.attributes = {}
+        mock_block.set_render_context = Mock()
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid](test.png){#mermaid-diagram-page-1}"
+        )
+
+        markdown = "```mermaid\ngraph TD\n  A --> B\n```"
+
+        processor.process_page(
+            "docs/guide/page.md", markdown, "/output", docs_dir="docs"
+        )
+
+        mock_block.set_render_context.assert_called_once_with(
+            image_id="mermaid-diagram-page-1"
+        )
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_process_page_respects_custom_image_id_prefix(
+        self, mock_command_available, basic_config
+    ):
+        """image_id_prefix がカスタム指定された場合の動作をテスト"""
+        mock_command_available.return_value = True
+        basic_config["image_id_enabled"] = True
+        basic_config["image_id_prefix"] = "diagram"
+        processor = MermaidProcessor(basic_config)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "guide_1_def456.svg"
+        mock_block.generate_image.return_value = True
+        mock_block.attributes = {}
+        mock_block.set_render_context = Mock()
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid](test.png){#diagram-page-1}"
+        )
+
+        processor.process_page(
+            "docs/guide/page.md",
+            "```mermaid\ngraph TD\n  A --> B\n```",
+            "/output",
+        )
+
+        mock_block.set_render_context.assert_called_once_with(image_id="diagram-page-1")
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_process_page_prefers_block_defined_id(
+        self, mock_command_available, basic_config
+    ):
+        """Mermaidコードブロックに id 属性があればそれを優先することをテスト"""
+        mock_command_available.return_value = True
+        basic_config["image_id_enabled"] = True
+        processor = MermaidProcessor(basic_config)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "guide_2_ghi789.svg"
+        mock_block.generate_image.return_value = True
+        mock_block.attributes = {"id": "Custom Diagram!"}
+        mock_block.set_render_context = Mock()
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid](test.png){#custom-diagram}"
+        )
+
+        processor.process_page(
+            "docs/guide/page.md",
+            "```mermaid\ngraph TD\n  A --> B\n```",
+            "/output",
+        )
+
+        mock_block.set_render_context.assert_called_once_with(image_id="custom-diagram")
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_injects_docs_dir(self, mock_command_available, basic_config):
         """process_page 呼び出し時に docs_dir を渡しているかをテスト"""
         mock_command_available.return_value = True
