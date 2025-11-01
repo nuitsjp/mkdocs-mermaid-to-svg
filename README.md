@@ -124,7 +124,7 @@ plugins:
 > **Mermaid image IDs**
 > Set `image_id_enabled: true` to add deterministic IDs (e.g. `mermaid-diagram-guide-1`) to every generated image. This allows per-diagram CSS targeting and PDF sizing tweaks.
 >
-> - Enable the Markdown [`attr_list`](https://python-markdown.github.io/extensions/attr_list/) extension, otherwise MkDocs will treat `{#...}` literally.  
+> - Enable the Markdown [`attr_list`](https://python-markdown.github.io/extensions/attr_list/) extension, otherwise MkDocs will treat `{#...}` literally.
 > - Override the prefix with `image_id_prefix`. Custom IDs can also be supplied per code fence using `{id: "custom-id"}` attributes.
 
 Example configuration:

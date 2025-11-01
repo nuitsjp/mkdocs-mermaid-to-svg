@@ -124,7 +124,7 @@ plugins:
 > **Mermaid image IDs**
 > `image_id_enabled` を `true` にすると、生成された画像 Markdown の末尾に `{#mermaid-diagram-...}` が自動で付与され、CSS で個別スタイリングできるようになります。
 >
-> - `markdown_extensions` に `attr_list` を追加してください。未設定の場合はビルドが失敗します。  
+> - `markdown_extensions` に `attr_list` を追加してください。未設定の場合はビルドが失敗します。
 > - プレフィックスを変えたい場合は `image_id_prefix` を設定し、個別のコードブロックでは `{id: "custom-id"}` 属性で上書きも可能です。
 
 ```yaml
