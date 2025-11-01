@@ -22,6 +22,14 @@ class ConfigManager:
                 config_options.Type(str, default="assets/images"),
             ),
             (
+                "image_id_enabled",
+                config_options.Type(bool, default=False),
+            ),
+            (
+                "image_id_prefix",
+                config_options.Type(str, default="mermaid-diagram"),
+            ),
+            (
                 "mermaid_config",
                 config_options.Optional(config_options.Type(dict)),
             ),

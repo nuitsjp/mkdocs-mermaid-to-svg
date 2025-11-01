@@ -108,6 +108,7 @@ class MermaidBlock:
         self.end_pos = end_pos
         self.attributes = attributes or {}
         self._path_resolver = self._default_path_resolver
+        self._render_context: dict[str, Any] = {}
 
     def __repr__(self) -> str:
         return (
@@ -134,6 +135,13 @@ class MermaidBlock:
         )
         return bool(result)
 
+    def set_render_context(self, *, image_id: str | None = None) -> None:
+        """描画時に付与する追加情報を設定する"""
+        if image_id:
+            self._render_context["image_id"] = image_id
+        else:
+            self._render_context.pop("image_id", None)
+
     def get_image_markdown(
         self,
         image_path: str,
@@ -151,7 +159,10 @@ class MermaidBlock:
             docs_dir=docs_dir,
         )
 
-        return f"![Mermaid Diagram]({markdown_path})"
+        image_id = self._render_context.get("image_id")
+        attr_suffix = f"{{#{image_id}}}" if image_id else ""
+
+        return f"![Mermaid Diagram]({markdown_path}){attr_suffix}"
 
     def get_filename(self, page_file: str, index: int, image_format: str) -> str:
         """ブロック内容に基づく安定したファイル名を生成する"""
