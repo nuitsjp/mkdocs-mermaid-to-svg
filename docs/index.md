@@ -56,6 +56,8 @@ Activate the plugin in `mkdocs.yml` (recommended configuration for PDF generatio
 ```yaml
 plugins:
   - mermaid-to-svg:
+      image_id_enabled: true
+      image_id_prefix: mermaid-diagram
       # Disable HTML labels for PDF compatibility
       mermaid_config:
         htmlLabels: false
@@ -115,6 +117,24 @@ plugins:
       error_on_fail: false                # Continue on diagram generation errors
       log_level: "WARNING"                # Currently derived from mkdocs CLI flags (see note below)
       cleanup_generated_images: true      # Clean up generated images after build
+      image_id_enabled: true              # Emit unique ids on rendered <img> tags
+      image_id_prefix: "mermaid-diagram"  # Override id prefix (requires attr_list)
+```
+
+> **Mermaid image IDs**
+> `image_id_enabled` を `true` にすると、生成された画像 Markdown の末尾に `{#mermaid-diagram-...}` が自動で付与され、CSS で個別スタイリングできるようになります。
+>
+> - `markdown_extensions` に `attr_list` を追加してください。未設定の場合はビルドが失敗します。  
+> - プレフィックスを変えたい場合は `image_id_prefix` を設定し、個別のコードブロックでは `{id: "custom-id"}` 属性で上書きも可能です。
+
+```yaml
+markdown_extensions:
+  - attr_list
+
+plugins:
+  - mermaid-to-svg:
+      image_id_enabled: true
+      image_id_prefix: "diagram"
 ```
 
 ## Configuration Options
@@ -131,6 +151,8 @@ plugins:
 | `error_on_fail` | `true` | Stop build on diagram generation errors |
 | `log_level` | `"WARNING"` | 実際には `mkdocs build --verbose/-v` 指定時は `"DEBUG"`、それ以外は `"WARNING"` に自動設定 |
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
+| `image_id_enabled` | `false` | Attach `{#id}` suffixes to generated image Markdown (requires `attr_list`) |
+| `image_id_prefix` | `"mermaid-diagram"` | Prefix used for generated IDs when `image_id_enabled` is true |
 
 > **Log level behaviour**
 > `log_level` の設定値は MkDocs 実行時のフラグによって上書きされます。`mkdocs build --verbose` または `-v` を付けた場合は `"DEBUG"`、付けない場合は `"WARNING"` で固定され、`mkdocs.yml` で任意値を指定しても現在は反映されません。

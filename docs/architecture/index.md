@@ -9,6 +9,7 @@ Key runtime traits:
 - Configuration is validated and augmented with derived values such as `log_level` based on `--verbose` flags.
 - The plugin can be disabled entirely through `enabled_if_env` or by running MkDocs in `serve` mode.
 - Generated assets are tracked in-memory so that they can be injected into `Files` and removed when `cleanup_generated_images` is enabled.
+- When `image_id_enabled` is true the plugin validates that `attr_list` is present in `markdown_extensions` and assigns deterministic IDs to successful blocks.
 - Errors are normalised through `_handle_processing_error`, mapping low-level failures onto the typed exception hierarchy in `exceptions.py`.
 
 ## Processing Pipeline
@@ -119,6 +120,12 @@ graph TD
     H -->|executes| MermaidCLI
     F --> T[types.py]
 ```
+
+## Mermaid Image IDs
+
+- `MermaidSvgConverterPlugin.on_config` throws a `MermaidConfigError` when `image_id_enabled` is set but the Markdown `attr_list` extension is not enabled, preventing broken `{#...}` literals.
+- After successful rendering, `MermaidProcessor` calls `MermaidBlock.set_render_context` with a generated ID composed from `image_id_prefix`, the page stem, and a 1-based index.
+- Individual Mermaid fences can override the generated ID by supplying an `{id: "custom-id"}` attribute, which is respected during Markdown replacement.
 
 ## Class Architecture
 
