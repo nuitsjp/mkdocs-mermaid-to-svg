@@ -27,6 +27,7 @@ markdown_extensions:
 plugins:
   - search
   - mermaid-to-svg:
+      image_id_enabled: true
       # PDF生成時の互換性のためHTMLラベルを無効化
       mermaid_config:
         htmlLabels: false
