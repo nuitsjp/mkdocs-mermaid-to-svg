@@ -10,7 +10,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - '.github/workflows/deploy-azure-static-web-apps.yml'
       - 'docs/**'
       - 'mkdocs.yml'
   pull_request:
@@ -18,7 +18,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/azure-static-web-apps-thankful-beach-0f331f600.yml'
+      - '.github/workflows/deploy-azure-static-web-apps.yml'
       - 'docs/**'
       - 'mkdocs.yml'
 
