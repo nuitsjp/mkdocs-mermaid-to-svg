@@ -3,7 +3,7 @@ from typing import Any
 
 from mkdocs.config import config_options
 
-from .exceptions import MermaidFileError
+from .exceptions import MermaidConfigError, MermaidFileError
 
 
 class ConfigManager:
@@ -65,6 +65,10 @@ class ConfigManager:
                 "mmdc_path",
                 config_options.Type(str, default="mmdc"),
             ),
+            (
+                "cli_timeout",
+                config_options.Type(int, default=30),
+            ),
         )
 
     @staticmethod
@@ -95,6 +99,15 @@ class ConfigManager:
                 operation="read",
                 suggestion="Ensure the Puppeteer config file exists or "
                 "remove the puppeteer_config configuration",
+            )
+
+        cli_timeout = config.get("cli_timeout")
+        if cli_timeout is not None and cli_timeout <= 0:
+            raise MermaidConfigError(
+                "cli_timeout must be a positive number of seconds",
+                config_key="cli_timeout",
+                config_value=cli_timeout,
+                suggestion="Set cli_timeout to a positive integer such as 60",
             )
 
         return True

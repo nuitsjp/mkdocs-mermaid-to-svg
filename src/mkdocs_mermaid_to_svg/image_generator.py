@@ -114,8 +114,9 @@ class MermaidCommandResolver:
 class MermaidCLIExecutor:
     """Mermaid CLIコマンドを実行環境に応じて実行する"""
 
-    def __init__(self, logger: Any) -> None:
+    def __init__(self, logger: Any, *, timeout: int | float = 30) -> None:
         self.logger = logger
+        self.timeout = timeout
 
     def run(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
         """プラットフォーム差異を吸収しながらコマンドを実行する"""
@@ -130,7 +131,7 @@ class MermaidCLIExecutor:
                 full_cmd,
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=self.timeout,
                 check=False,
                 shell=False,  # nosec B603
             )
@@ -139,7 +140,7 @@ class MermaidCLIExecutor:
             cmd,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=self.timeout,
             check=False,
             shell=False,
         )
@@ -270,13 +271,16 @@ class MermaidImageGenerator:
         """依存コンポーネントを受け取り初回のCLI解決を実行する"""
         self.config = config
         self.logger = get_logger(__name__)
+        self.cli_timeout = float(self.config.get("cli_timeout", 30))
         self.command_resolver = command_resolver or MermaidCommandResolver(
             config, self.logger, self._command_cache
         )
         self.artifact_manager = artifact_manager or MermaidArtifactManager(
             config, self.logger
         )
-        self.cli_executor = cli_executor or MermaidCLIExecutor(self.logger)
+        self.cli_executor = cli_executor or MermaidCLIExecutor(
+            self.logger, timeout=self.cli_timeout
+        )
         self._resolved_mmdc_command: list[str] | None = None
         self._validate_dependencies()
 
@@ -318,7 +322,9 @@ class MermaidImageGenerator:
             # Mermaid CLIを呼び出し結果を評価
             result = self._execute_mermaid_command(cmd)
 
-            if not self._validate_generation_result(result, output_path, mermaid_code):
+            if not self._validate_generation_result(
+                result, output_path, mermaid_code, cmd
+            ):
                 return False
 
             self._log_successful_generation(output_path, page_file)
@@ -341,10 +347,11 @@ class MermaidImageGenerator:
         result: subprocess.CompletedProcess[str],
         output_path: str,
         mermaid_code: str,
+        cmd: list[str],
     ) -> bool:
         """画像生成結果を検証"""
         if result.returncode != 0:
-            return self._handle_command_failure(result, [])
+            return self._handle_command_failure(result, cmd)
 
         if not Path(output_path).exists():
             return self._handle_missing_output(output_path, mermaid_code)

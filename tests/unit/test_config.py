@@ -23,7 +23,7 @@ import pytest  # Pythonのテストフレームワーク
 
 # テスト対象のConfigManagerクラスをインポート
 from mkdocs_mermaid_to_svg.config import ConfigManager
-from mkdocs_mermaid_to_svg.exceptions import MermaidFileError
+from mkdocs_mermaid_to_svg.exceptions import MermaidConfigError, MermaidFileError
 
 
 class TestConfigManager:
@@ -62,6 +62,7 @@ class TestConfigManager:
             "theme",  # テーマ設定
             "error_on_fail",  # エラー時の動作
             "log_level",  # ログレベル
+            "cli_timeout",  # CLIタイムアウト
         ]
 
         # すべての期待される設定項目が含まれているかを確認
@@ -86,6 +87,13 @@ class TestConfigManager:
         # 設定検証が成功することを確認
         result = ConfigManager.validate_config(valid_config)
         assert result is True
+
+    def test_validate_config_rejects_non_positive_timeout(self):
+        """cli_timeout が0以下の場合は例外が発生することを確認。"""
+        invalid_config = {"cli_timeout": 0}
+
+        with pytest.raises(MermaidConfigError):
+            ConfigManager.validate_config(invalid_config)
 
     @pytest.mark.parametrize(
         "config_override,expected_error,error_message",

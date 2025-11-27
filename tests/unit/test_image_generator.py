@@ -503,6 +503,100 @@ class TestMermaidImageGenerator:
                 generator.generate("invalid", output_path, basic_config)
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_cli_timeout_is_configurable(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        """cli_timeout設定がsubprocessのtimeoutに反映されるか検証"""
+        mock_command_available.return_value = True
+        basic_config["cli_timeout"] = 45
+
+        generator = MermaidImageGenerator(basic_config)
+
+        mermaid_input = tmp_path / "diagram.mmd"
+        mermaid_config = tmp_path / "mermaid-config.json"
+        puppeteer_config = tmp_path / "puppeteer-config.json"
+        output_path = tmp_path / "output.svg"
+
+        def fake_run(cmd, **kwargs):
+            output_path.write_text("<svg></svg>", encoding="utf-8")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        with (
+            patch(
+                "mkdocs_mermaid_to_svg.image_generator.get_temp_file_path",
+                side_effect=[str(mermaid_input), str(mermaid_config)],
+            ),
+            patch("tempfile.NamedTemporaryFile") as mock_named_temp,
+            patch("mkdocs_mermaid_to_svg.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file"),
+            patch("subprocess.run", side_effect=fake_run) as mock_run,
+        ):
+            temp_handle = Mock()
+            temp_handle.name = str(puppeteer_config)
+            temp_handle.write = Mock()
+            temp_handle.__enter__ = Mock(return_value=temp_handle)
+            temp_handle.__exit__ = Mock(return_value=False)
+            mock_named_temp.return_value = temp_handle
+
+            assert generator.generate(
+                "graph TD;\nA-->B;", str(output_path), basic_config
+            )
+
+        timeout_values = [
+            call.kwargs.get("timeout") for call in mock_run.call_args_list
+        ]
+        assert basic_config["cli_timeout"] in timeout_values
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_cli_error_includes_executed_command_details(
+        self, mock_command_available, basic_config, tmp_path
+    ):
+        """CLI失敗時に実行コマンドが例外詳細へ含まれるかテスト"""
+        basic_config["error_on_fail"] = True
+        mock_command_available.return_value = True
+
+        generator = MermaidImageGenerator(basic_config)
+
+        mermaid_input = tmp_path / "temp.mmd"
+        mermaid_config = tmp_path / "mermaid-config.json"
+        puppeteer_config = tmp_path / "puppeteer-config.json"
+        output_path = tmp_path / "output.svg"
+
+        completed = subprocess.CompletedProcess(
+            ["mmdc", "-i", str(mermaid_input), "-o", str(output_path), "-e", "svg"],
+            127,
+            "",
+            "command not found",
+        )
+
+        with (
+            patch(
+                "mkdocs_mermaid_to_svg.image_generator.get_temp_file_path",
+                side_effect=[str(mermaid_input), str(mermaid_config)],
+            ),
+            patch("tempfile.NamedTemporaryFile") as mock_named_temp,
+            patch("subprocess.run", return_value=completed),
+            patch("mkdocs_mermaid_to_svg.image_generator.ensure_directory"),
+            patch("mkdocs_mermaid_to_svg.image_generator.clean_temp_file"),
+        ):
+            temp_handle = Mock()
+            temp_handle.name = str(puppeteer_config)
+            temp_handle.write = Mock()
+            temp_handle.__enter__ = Mock(return_value=temp_handle)
+            temp_handle.__exit__ = Mock(return_value=False)
+            mock_named_temp.return_value = temp_handle
+
+            with pytest.raises(MermaidCLIError) as excinfo:
+                generator.generate(
+                    "graph TD;\nA --> B;", str(output_path), basic_config
+                )
+
+        command_detail = excinfo.value.details.get("command")
+        assert command_detail
+        assert str(output_path) in command_detail
+        assert str(mermaid_input) in command_detail
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_generate_with_missing_output_file_error_on_fail_true(
         self, mock_command_available, basic_config, tmp_path
     ):
