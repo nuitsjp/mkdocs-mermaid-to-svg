@@ -66,9 +66,9 @@ class TestThemeFunctionality:
                 theme_index = called_args.index("-t")
                 theme_value = called_args[theme_index + 1]
                 # デフォルトテーマの場合は省略されるべき
-                assert theme_value != "default", (
-                    f"Default theme should be omitted, but got: {theme_value}"
-                )
+                assert (
+                    theme_value != "default"
+                ), f"Default theme should be omitted, but got: {theme_value}"
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     @patch("subprocess.run")
@@ -115,9 +115,9 @@ class TestThemeFunctionality:
                 command_string = " ".join(called_args)
 
             # -tオプションが含まれることを確認
-            assert "-t dark" in command_string, (
-                f"Theme option not found in command: {command_string}"
-            )
+            assert (
+                "-t dark" in command_string
+            ), f"Theme option not found in command: {command_string}"
 
     @pytest.mark.parametrize("theme", ["default", "dark", "forest", "neutral"])
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
@@ -166,14 +166,14 @@ class TestThemeFunctionality:
 
             if theme == "default":
                 # デフォルトテーマの場合は-tオプションが省略されるべき
-                assert "-t default" not in command_string, (
-                    "Default theme should be omitted"
-                )
+                assert (
+                    "-t default" not in command_string
+                ), "Default theme should be omitted"
             else:
                 # 非デフォルトテーマの場合は-tオプションが含まれるべき
-                assert f"-t {theme}" in command_string, (
-                    f"Theme option not found for {theme}. Command: {command_string}"
-                )
+                assert (
+                    f"-t {theme}" in command_string
+                ), f"Theme option not found for {theme}. Command: {command_string}"
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     @patch("subprocess.run")
@@ -223,6 +223,6 @@ class TestThemeFunctionality:
                 command_string = " ".join(called_args)
 
             # 個別設定のdarkテーマが使われることを確認
-            assert "-t dark" in command_string, (
-                f"Theme option not found in command: {command_string}"
-            )
+            assert (
+                "-t dark" in command_string
+            ), f"Theme option not found in command: {command_string}"
