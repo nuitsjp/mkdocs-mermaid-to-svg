@@ -67,7 +67,7 @@ class ConfigManager:
             ),
             (
                 "cli_timeout",
-                config_options.Type(int, default=30),
+                config_options.Type(int, default=90),
             ),
         )
 

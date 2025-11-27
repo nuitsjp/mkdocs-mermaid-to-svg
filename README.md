@@ -147,7 +147,7 @@ plugins:
 | `output_dir` | `"assets/images"` | Directory to store generated SVG files |
 | `theme` | `"default"` | Mermaid theme (default, dark, forest, neutral) |
 | `mmdc_path` | `"mmdc"` | Path to `mmdc` executable |
-| `cli_timeout` | `30` | Timeout (seconds) for Mermaid CLI; raise this for complex diagrams |
+| `cli_timeout` | `90` | Timeout (seconds) for Mermaid CLI; adjust if your diagrams are very small/very heavy |
 | `mermaid_config` | `None` | Mermaid configuration dictionary |
 | `css_file` | `None` | Path to custom CSS file |
 | `puppeteer_config` | `None` | Path to Puppeteer configuration file |

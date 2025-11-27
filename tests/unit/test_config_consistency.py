@@ -68,7 +68,7 @@ class TestConfigConsistency:
             "preserve_original": (bool, False),
             "error_on_fail": (bool, True),
             "log_level": (str, "INFO"),
-            "cli_timeout": (int, 30),
+            "cli_timeout": (int, 90),
         }
 
         for config_item in plugin.config_scheme:

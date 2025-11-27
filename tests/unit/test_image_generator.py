@@ -508,7 +508,7 @@ class TestMermaidImageGenerator:
     ):
         """cli_timeout設定がsubprocessのtimeoutに反映されるか検証"""
         mock_command_available.return_value = True
-        basic_config["cli_timeout"] = 45
+        basic_config["cli_timeout"] = 120
 
         generator = MermaidImageGenerator(basic_config)
 

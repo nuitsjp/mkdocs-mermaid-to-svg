@@ -37,7 +37,7 @@ class TestPluginDefaults:
             "preserve_original": False,
             "error_on_fail": True,
             "log_level": "INFO",
-            "cli_timeout": 30,
+            "cli_timeout": 90,
         }
 
         # config_schemeの各設定項目を検証
