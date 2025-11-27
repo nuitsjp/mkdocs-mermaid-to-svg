@@ -1,7 +1,5 @@
 # mkdocs-mermaid-to-svg
 
-[サンプルサイト](https://kind-ground-03224aa00.3.azurestaticapps.net/)
-
 [![PyPI - Python Version][python-image]][pypi-link]
 [![Linux Support][linux-image]](#requirements)
 [![Windows Support][windows-image]](#requirements)
