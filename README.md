@@ -14,7 +14,6 @@ This plugin detects Mermaid code blocks and replaces them with SVG images. This 
 ## Features
 
 - **SVG output**: Generates high-quality SVG images from Mermaid diagrams
-- **PDF compatible**: SVG images work perfectly in PDF exports
 - **Automatic conversion**: Automatically detects and converts all Mermaid code blocks
 - **Configurable**: Supports Mermaid themes and custom configurations
 - **Environment control**: Can be conditionally enabled via environment variables
@@ -69,7 +68,7 @@ plugins:
       enabled_if_env: ENABLE_PDF_EXPORT
 
 > **Note**
-> `mermaid_config` を省略した場合でも、プラグインが自動的に `htmlLabels` を無効化した一時設定ファイルを生成します。PDF 互換性のための基本設定は既定で有効になっているため、上記の明示的な指定はカスタム設定を適用したい場合にのみ必要です。
+> If `mermaid_config` is omitted, the plugin automatically writes a temporary config that disables `htmlLabels` (including `flowchart` and `class` diagrams). The PDF-safe defaults are always applied; specify `mermaid_config` only when you need custom Mermaid settings.
 ```
 
 ### PDF Compatibility
@@ -152,13 +151,20 @@ plugins:
 | `css_file` | `None` | Path to custom CSS file |
 | `puppeteer_config` | `None` | Path to Puppeteer configuration file |
 | `error_on_fail` | `true` | Stop build on diagram generation errors |
-| `log_level` | `"WARNING"` | 実際には `mkdocs build --verbose/-v` 指定時は `"DEBUG"`、それ以外は `"WARNING"` に自動設定 |
+| `log_level` | `auto` | Ignored in `mkdocs.yml`; resolves to `DEBUG` with `mkdocs build --verbose/-v`, otherwise `WARNING` |
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
 | `image_id_enabled` | `false` | Attach `{#id}` suffixes to generated image Markdown (requires `attr_list`) |
 | `image_id_prefix` | `"mermaid-diagram"` | Prefix used for generated IDs when `image_id_enabled` is true |
 
 > **Log level behaviour**
-> `log_level` の設定値は MkDocs 実行時のフラグによって上書きされます。`mkdocs build --verbose` または `-v` を付与するとプラグインは `"DEBUG"` ログを出力し、付与しない場合は `"WARNING"` に固定されます。任意の値を `mkdocs.yml` で指定しても現在は反映されません。
+> The plugin currently overrides `log_level` based on the MkDocs CLI flags: `mkdocs build --verbose` or `-v` forces `DEBUG`, and omitting them forces `WARNING`. Values specified in `mkdocs.yml` are ignored for now.
+
+### Runtime Notes
+
+- `mkdocs serve` leaves Mermaid fences untouched; conversion runs during `mkdocs build`.
+- `enabled_if_env` must be set to a non-empty environment variable to activate the plugin; missing or empty values keep it disabled.
+- If the configured `mmdc_path` is not available, the plugin falls back to `npx mmdc`.
+- When `puppeteer_config` is omitted or the file is missing, a temporary headless-friendly config is generated and cleaned up after use.
 
 ## PDF Generation
 
