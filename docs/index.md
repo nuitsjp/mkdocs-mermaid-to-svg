@@ -8,13 +8,12 @@ An MkDocs plugin to convert Mermaid charts to SVG images.
 
 This plugin detects Mermaid code blocks and replaces them with SVG images. This is especially useful for formats that don't support JavaScript, like PDF output.
 
-- [Documentation](https://thankful-beach-0f331f600.1.azurestaticapps.net/)
-- [Architecture](architecture/index.md)
+- [Documentation](https://kind-ground-03224aa00.3.azurestaticapps.net/)
+- [DeepWiki](https://deepwiki.com/nuitsjp/mkdocs-mermaid-to-svg)
 
 ## Features
 
 - **SVG output**: Generates high-quality SVG images from Mermaid diagrams
-- **PDF compatible**: SVG images work perfectly in PDF exports
 - **Automatic conversion**: Automatically detects and converts all Mermaid code blocks
 - **Configurable**: Supports Mermaid themes and custom configurations
 - **Environment control**: Can be conditionally enabled via environment variables
@@ -69,7 +68,7 @@ plugins:
       enabled_if_env: ENABLE_PDF_EXPORT
 
 > **Note**
-> `mermaid_config` を省略しても、プラグインは PDF 互換性のために `htmlLabels` を無効化した一時設定を自動生成します。ここで示した設定例は、追加のカスタマイズを行いたい場合のみ必要です。
+> If `mermaid_config` is omitted, the plugin automatically writes a temporary config that disables `htmlLabels` (including `flowchart` and `class` diagrams). The PDF-safe defaults are always applied; specify `mermaid_config` only when you need custom Mermaid settings.
 ```
 
 ### PDF Compatibility
@@ -122,10 +121,12 @@ plugins:
 ```
 
 > **Mermaid image IDs**
-> `image_id_enabled` を `true` にすると、生成された画像 Markdown の末尾に `{#mermaid-diagram-...}` が自動で付与され、CSS で個別スタイリングできるようになります。
+> Set `image_id_enabled: true` to add deterministic IDs (e.g. `mermaid-diagram-guide-1`) to every generated image. This allows per-diagram CSS targeting and PDF sizing tweaks.
 >
-> - `markdown_extensions` に `attr_list` を追加してください。未設定の場合はビルドが失敗します。
-> - プレフィックスを変えたい場合は `image_id_prefix` を設定し、個別のコードブロックでは `{id: "custom-id"}` 属性で上書きも可能です。
+> - Enable the Markdown [`attr_list`](https://python-markdown.github.io/extensions/attr_list/) extension, otherwise MkDocs will treat `{#...}` literally.
+> - Override the prefix with `image_id_prefix`. Custom IDs can also be supplied per code fence using `{id: "custom-id"}` attributes.
+
+Example configuration:
 
 ```yaml
 markdown_extensions:
@@ -145,17 +146,25 @@ plugins:
 | `output_dir` | `"assets/images"` | Directory to store generated SVG files |
 | `theme` | `"default"` | Mermaid theme (default, dark, forest, neutral) |
 | `mmdc_path` | `"mmdc"` | Path to `mmdc` executable |
+| `cli_timeout` | `90` | Timeout (seconds) for Mermaid CLI; adjust if your diagrams are very small/very heavy |
 | `mermaid_config` | `None` | Mermaid configuration dictionary |
 | `css_file` | `None` | Path to custom CSS file |
 | `puppeteer_config` | `None` | Path to Puppeteer configuration file |
 | `error_on_fail` | `true` | Stop build on diagram generation errors |
-| `log_level` | `"WARNING"` | 実際には `mkdocs build --verbose/-v` 指定時は `"DEBUG"`、それ以外は `"WARNING"` に自動設定 |
+| `log_level` | `auto` | Ignored in `mkdocs.yml`; resolves to `DEBUG` with `mkdocs build --verbose/-v`, otherwise `WARNING` |
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
 | `image_id_enabled` | `false` | Attach `{#id}` suffixes to generated image Markdown (requires `attr_list`) |
 | `image_id_prefix` | `"mermaid-diagram"` | Prefix used for generated IDs when `image_id_enabled` is true |
 
 > **Log level behaviour**
-> `log_level` の設定値は MkDocs 実行時のフラグによって上書きされます。`mkdocs build --verbose` または `-v` を付けた場合は `"DEBUG"`、付けない場合は `"WARNING"` で固定され、`mkdocs.yml` で任意値を指定しても現在は反映されません。
+> The plugin currently overrides `log_level` based on the MkDocs CLI flags: `mkdocs build --verbose` or `-v` forces `DEBUG`, and omitting them forces `WARNING`. Values specified in `mkdocs.yml` are ignored for now.
+
+### Runtime Notes
+
+- `mkdocs serve` leaves Mermaid fences untouched; conversion runs during `mkdocs build`.
+- `enabled_if_env` must be set to a non-empty environment variable to activate the plugin; missing or empty values keep it disabled.
+- If the configured `mmdc_path` is not available, the plugin falls back to `npx mmdc`.
+- When `puppeteer_config` is omitted or the file is missing, a temporary headless-friendly config is generated and cleaned up after use.
 
 ## PDF Generation
 
