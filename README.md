@@ -4,6 +4,8 @@
 [![Linux Support][linux-image]](#requirements)
 [![Windows Support][windows-image]](#requirements)
 
+[Japanese](./README.ja.md) | **English**
+
 An MkDocs plugin to convert Mermaid charts to SVG images.
 
 This plugin detects Mermaid code blocks and replaces them with SVG images. This is especially useful for formats that don't support JavaScript, like PDF output.

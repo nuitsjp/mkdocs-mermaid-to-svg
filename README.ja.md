@@ -4,6 +4,8 @@
 [![Linux Support][linux-image]](#requirements)
 [![Windows Support][windows-image]](#requirements)
 
+**Japanese** | [English](./README.md)
+
 MermaidチャートをSVG画像へ変換するMkDocsプラグインです。
 
 Mermaidコードブロックを検出し、SVG画像へ置き換えます。JavaScriptを扱えないPDF出力などで特に有用です。
