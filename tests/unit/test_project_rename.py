@@ -25,12 +25,12 @@ class TestProjectRename:
         project_root = Path(__file__).parent.parent.parent
         new_package_dir = project_root / "src" / "mkdocs_mermaid_to_svg"
 
-        assert (
-            new_package_dir.exists()
-        ), f"New package directory should exist: {new_package_dir}"
-        assert (
-            new_package_dir / "__init__.py"
-        ).exists(), "Package should have __init__.py"
+        assert new_package_dir.exists(), (
+            f"New package directory should exist: {new_package_dir}"
+        )
+        assert (new_package_dir / "__init__.py").exists(), (
+            "Package should have __init__.py"
+        )
         assert (new_package_dir / "plugin.py").exists(), "Package should have plugin.py"
 
     def test_old_package_structure_should_not_exist(self):
@@ -42,9 +42,9 @@ class TestProjectRename:
         project_root = Path(__file__).parent.parent.parent
         old_package_dir = project_root / "src" / "mkdocs_mermaid_to_image"
 
-        assert (
-            not old_package_dir.exists()
-        ), f"Old package directory should not exist: {old_package_dir}"
+        assert not old_package_dir.exists(), (
+            f"Old package directory should not exist: {old_package_dir}"
+        )
 
     def test_import_with_new_package_name_should_work(self):
         """
