@@ -137,13 +137,15 @@ def split_command(command: str) -> list[str]:
     try:
         parts = shlex.split(trimmed, posix=posix_mode)
     except ValueError:
-        return [trimmed]
+        return [_strip_wrapping_quotes(trimmed)]
 
     if not parts:
-        return [trimmed]
+        return [_strip_wrapping_quotes(trimmed)]
+
+    parts = [_strip_wrapping_quotes(part) for part in parts]
 
     if _should_treat_as_single_path(trimmed, parts):
-        return [trimmed]
+        return [_strip_wrapping_quotes(trimmed)]
 
     return parts
 
@@ -186,6 +188,13 @@ def _should_treat_as_single_path(command: str, parts: list[str]) -> bool:
     return not any(lowered.startswith(prefix) for prefix in known_prefixes)
 
 
+def _strip_wrapping_quotes(value: str) -> str:
+    """単一引数として囲まれた引用符を取り除く"""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        return value[1:-1]
+    return value
+
+
 def _verify_command_execution(
     command_parts: Iterable[str], command: str, logger: logging.Logger
 ) -> bool:
@@ -198,7 +207,7 @@ def _verify_command_execution(
             use_shell = platform.system() == "Windows"
 
             if use_shell:
-                version_cmd_str = " ".join([*parts_list, flag])
+                version_cmd_str = subprocess.list2cmdline([*parts_list, flag])
                 result = subprocess.run(  # nosec B603,B602,B607
                     ["cmd", "/c", version_cmd_str],
                     capture_output=True,

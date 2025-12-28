@@ -8,6 +8,8 @@ Python未経験者へのヒント：
 - assert文で「期待する結果」かどうかを検証します。
 """
 
+import os
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -194,9 +196,12 @@ graph TD
 
         mock_block.set_render_context.assert_called_once_with(image_id="custom-diagram")
 
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX環境のみ対象")
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
-    def test_process_page_injects_docs_dir(self, mock_command_available, basic_config):
-        """process_page 呼び出し時に docs_dir を渡しているかをテスト"""
+    def test_process_page_injects_docs_dir_posix(
+        self, mock_command_available, basic_config
+    ):
+        """process_page 呼び出し時に docs_dir を渡しているかをテスト（POSIX）"""
         mock_command_available.return_value = True
         processor = MermaidProcessor(basic_config)
 
@@ -219,21 +224,64 @@ graph TD
 ```"""
 
         docs_dir = "/home/user/project/docs"
+        output_dir = "/home/user/project/docs/assets/images"
 
         result_content, result_paths = processor.process_page(
             "guide/page.md",
             markdown,
-            "/home/user/project/docs/assets/images",
+            output_dir,
             docs_dir=docs_dir,
         )
 
         assert result_content == replacement
-        assert result_paths == [
-            "/home/user/project/docs/assets/images/test_0_abc123.png"
-        ]
+        assert result_paths == [f"{output_dir}/test_0_abc123.png"]
         processor.markdown_processor.replace_blocks_with_images.assert_called_once()
         _, kwargs = processor.markdown_processor.replace_blocks_with_images.call_args
-        assert kwargs["docs_dir"] == docs_dir
+        assert kwargs["docs_dir"] == str(Path(docs_dir))
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows環境のみ対象")
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_process_page_injects_docs_dir_windows(
+        self, mock_command_available, basic_config
+    ):
+        """process_page 呼び出し時に docs_dir を渡しているかをテスト（Windows）"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(basic_config)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.get_filename.return_value = "test_0_abc123.png"
+        mock_block.generate_image.return_value = True
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+
+        replacement = "![Mermaid](../assets/images/test.svg)"
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value=replacement
+        )
+
+        markdown = """```mermaid
+graph TD
+    A --> B
+```"""
+
+        docs_dir = "/home/user/project/docs"
+        output_dir = "/home/user/project/docs/assets/images"
+
+        result_content, result_paths = processor.process_page(
+            "guide/page.md",
+            markdown,
+            output_dir,
+            docs_dir=docs_dir,
+        )
+
+        expected_path = str(Path(output_dir) / "test_0_abc123.png")
+        assert result_content == replacement
+        assert result_paths == [expected_path]
+        processor.markdown_processor.replace_blocks_with_images.assert_called_once()
+        _, kwargs = processor.markdown_processor.replace_blocks_with_images.call_args
+        assert kwargs["docs_dir"] == str(Path(docs_dir))
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_process_page_no_blocks(self, mock_command_available, basic_config):

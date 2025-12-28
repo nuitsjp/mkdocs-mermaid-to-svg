@@ -125,7 +125,7 @@ class MermaidCLIExecutor:
         use_shell = platform.system() == "Windows"
 
         if use_shell:
-            cmd_str = " ".join(cmd)
+            cmd_str = subprocess.list2cmdline(cmd)
             full_cmd = ["cmd", "/c", cmd_str]
             return subprocess.run(  # nosec B603,B602,B607
                 full_cmd,
