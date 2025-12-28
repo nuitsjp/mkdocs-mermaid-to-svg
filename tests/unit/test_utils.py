@@ -9,9 +9,12 @@ Python未経験者へのヒント：
 """
 
 import contextlib
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
 
 from mkdocs_mermaid_to_svg.utils import (
     clean_temp_file,
@@ -180,9 +183,10 @@ class TestUtilityFunctions:
         assert result is True
         mock_run.assert_called()
 
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX環境のみ対象")
     @patch("subprocess.run")
-    def test_is_command_available_command_with_spaces(self, mock_run):
-        """空白を含むコマンドパスでも正しくチェックできることをテスト（Red）"""
+    def test_is_command_available_command_with_spaces_posix(self, mock_run):
+        """空白を含むコマンドパスでも正しくチェックできることをテスト（POSIX）"""
         mock_run.return_value.returncode = 0
         mock_run.return_value.stdout = "custom mmdc version"
 
@@ -190,9 +194,24 @@ class TestUtilityFunctions:
         result = is_command_available(command)
 
         assert result is True
-        # 空白を含むパスが分割されず、そのまま引数として渡されることを期待
         called_args = mock_run.call_args[0][0]
-        assert command in called_args
+        assert called_args[0] == command
+        assert called_args[1] == "--version"
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows環境のみ対象")
+    @patch("subprocess.run")
+    def test_is_command_available_command_with_spaces_windows(self, mock_run):
+        """空白を含むコマンドパスでも正しくチェックできることをテスト（Windows）"""
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "custom mmdc version"
+
+        command = r"C:\Program Files\Mermaid CLI\mmdc"
+        result = is_command_available(command)
+
+        assert result is True
+        called_args = mock_run.call_args[0][0]
+        assert called_args[:2] == ["cmd", "/c"]
+        assert command in called_args[2]
 
     @patch("subprocess.run")
     def test_is_command_available_npx_command_package_not_found(self, mock_run):
