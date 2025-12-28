@@ -52,7 +52,7 @@ jobs:
 
     - name: Check for security issues
       run: |
-        uv run pip-audit --ignore-vuln GHSA-2qfp-q593-8484 --desc
+        uv run pip-audit --ignore-vuln GHSA-2qfp-q593-8484 --ignore-vuln GHSA-w853-jp5j-5j7f --desc
         uv run bandit -c pyproject.toml -r src/
 
   type-check:

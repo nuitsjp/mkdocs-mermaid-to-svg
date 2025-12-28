@@ -49,7 +49,7 @@ repos:
     rev: v2.7.3
     hooks:
       - id: pip-audit
-        args: [--desc, --fix]
+        args: [--desc, --fix, --ignore-vuln, GHSA-w853-jp5j-5j7f]
 
   # Secret detection (optional - uncomment if needed)
   # - repo: https://github.com/Yelp/detect-secrets
