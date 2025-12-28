@@ -19,30 +19,60 @@ class MarkdownProcessor:
         """Markdown本文からMermaidブロックを検出してメタ情報付きで返す"""
         blocks = []
 
-        # 属性付きパターンを先に処理
-        attr_pattern = r"```mermaid\s*\{([^}]*)\}\s*\n(.*?)\n```"
-        for match in re.finditer(attr_pattern, markdown_content, re.DOTALL):
-            attributes = self._parse_attributes(match.group(1).strip())
-            block = MermaidBlock(
-                code=match.group(2).strip(),
-                start_pos=match.start(),
-                end_pos=match.end(),
-                attributes=attributes,
-            )
-            blocks.append(block)
+        fence_pattern = re.compile(
+            r"^(?P<indent>[ \t]{0,3})(?P<fence>`{3,}|~{3,})(?P<info>[^\n]*)$",
+            re.MULTILINE,
+        )
 
-        # 基本パターンを処理（重複チェック付き）
-        basic_pattern = r"```mermaid\s*\n(.*?)\n```"
-        for match in re.finditer(basic_pattern, markdown_content, re.DOTALL):
-            if not self._overlaps_with_existing_blocks(match, blocks):
-                block = MermaidBlock(
-                    code=match.group(1).strip(),
-                    start_pos=match.start(),
-                    end_pos=match.end(),
-                )
-                blocks.append(block)
+        in_fence = False
+        open_fence_char = ""
+        open_fence_len = 0
+        mermaid_start = 0
+        mermaid_content_start = 0
+        mermaid_attributes: dict[str, Any] = {}
+        in_mermaid = False
 
-        blocks.sort(key=lambda x: x.start_pos)
+        for match in fence_pattern.finditer(markdown_content):
+            fence = match.group("fence")
+            info = match.group("info") or ""
+            info_stripped = info.strip()
+            fence_char = fence[0]
+
+            if not in_fence:
+                if fence_char == "`" and "`" in info:
+                    continue
+                attributes = self._parse_mermaid_info(info_stripped)
+                in_mermaid = attributes is not None
+                in_fence = True
+                open_fence_char = fence_char
+                open_fence_len = len(fence)
+                mermaid_attributes = attributes or {}
+                if in_mermaid:
+                    mermaid_start = match.start()
+                    mermaid_content_start = self._advance_past_newline(
+                        markdown_content, match.end()
+                    )
+                continue
+
+            if self._is_closing_fence(
+                fence, info_stripped, open_fence_char, open_fence_len
+            ):
+                if in_mermaid:
+                    code = markdown_content[mermaid_content_start : match.start()]
+                    blocks.append(
+                        MermaidBlock(
+                            code=code,
+                            start_pos=mermaid_start,
+                            end_pos=match.end(),
+                            attributes=mermaid_attributes,
+                        )
+                    )
+                in_fence = False
+                in_mermaid = False
+                open_fence_char = ""
+                open_fence_len = 0
+                mermaid_attributes = {}
+
         self.logger.info(f"Found {len(blocks)} Mermaid blocks")
         return blocks
 
@@ -120,6 +150,31 @@ class MarkdownProcessor:
             parts.append("".join(buf).strip())
 
         return parts
+
+    def _parse_mermaid_info(self, info_str: str) -> dict[str, Any] | None:
+        if not info_str.startswith("mermaid"):
+            return None
+
+        rest = info_str[len("mermaid") :]
+        if rest and not rest[0].isspace() and not rest.startswith("{"):
+            return None
+
+        attr_match = re.search(r"\{([^}]*)\}", rest)
+        if attr_match:
+            return self._parse_attributes(attr_match.group(1).strip())
+        return {}
+
+    def _advance_past_newline(self, text: str, pos: int) -> int:
+        if text.startswith("\r\n", pos):
+            return pos + 2
+        if pos < len(text) and text[pos] == "\n":
+            return pos + 1
+        return pos
+
+    def _is_closing_fence(
+        self, fence: str, info_str: str, fence_char: str, fence_len: int
+    ) -> bool:
+        return fence[0] == fence_char and len(fence) >= fence_len and info_str == ""
 
     def replace_blocks_with_images(  # noqa: PLR0913
         self,

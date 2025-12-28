@@ -77,6 +77,53 @@ Some text.
         blocks = processor.extract_mermaid_blocks(markdown)
         assert len(blocks) == 0
 
+    def test_extract_mermaid_blocks_ignores_mermaid_inside_fenced_code_blocks(
+        self, basic_config
+    ):
+        """コードフェンス内のMermaidブロックが無視されることをテスト"""
+        processor = MarkdownProcessor(basic_config)
+
+        markdown = """# Sample
+
+````markdown
+```mermaid
+graph TD
+    A --> B
+```
+````
+
+~~~~markdown
+```mermaid
+graph TD
+    A --> B
+```
+~~~~
+
+```mermaid
+graph LR
+    A --> B
+```
+"""
+        blocks = processor.extract_mermaid_blocks(markdown)
+        assert len(blocks) == 1
+        assert blocks[0].code.startswith("graph LR")
+
+    def test_extract_mermaid_blocks_commonmark_does_not_nest_fences(
+        self, basic_config
+    ):
+        """CommonMarkでは同一フェンスのネストが無効なため抽出されない"""
+        processor = MarkdownProcessor(basic_config)
+
+        markdown = """```markdown
+````mermaid
+graph TD
+    A --> B
+````
+```
+"""
+        blocks = processor.extract_mermaid_blocks(markdown)
+        assert len(blocks) == 0
+
     def test_extract_mixed_blocks_no_overlap(self, basic_config):
         """属性付き・属性なしブロック混在時の抽出テスト"""
         processor = MarkdownProcessor(basic_config)
