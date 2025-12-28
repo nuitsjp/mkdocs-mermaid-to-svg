@@ -47,9 +47,9 @@ class TestPluginDefaults:
 
             if config_name in expected_defaults:
                 expected_default = expected_defaults[config_name]
-                assert hasattr(
-                    config_option, "default"
-                ), f"{config_name} should have a default value"
+                assert hasattr(config_option, "default"), (
+                    f"{config_name} should have a default value"
+                )
                 assert config_option.default == expected_default, (
                     f"{config_name} default should be "
                     f"{expected_default}, got {config_option.default}"

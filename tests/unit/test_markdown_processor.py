@@ -108,9 +108,7 @@ graph LR
         assert len(blocks) == 1
         assert blocks[0].code.startswith("graph LR")
 
-    def test_extract_mermaid_blocks_commonmark_does_not_nest_fences(
-        self, basic_config
-    ):
+    def test_extract_mermaid_blocks_commonmark_does_not_nest_fences(self, basic_config):
         """CommonMarkでは同一フェンスのネストが無効なため抽出されない"""
         processor = MarkdownProcessor(basic_config)
 

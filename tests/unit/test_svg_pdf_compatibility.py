@@ -68,12 +68,12 @@ class TestSVGPDFCompatibility:
             svg_content = output_path.read_text()
 
             # The main assertion that should FAIL initially
-            assert (
-                "<foreignObject" not in svg_content
-            ), "SVG contains foreignObject elements incompatible with PDF generation"
-            assert (
-                'xmlns="http://www.w3.org/1999/xhtml"' not in svg_content
-            ), "SVG contains XHTML namespace indicating HTML in foreignObject"
+            assert "<foreignObject" not in svg_content, (
+                "SVG contains foreignObject elements incompatible with PDF generation"
+            )
+            assert 'xmlns="http://www.w3.org/1999/xhtml"' not in svg_content, (
+                "SVG contains XHTML namespace indicating HTML in foreignObject"
+            )
 
     def test_class_diagram_svg_uses_standard_text_elements(self):
         """Test that class diagram SVG files use standard text/tspan elements.
@@ -131,15 +131,15 @@ class TestSVGPDFCompatibility:
 
             # Check for standard SVG text elements instead of HTML
             # This should FAIL initially
-            assert (
-                "<text" in svg_content or "<tspan" in svg_content
-            ), "SVG should contain standard text or tspan elements for text content"
+            assert "<text" in svg_content or "<tspan" in svg_content, (
+                "SVG should contain standard text or tspan elements for text content"
+            )
 
             # Should not contain HTML elements
             assert "<div" not in svg_content, "SVG should not contain HTML div elements"
-            assert (
-                "<span" not in svg_content
-            ), "SVG should not contain HTML span elements"
+            assert "<span" not in svg_content, (
+                "SVG should not contain HTML span elements"
+            )
 
     def test_sequence_diagram_already_pdf_compatible(self):
         """Test that sequence diagrams are already PDF compatible.
