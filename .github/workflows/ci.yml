@@ -21,7 +21,6 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
-  UV_CACHE_DIR: /tmp/.uv-cache
 
 jobs:
   lint:
@@ -79,11 +78,14 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.12"]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v6
@@ -110,19 +112,13 @@ jobs:
 
     - name: Verify CI configuration
       run: |
-        echo "Checking Puppeteer config for CI environment..."
-        ls -la .github/puppeteer.config.json
-        cat .github/puppeteer.config.json
+        Write-Host "Checking Puppeteer config for CI environment..."
+        Get-ChildItem .github/puppeteer.config.json
+        Get-Content .github/puppeteer.config.json
 
     - name: Run tests
       run: |
-        uv run pytest tests/ \
-          --cov=src/mkdocs_mermaid_to_svg \
-          --cov-report=xml \
-          --cov-report=term-missing \
-          --cov-report=html \
-          --junit-xml=test-results.xml \
-          -v
+        uv run pytest tests/ --cov=src/mkdocs_mermaid_to_svg --cov-report=xml --cov-report=term-missing --cov-report=html --junit-xml=test-results.xml -v
 
     - name: Upload test results
       if: always()
