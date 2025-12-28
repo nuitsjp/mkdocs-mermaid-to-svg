@@ -151,6 +151,9 @@ dev = [
     "mkdocs-material>=8.0.0",
     "pillow>=11.3.0",
     "numpy>=1.20.0",
+    "fonttools>=4.60.2",
+    "pymdown-extensions>=10.16.1",
+    "urllib3>=2.6.0",
 ]
 
 docs = [
