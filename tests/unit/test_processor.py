@@ -538,7 +538,7 @@ class TestProcessorCollectMode:
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_beautiful対応ブロックがBatchRenderItemとして収集される(
-        self, mock_command_available, auto_config
+        self, mock_command_available, auto_config, tmp_path
     ):
         """beautiful-mermaid対応ブロック（flowchart）がbatch_itemsに追加される"""
         mock_command_available.return_value = True
@@ -567,7 +567,7 @@ class TestProcessorCollectMode:
             result_content, result_paths = processor.process_page(
                 "test.md",
                 "```mermaid\ngraph TD\n  A-->B\n```",
-                "/output",
+                str(tmp_path / "output"),
                 batch_items=batch_items,
             )
 
@@ -625,7 +625,7 @@ class TestProcessorCollectMode:
 
     @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
     def test_Markdownが画像参照に書き換えられる(
-        self, mock_command_available, auto_config
+        self, mock_command_available, auto_config, tmp_path
     ):
         """収集モードでもMarkdownが画像参照に書き換えられる"""
         mock_command_available.return_value = True
@@ -653,7 +653,7 @@ class TestProcessorCollectMode:
             result_content, result_paths = processor.process_page(
                 "test.md",
                 "```mermaid\ngraph TD\n  A-->B\n```",
-                "/output",
+                str(tmp_path / "output"),
                 batch_items=batch_items,
             )
 

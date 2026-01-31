@@ -102,6 +102,13 @@ RUNNER_PATH = (
     / "beautiful_mermaid_runner.mjs"
 )
 
+# beautiful-mermaid npmパッケージが利用可能か判定
+_NODE_MODULES = (
+    Path(__file__).resolve().parents[2] / "node_modules" / "beautiful-mermaid"
+)
+_BEAUTIFUL_MERMAID_AVAILABLE = _NODE_MODULES.exists()
+_SKIP_REASON = "beautiful-mermaid npmパッケージが未インストール"
+
 
 def _run_batch_render(
     payload: list[dict[str, Any]],
@@ -118,6 +125,7 @@ def _run_batch_render(
     )
 
 
+@pytest.mark.skipif(not _BEAUTIFUL_MERMAID_AVAILABLE, reason=_SKIP_REASON)
 class TestBatchRenderNodeRunner:
     """--batch-renderモードの動作テスト（T005）"""
 
@@ -369,6 +377,7 @@ def _run_single_render(code: str, theme: str = "default") -> str:
     return result.stdout
 
 
+@pytest.mark.skipif(not _BEAUTIFUL_MERMAID_AVAILABLE, reason=_SKIP_REASON)
 class TestBatchVsSingleOutputIdentity:
     """一括処理と個別処理のSVG出力同一性テスト（T018/T019）"""
 
@@ -391,9 +400,9 @@ class TestBatchVsSingleOutputIdentity:
         # 一括処理
         batch_payload = [{"id": f"test_{label}", "code": code, "theme": "default"}]
         batch_result = _run_batch_render(batch_payload)
-        assert batch_result.returncode == 0, (
-            f"--batch-render失敗: {batch_result.stderr}"
-        )
+        assert (
+            batch_result.returncode == 0
+        ), f"--batch-render失敗: {batch_result.stderr}"
         batch_results = json.loads(batch_result.stdout)
         assert len(batch_results) == 1
         assert batch_results[0]["success"] is True

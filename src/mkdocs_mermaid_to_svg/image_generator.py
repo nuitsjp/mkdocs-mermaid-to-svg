@@ -191,7 +191,7 @@ class MermaidCLIExecutor:
         if use_shell:
             cmd_str = subprocess.list2cmdline(cmd)
             full_cmd = ["cmd", "/c", cmd_str]
-            return subprocess.run(  # nosec B603,B602,B607
+            return subprocess.run(  # nosec B603 B602 B607
                 full_cmd,
                 capture_output=True,
                 text=True,
@@ -620,11 +620,9 @@ class MmdcRenderer:
             )
             result = self.generator._execute_mermaid_command(cmd)
 
-            if not self.generator._validate_generation_result(
+            return self.generator._validate_generation_result(
                 result, output_path, mermaid_code, cmd
-            ):
-                return False
-            return True
+            )
 
         except (MermaidCLIError, MermaidImageError):
             raise
@@ -708,7 +706,7 @@ class BeautifulMermaidRenderer:
 
     def _check_beautiful_module(self) -> bool:
         try:
-            result = subprocess.run(  # nosec B603,B607
+            result = subprocess.run(  # nosec B603 B607
                 ["node", str(self._runner_path()), "--check"],
                 capture_output=True,
                 text=True,
@@ -725,7 +723,7 @@ class BeautifulMermaidRenderer:
             "theme": config.get("theme", "default"),
         }
         try:
-            result = subprocess.run(  # nosec B603,B607
+            result = subprocess.run(  # nosec B603 B607
                 ["node", str(self._runner_path()), "--render"],
                 input=json.dumps(payload),
                 capture_output=True,
@@ -755,7 +753,7 @@ class BeautifulMermaidRenderer:
             {"code": item.code, "theme": item.theme, "id": item.id} for item in items
         ]
         try:
-            result = subprocess.run(  # nosec B603,B607
+            result = subprocess.run(  # nosec B603 B607
                 ["node", str(self._runner_path()), "--batch-render"],
                 input=json.dumps(payload),
                 capture_output=True,
