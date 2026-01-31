@@ -112,6 +112,7 @@ ENABLE_PDF_EXPORT=1 mkdocs build
 ```yaml
 plugins:
   - mermaid-to-svg:
+      renderer: "auto"                 # auto: beautiful-mermaid優先, mmdc: 従来CLI固定
       mmdc_path: "mmdc"                   # Path to Mermaid CLI
       css_file: "custom-mermaid.css"      # Custom CSS file
       puppeteer_config: "puppeteer.json"  # Custom Puppeteer configuration
@@ -147,6 +148,7 @@ plugins:
 | `enabled_if_env` | `None` | Environment variable name to conditionally enable plugin |
 | `output_dir` | `"assets/images"` | Directory to store generated SVG files |
 | `theme` | `"default"` | Mermaid theme (default, dark, forest, neutral) |
+| `renderer` | `"mmdc"` | `auto`=beautiful-mermaid優先（未導入/未対応時はmmdcへ）, `mmdc`=従来CLI固定 |
 | `mmdc_path` | `"mmdc"` | Path to `mmdc` executable |
 | `cli_timeout` | `90` | Timeout (seconds) for Mermaid CLI; adjust if your diagrams are very small/very heavy |
 | `mermaid_config` | `None` | Mermaid configuration dictionary |
@@ -167,6 +169,22 @@ plugins:
 - `enabled_if_env` must be set to a non-empty environment variable to activate the plugin; missing or empty values keep it disabled.
 - If the configured `mmdc_path` is not available, the plugin falls back to `npx mmdc`.
 - When `puppeteer_config` is omitted or the file is missing, a temporary headless-friendly config is generated and cleaned up after use.
+- `renderer: auto` requires `node` and `beautiful-mermaid` to be installed in the MkDocs project (e.g. `npm install beautiful-mermaid`).
+- `renderer: auto` falls back to mmdc when the diagram type is unsupported (e.g. pie/gantt) or the renderer fails.
+
+### SVG Golden Tests
+
+Golden SVG comparison tests run by default and can be skipped with:
+
+```bash
+SKIP_SVG_GOLDEN=1 uv run pytest tests/integration/test_svg_golden.py
+```
+
+To regenerate expected SVG files:
+
+```bash
+REGENERATE_SVG_GOLDENS=1 uv run pytest tests/integration/test_svg_golden.py
+```
 
 ## PDF Generation
 

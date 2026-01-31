@@ -27,6 +27,7 @@ class TestMermaidProcessor:
         """テスト用の基本設定を返すfixture"""
         return {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "output_dir": "assets/images",
             "image_format": "png",
             "theme": "default",

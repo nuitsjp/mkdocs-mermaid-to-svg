@@ -1,0 +1,3 @@
+[submodule "beautiful-mermaid"]
+	path = beautiful-mermaid
+	url = https://github.com/lukilabs/beautiful-mermaid.git

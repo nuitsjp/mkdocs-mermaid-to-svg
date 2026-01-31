@@ -15,6 +15,7 @@ class TestProcessorSvgFormat:
         # image_formatを含まない設定（削除後の状態）
         config = {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "theme": "default",
             "error_on_fail": False,
             "log_level": "INFO",
@@ -53,6 +54,7 @@ graph TD
         """Test processor defaults to SVG format when image_format not configured."""
         config = {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "theme": "default",
             "error_on_fail": False,
             "log_level": "INFO",

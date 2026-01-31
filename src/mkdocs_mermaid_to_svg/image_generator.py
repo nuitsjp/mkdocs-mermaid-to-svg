@@ -5,7 +5,7 @@ import subprocess  # nosec B404
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Protocol
 
 from .exceptions import MermaidCLIError, MermaidFileError, MermaidImageError
 from .logging_config import get_logger
@@ -16,6 +16,52 @@ from .utils import (
     is_command_available,
     split_command,
 )
+
+SUPPORTED_BEAUTIFUL_TYPES = {
+    "flowchart",
+    "sequence",
+    "class",
+    "er",
+    "state",
+}
+
+
+class Renderer(Protocol):
+    """Mermaidレンダリングの戦略インターフェース"""
+
+    def render_svg(
+        self,
+        mermaid_code: str,
+        output_path: str,
+        config: dict[str, Any],
+        page_file: str | None = None,
+    ) -> bool:
+        ...
+
+
+def _detect_mermaid_type(mermaid_code: str) -> str:
+    """Mermaidコードの先頭から図種を推定する"""
+    first_line = ""
+    for line in mermaid_code.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("%%"):
+            first_line = stripped
+            break
+
+    header = first_line.lower()
+    if header.startswith("sequencediagram"):
+        return "sequence"
+    if header.startswith("classdiagram"):
+        return "class"
+    if header.startswith("erdiagram"):
+        return "er"
+    if header.startswith("statediagram"):
+        return "state"
+    if header.startswith("graph") or header.startswith("flowchart"):
+        return "flowchart"
+    return "unknown"
+
+
 
 
 @dataclass
@@ -264,6 +310,7 @@ class MermaidImageGenerator:
         self,
         config: dict[str, Any],
         *,
+        renderer: Renderer | None = None,
         command_resolver: MermaidCommandResolver | None = None,
         artifact_manager: MermaidArtifactManager | None = None,
         cli_executor: MermaidCLIExecutor | None = None,
@@ -282,6 +329,7 @@ class MermaidImageGenerator:
             self.logger, timeout=self.cli_timeout
         )
         self._resolved_mmdc_command: list[str] | None = None
+        self.renderer: Renderer = renderer or self._create_renderer()
         self._validate_dependencies()
 
     @classmethod
@@ -296,7 +344,8 @@ class MermaidImageGenerator:
 
     def _validate_dependencies(self) -> None:
         """Mermaid CLIコマンドを解決しインスタンスにキャッシュする"""
-        self._resolved_mmdc_command = self.command_resolver.resolve()
+        if self._should_use_mmdc_only():
+            self._resolved_mmdc_command = self.command_resolver.resolve()
 
     def generate(
         self,
@@ -306,41 +355,17 @@ class MermaidImageGenerator:
         page_file: str | None = None,
     ) -> bool:
         """MermaidコードからSVG生成までの一連の処理を管理する"""
-        artifacts: GenerationArtifacts | None = None
-        cmd: list[str] = []
-
         try:
-            # 実行に必要な一時ファイル群を作成
-            artifacts = self.artifact_manager.prepare(mermaid_code, output_path, config)
-            cmd, _, _ = self._build_mmdc_command(
-                artifacts.source_path,
-                output_path,
-                config,
-                puppeteer_config_file=artifacts.puppeteer_config_file,
-                mermaid_config_file=artifacts.mermaid_config_file,
+            result = self.renderer.render_svg(
+                mermaid_code, output_path, config, page_file
             )
-            # Mermaid CLIを呼び出し結果を評価
-            result = self._execute_mermaid_command(cmd)
-
-            if not self._validate_generation_result(
-                result, output_path, mermaid_code, cmd
-            ):
-                return False
-
-            self._log_successful_generation(output_path, page_file)
-            return True
-
+            if result:
+                self._log_successful_generation(output_path, page_file)
+            return result
         except (MermaidCLIError, MermaidImageError):
             raise
-        except subprocess.TimeoutExpired:
-            return self._handle_timeout_error(cmd)
-        except (FileNotFoundError, OSError, PermissionError) as e:
-            return self._handle_file_error(e, output_path)
         except Exception as e:
             return self._handle_unexpected_error(e, output_path, mermaid_code)
-        finally:
-            if artifacts:
-                artifacts.cleanup(self.logger)
 
     def _validate_generation_result(
         self,
@@ -357,6 +382,22 @@ class MermaidImageGenerator:
             return self._handle_missing_output(output_path, mermaid_code)
 
         return True
+
+    def _create_renderer(self) -> Renderer:
+        renderer_setting = str(self.config.get("renderer", "mmdc")).lower()
+        if renderer_setting == "auto":
+            return AutoRenderer(
+                BeautifulMermaidRenderer(self, self.logger),
+                MmdcRenderer(self, self.logger),
+                logger=self.logger,
+            )
+        return MmdcRenderer(self, self.logger)
+
+    def _should_use_mmdc_only(self) -> bool:
+        return str(self.config.get("renderer", "mmdc")).lower() != "auto"
+
+    def _set_resolved_command(self, command: list[str]) -> None:
+        self._resolved_mmdc_command = command
 
     def _log_successful_generation(
         self, output_path: str, page_file: str | None
@@ -524,3 +565,168 @@ class MermaidImageGenerator:
     ) -> subprocess.CompletedProcess[str]:
         """構成済みエグゼキューターを通じてCLIを実行する"""
         return self.cli_executor.run(cmd)
+
+
+class MmdcRenderer:
+    """mmdcを使ったSVG生成"""
+
+    def __init__(self, generator: MermaidImageGenerator, logger: Any) -> None:
+        self.generator = generator
+        self.logger = logger
+
+    def render_svg(
+        self,
+        mermaid_code: str,
+        output_path: str,
+        config: dict[str, Any],
+        page_file: str | None = None,
+    ) -> bool:
+        artifacts: GenerationArtifacts | None = None
+        cmd: list[str] = []
+
+        try:
+            artifacts = self.generator.artifact_manager.prepare(
+                mermaid_code, output_path, config
+            )
+            if not self.generator._resolved_mmdc_command:
+                self.generator._set_resolved_command(
+                    self.generator.command_resolver.resolve()
+                )
+
+            cmd, _, _ = self.generator._build_mmdc_command(
+                artifacts.source_path,
+                output_path,
+                config,
+                puppeteer_config_file=artifacts.puppeteer_config_file,
+                mermaid_config_file=artifacts.mermaid_config_file,
+            )
+            result = self.generator._execute_mermaid_command(cmd)
+
+            if not self.generator._validate_generation_result(
+                result, output_path, mermaid_code, cmd
+            ):
+                return False
+            return True
+
+        except (MermaidCLIError, MermaidImageError):
+            raise
+        except subprocess.TimeoutExpired:
+            return self.generator._handle_timeout_error(cmd)
+        except (FileNotFoundError, OSError, PermissionError) as e:
+            return self.generator._handle_file_error(e, output_path)
+        except Exception as e:
+            return self.generator._handle_unexpected_error(e, output_path, mermaid_code)
+        finally:
+            if artifacts:
+                artifacts.cleanup(self.logger)
+
+
+class AutoRenderer:
+    """beautiful-mermaid優先のレンダラー"""
+
+    def __init__(
+        self,
+        beautiful_renderer: "BeautifulMermaidRenderer",
+        mmdc_renderer: MmdcRenderer,
+        *,
+        logger: Any,
+    ) -> None:
+        self.beautiful_renderer = beautiful_renderer
+        self.mmdc_renderer = mmdc_renderer
+        self.logger = logger
+
+    def render_svg(
+        self,
+        mermaid_code: str,
+        output_path: str,
+        config: dict[str, Any],
+        page_file: str | None = None,
+    ) -> bool:
+        if self.beautiful_renderer.is_available(mermaid_code):
+            try:
+                return self.beautiful_renderer.render_svg(
+                    mermaid_code, output_path, config, page_file
+                )
+            except Exception as exc:  # pragma: no cover - fallback path
+                self.logger.warning(f"beautiful-mermaidの実行に失敗: {exc}")
+        return self.mmdc_renderer.render_svg(
+            mermaid_code, output_path, config, page_file
+        )
+
+
+class BeautifulMermaidRenderer:
+    """beautiful-mermaidを使ったSVG生成"""
+
+    def __init__(self, generator: MermaidImageGenerator, logger: Any) -> None:
+        self.generator = generator
+        self.logger = logger
+
+    def is_available(self, mermaid_code: str) -> bool:
+        diagram_type = _detect_mermaid_type(mermaid_code)
+        if diagram_type not in SUPPORTED_BEAUTIFUL_TYPES:
+            return False
+        if not self._node_available():
+            return False
+        return self._check_beautiful_module()
+
+    def render_svg(
+        self,
+        mermaid_code: str,
+        output_path: str,
+        config: dict[str, Any],
+        page_file: str | None = None,
+    ) -> bool:
+        svg = self._render_via_node(mermaid_code, config)
+        if not svg:
+            return False
+        ensure_directory(str(Path(output_path).parent))
+        Path(output_path).write_text(svg, encoding="utf-8")
+        return True
+
+    def _node_available(self) -> bool:
+        import shutil
+
+        return shutil.which("node") is not None
+
+    def _check_beautiful_module(self) -> bool:
+        try:
+            result = subprocess.run(
+                ["node", str(self._runner_path()), "--check"],
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=str(Path.cwd()),
+            )
+        except OSError:
+            return False
+        return result.returncode == 0
+
+    def _render_via_node(self, mermaid_code: str, config: dict[str, Any]) -> str:
+        payload = {
+            "code": mermaid_code,
+            "theme": config.get("theme", "default"),
+        }
+        try:
+            result = subprocess.run(
+                ["node", str(self._runner_path()), "--render"],
+                input=json.dumps(payload),
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=str(Path.cwd()),
+            )
+        except OSError as exc:
+            raise MermaidCLIError(f"Node.jsの実行に失敗: {exc!s}") from exc
+
+        if result.returncode != 0:
+            raise MermaidCLIError(
+                f"beautiful-mermaidの実行に失敗: {result.stderr.strip()}",
+                command="node",
+                return_code=result.returncode,
+                stderr=result.stderr,
+            )
+
+        return result.stdout
+
+    def _runner_path(self) -> Path:
+        return Path(__file__).with_name("beautiful_mermaid_runner.mjs")

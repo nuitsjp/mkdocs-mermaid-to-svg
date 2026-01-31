@@ -37,6 +37,7 @@ class TestSvgOnlyConfig:
         # 最小限の設定でジェネレーターを作成
         config = {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "width": 800,
             "height": 600,
             "scale": 1.0,
