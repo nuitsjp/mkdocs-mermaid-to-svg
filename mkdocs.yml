@@ -27,6 +27,7 @@ markdown_extensions:
 plugins:
   - search
   - mermaid-to-svg:
+      renderer: auto
       image_id_enabled: true
       cli_timeout: 90
       # PDF生成時の互換性のためHTMLラベルを無効化

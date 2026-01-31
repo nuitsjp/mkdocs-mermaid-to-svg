@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from collections.abc import Iterable
@@ -360,7 +361,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             clean_generated_images(self.generated_images, self.logger)
 
     def _execute_batch_render(self, config: Any) -> None:
-        """収集済みbatch_itemsを一括レンダリングし、SVGをsite/に書き出す"""
+        """収集済みbatch_itemsを一括レンダリングし、docs/とsite/に書き出す"""
         batch_items: list[BatchRenderItem] = getattr(self, "batch_items", [])
         if not batch_items or not self.processor:
             return
@@ -388,7 +389,11 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         # IDからBatchRenderItemへのマッピングを作成
         item_map = {item.id: item for item in batch_items}
 
-        # 成功結果をsite/配下に書き出す
+        # docs_dirとsite_dirを取得（site/への書き出しに使用）
+        docs_dir = self._resolve_docs_dir(config)
+        site_dir = Path(config["site_dir"]) if config.get("site_dir") else None
+
+        # 成功結果をdocs/とsite/に書き出す
         failed_items: list[BatchRenderItem] = []
         for result in results:
             item = item_map.get(result.id)
@@ -399,19 +404,64 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
                 failed_items.append(item)
                 continue
 
-            output_path = Path(item.output_path)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(result.svg, encoding="utf-8")
-            self.generated_images.append(str(output_path))
+            self._write_svg_to_docs_and_site(
+                item.output_path, result.svg, docs_dir, site_dir
+            )
+            self.generated_images.append(item.output_path)
+            self._log_batch_svg_generation(item.output_path, item.page_file)
 
         # 失敗分をmmdcでフォールバック
         if failed_items:
-            self._fallback_to_mmdc(failed_items, renderer)
+            self._fallback_to_mmdc(failed_items, renderer, docs_dir, site_dir)
+
+    @staticmethod
+    def _log_batch_svg_generation(output_path: str, page_file: str) -> None:
+        """バッチ生成したSVGのログを既存mmdc形式に合わせて出力する"""
+        mkdocs_logger = logging.getLogger("mkdocs")
+        filename = Path(output_path).name
+        mkdocs_logger.info(
+            "Converting Mermaid diagram to SVG: %s from %s",
+            filename,
+            page_file,
+        )
+
+    def _resolve_docs_dir(self, config: Any) -> Path | None:
+        """MkDocs設定からdocs_dirを取得する"""
+        docs_dir_value = config.get("docs_dir")
+        if docs_dir_value is not None:
+            return Path(docs_dir_value)
+        return None
+
+    def _write_svg_to_docs_and_site(
+        self,
+        docs_path: str,
+        svg_content: str,
+        docs_dir: Path | None,
+        site_dir: Path | None,
+    ) -> None:
+        """SVGをdocs/配下に書き出し、site/配下にもコピーする"""
+        # docs/配下に書き出す
+        output_path = Path(docs_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(svg_content, encoding="utf-8")
+
+        # site/配下にもコピー（on_post_build時点ではMkDocsコピー済みのため）
+        if docs_dir is not None and site_dir is not None:
+            try:
+                rel_path = output_path.relative_to(docs_dir)
+                site_path = site_dir / rel_path
+                site_path.parent.mkdir(parents=True, exist_ok=True)
+                site_path.write_text(svg_content, encoding="utf-8")
+            except ValueError:
+                # docs_dirからの相対パス解決に失敗した場合はスキップ
+                pass
 
     def _fallback_to_mmdc(
         self,
         failed_items: list[BatchRenderItem],
         renderer: AutoRenderer,
+        docs_dir: Path | None,
+        site_dir: Path | None,
     ) -> None:
         """batch_renderで失敗したダイアグラムをmmdcで個別に再処理する"""
         mmdc_renderer = renderer.mmdc_renderer
@@ -427,6 +477,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
                 )
                 if success:
                     self.generated_images.append(item.output_path)
+                    self._copy_to_site_dir(item.output_path, docs_dir, site_dir)
                     self.logger.info(f"mmdcフォールバックで生成: {item.output_path}")
                 else:
                     self.logger.warning(
@@ -437,6 +488,24 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
                 self.logger.warning(
                     f"mmdcフォールバック中にエラー: {exc!s} (page: {item.page_file})"
                 )
+
+    def _copy_to_site_dir(
+        self,
+        docs_path: str,
+        docs_dir: Path | None,
+        site_dir: Path | None,
+    ) -> None:
+        """docs/配下のファイルをsite/配下にコピーする"""
+        if docs_dir is None or site_dir is None:
+            return
+        try:
+            source = Path(docs_path)
+            rel_path = source.relative_to(docs_dir)
+            dest = site_dir / rel_path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(source.read_bytes())
+        except (ValueError, OSError):
+            pass
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
         """開発サーバー起動時のフックで追加処理が不要であることを示す"""

@@ -107,7 +107,16 @@ class MermaidProcessor:
         )
         batch_items.append(item)
 
-        # Markdown書き換え用にsuccessful_blocksへ登録（SVGは未生成）
+        # MkDocsのファイルコピー・リンク検証に備えてプレースホルダーSVGを配置
+        placeholder = Path(image_path)
+        placeholder.parent.mkdir(parents=True, exist_ok=True)
+        if not placeholder.exists():
+            placeholder.write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+                encoding="utf-8",
+            )
+
+        # Markdown書き換え用にsuccessful_blocksへ登録
         context.image_paths.append(image_path)
         if self.config.get("image_id_enabled", False):
             image_id = self._generate_image_id(block, context.page_file, index)
