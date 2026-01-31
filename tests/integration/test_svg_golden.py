@@ -10,11 +10,14 @@ import pytest
 from mkdocs_mermaid_to_svg.image_generator import MermaidImageGenerator
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
-SKIP_GOLDEN = os.environ.get("SKIP_SVG_GOLDEN") == "1"
+# CI環境ではmmdc/Puppeteerのバージョン差異によりSVG出力が一致しないためスキップ
+_CI = os.environ.get("CI", "") != ""
+SKIP_GOLDEN = os.environ.get("SKIP_SVG_GOLDEN") == "1" or _CI
 REGENERATE = os.environ.get("REGENERATE_SVG_GOLDENS") == "1"
 
 pytestmark = pytest.mark.skipif(
-    SKIP_GOLDEN, reason="SKIP_SVG_GOLDEN=1 のためSVGゴールデンをスキップ"
+    SKIP_GOLDEN,
+    reason="CI環境またはSKIP_SVG_GOLDEN=1のためSVGゴールデンをスキップ",
 )
 
 
