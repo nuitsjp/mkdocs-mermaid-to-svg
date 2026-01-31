@@ -41,12 +41,12 @@ class TestMermaidCliV11Compatibility:
 
                 # コマンドに -e svg が含まれていることを確認（-f svg ではない）
                 cmd_str = " ".join(cmd)
-                assert "-e svg" in cmd_str, (
-                    f"Command should use '-e svg', got: {cmd_str}"
-                )
-                assert "-f svg" not in cmd_str, (
-                    f"Command should not use '-f svg', got: {cmd_str}"
-                )
+                assert (
+                    "-e svg" in cmd_str
+                ), f"Command should use '-e svg', got: {cmd_str}"
+                assert (
+                    "-f svg" not in cmd_str
+                ), f"Command should not use '-f svg', got: {cmd_str}"
 
     def test_mmdc_command_format_generates_correct_arguments(self):
         """Test command line arguments formatting for mermaid-cli 11.6.0+."""
@@ -86,14 +86,14 @@ class TestMermaidCliV11Compatibility:
                 # 基本引数の存在確認
                 for i in range(0, len(expected_args), 2):
                     if i + 1 < len(expected_args):
-                        assert expected_args[i] in cmd, (
-                            f"Missing argument: {expected_args[i]}"
-                        )
+                        assert (
+                            expected_args[i] in cmd
+                        ), f"Missing argument: {expected_args[i]}"
                         if expected_args[i] in ["-i", "-o", "-e"]:
                             arg_index = cmd.index(expected_args[i])
-                            assert arg_index + 1 < len(cmd), (
-                                f"Missing value for {expected_args[i]}"
-                            )
-                            assert cmd[arg_index + 1] == expected_args[i + 1], (
-                                f"Wrong value for {expected_args[i]}"
-                            )
+                            assert arg_index + 1 < len(
+                                cmd
+                            ), f"Missing value for {expected_args[i]}"
+                            assert (
+                                cmd[arg_index + 1] == expected_args[i + 1]
+                            ), f"Wrong value for {expected_args[i]}"
