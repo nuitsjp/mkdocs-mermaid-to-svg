@@ -232,6 +232,7 @@ def _verify_command_execution(
                     timeout=5,
                     check=False,
                     shell=False,  # nosec B603
+                    encoding="utf-8",
                 )
             else:
                 version_cmd = [*parts_list, flag]
@@ -242,6 +243,7 @@ def _verify_command_execution(
                     timeout=5,
                     check=False,
                     shell=False,
+                    encoding="utf-8",
                 )
 
             if result.returncode in [0, 1]:
