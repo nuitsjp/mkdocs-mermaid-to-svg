@@ -309,3 +309,52 @@ graph TD
         )
 
         assert "![Mermaid Diagram](../custom/mermaid/diagram.svg)" in result
+
+
+class TestBlockAttributeBeautifulMermaidOptions:
+    """ブロック属性からbeautiful-mermaidオプションキーをパースできることを検証（T025）"""
+
+    @pytest.fixture
+    def processor(self):
+        return MarkdownProcessor({"log_level": "INFO"})
+
+    def test_ブロック属性にbg_fgを指定するとパースされる(self, processor):
+        """bg, fg等のbeautiful-mermaidオプションがブロック属性としてパースされる"""
+        markdown = (
+            '```mermaid {bg: "#1a1b26", fg: "#c0caf5"}\ngraph TD\n    A --> B\n```'
+        )
+        blocks = processor.extract_mermaid_blocks(markdown)
+        assert len(blocks) == 1
+        assert blocks[0].attributes["bg"] == "#1a1b26"
+        assert blocks[0].attributes["fg"] == "#c0caf5"
+
+    def test_ブロック属性にfont_padding_node_spacingを指定できる(self, processor):
+        """font, padding, node_spacing等の複合オプションがパースされる"""
+        markdown = (
+            '```mermaid {font: "Inter", padding: "20",'
+            ' node_spacing: "80"}\n'
+            "graph TD\n    A --> B\n```"
+        )
+        blocks = processor.extract_mermaid_blocks(markdown)
+        assert len(blocks) == 1
+        assert blocks[0].attributes["font"] == "Inter"
+        assert blocks[0].attributes["padding"] == "20"
+        assert blocks[0].attributes["node_spacing"] == "80"
+
+    def test_ブロック属性にtransparentを指定できる(self, processor):
+        """transparent属性が文字列としてパースされる"""
+        markdown = '```mermaid {transparent: "true"}\ngraph TD\n    A --> B\n```'
+        blocks = processor.extract_mermaid_blocks(markdown)
+        assert len(blocks) == 1
+        assert blocks[0].attributes["transparent"] == "true"
+
+    def test_themeとオプションの混在指定(self, processor):
+        """themeとbeautiful-mermaidオプションを同時に指定できる"""
+        markdown = (
+            '```mermaid {theme: "tokyo-night", bg: "#000000"}\n'
+            "graph TD\n    A --> B\n```"
+        )
+        blocks = processor.extract_mermaid_blocks(markdown)
+        assert len(blocks) == 1
+        assert blocks[0].attributes["theme"] == "tokyo-night"
+        assert blocks[0].attributes["bg"] == "#000000"

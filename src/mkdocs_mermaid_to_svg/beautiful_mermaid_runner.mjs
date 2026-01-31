@@ -48,8 +48,9 @@ if (mode === '--batch-render') {
           results.push({ id: item.id, success: false, error: 'Mermaidコードが空です' })
           continue
         }
-        const theme = resolveTheme(item.theme)
-        const svg = await renderMermaid(code, theme)
+        const baseTheme = resolveTheme(item.theme)
+        const renderOptions = { ...baseTheme, ...(item.options || {}) }
+        const svg = await renderMermaid(code, renderOptions)
         results.push({ id: item.id, success: true, svg })
       } catch (err) {
         results.push({ id: item.id, success: false, error: err?.message ?? String(err) })
@@ -67,8 +68,9 @@ if (mode === '--batch-render') {
     if (!code.trim()) {
       exitWith('Mermaidコードが空です', 2)
     }
-    const theme = resolveTheme(payload.theme)
-    const svg = await renderMermaid(code, theme)
+    const baseTheme = resolveTheme(payload.theme)
+    const renderOptions = { ...baseTheme, ...(payload.options || {}) }
+    const svg = await renderMermaid(code, renderOptions)
     process.stdout.write(svg)
   } catch (err) {
     exitWith(err?.message ?? String(err), 1)

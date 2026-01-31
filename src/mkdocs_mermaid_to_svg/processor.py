@@ -4,9 +4,29 @@ from pathlib import Path
 from typing import Any, Union
 
 from .exceptions import MermaidFileError, MermaidImageError, MermaidPreprocessorError
-from .image_generator import AutoRenderer, BatchRenderItem, MermaidImageGenerator
+from .image_generator import (
+    BEAUTIFUL_MERMAID_OPTION_KEYS,
+    AutoRenderer,
+    BatchRenderItem,
+    MermaidImageGenerator,
+    extract_beautiful_mermaid_options,
+)
 from .logging_config import get_logger
 from .markdown_processor import MarkdownProcessor
+
+
+def _extract_block_options(attributes: dict[str, Any]) -> dict[str, Any]:
+    """ブロック属性からbeautiful-mermaidオプションを抽出しcamelCase辞書で返す。
+
+    ブロック属性のキーが ``BEAUTIFUL_MERMAID_OPTION_KEYS`` に含まれる場合、
+    対応するcamelCaseキーに変換して辞書に格納する。
+    """
+    options: dict[str, Any] = {}
+    for snake_key, camel_key in BEAUTIFUL_MERMAID_OPTION_KEYS.items():
+        value = attributes.get(snake_key)
+        if value is not None:
+            options[camel_key] = value
+    return options
 
 
 @dataclass
@@ -98,12 +118,19 @@ class MermaidProcessor:
         # ブロック属性からテーマを取得（なければ設定のデフォルト）
         theme = block.attributes.get("theme", self.config.get("theme", "default"))
 
+        # グローバル設定からbeautiful-mermaidオプションを抽出し、ブロック属性で上書き
+        options = extract_beautiful_mermaid_options(self.config)
+        block_options = _extract_block_options(block.attributes)
+        if block_options:
+            options.update(block_options)
+
         item = BatchRenderItem(
             id=image_filename.replace(".svg", ""),
             code=block.code,
             theme=theme,
             output_path=image_path,
             page_file=context.page_file,
+            options=options if options else None,
         )
         batch_items.append(item)
 
@@ -130,6 +157,16 @@ class MermaidProcessor:
         context: ProcessingContext,
     ) -> None:
         """単一Mermaidブロックの画像生成と結果記録を行う"""
+        # mmdc経由のためbeautiful-mermaidオプションは適用されない旨を警告
+        global_options = extract_beautiful_mermaid_options(self.config)
+        block_options = _extract_block_options(getattr(block, "attributes", {}) or {})
+        if global_options or block_options:
+            self.logger.warning(
+                "beautiful-mermaidオプションはmmdc経由のレンダリングでは"
+                "無視されます（ブロック %d in %s）",
+                index,
+                context.page_file,
+            )
         try:
             image_filename = block.get_filename(context.page_file, index, "svg")
             image_path = Path(context.output_dir) / image_filename

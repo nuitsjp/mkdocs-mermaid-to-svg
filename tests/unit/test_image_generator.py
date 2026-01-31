@@ -31,7 +31,10 @@ from mkdocs_mermaid_to_svg.exceptions import (
     MermaidCLIError,
     MermaidImageError,
 )
-from mkdocs_mermaid_to_svg.image_generator import MermaidImageGenerator
+from mkdocs_mermaid_to_svg.image_generator import (
+    MermaidImageGenerator,
+    extract_beautiful_mermaid_options,
+)
 
 
 class TestMermaidImageGenerator:
@@ -1661,3 +1664,289 @@ class TestMermaidImageGenerator:
             result = generator.generate("graph TD\n A --> B", output_path, basic_config)
 
             assert result is False
+
+
+class TestExtractBeautifulMermaidOptions:
+    """extract_beautiful_mermaid_options関数のテスト"""
+
+    def test_all_options_specified(self) -> None:
+        """全12オプションが指定された場合、すべてcamelCaseで抽出される"""
+        config: dict[str, Any] = {
+            "beautiful_mermaid_bg": "#1a1a2e",
+            "beautiful_mermaid_fg": "#e0e0e0",
+            "beautiful_mermaid_line": "#4a9eff",
+            "beautiful_mermaid_accent": "#ff6b6b",
+            "beautiful_mermaid_muted": "#888888",
+            "beautiful_mermaid_surface": "#2a2a3e",
+            "beautiful_mermaid_border": "#3a3a4e",
+            "beautiful_mermaid_font": "Noto Sans JP",
+            "beautiful_mermaid_padding": 50,
+            "beautiful_mermaid_node_spacing": 30,
+            "beautiful_mermaid_layer_spacing": 50,
+            "beautiful_mermaid_transparent": True,
+        }
+        result = extract_beautiful_mermaid_options(config)
+        assert result == {
+            "bg": "#1a1a2e",
+            "fg": "#e0e0e0",
+            "line": "#4a9eff",
+            "accent": "#ff6b6b",
+            "muted": "#888888",
+            "surface": "#2a2a3e",
+            "border": "#3a3a4e",
+            "font": "Noto Sans JP",
+            "padding": 50,
+            "nodeSpacing": 30,
+            "layerSpacing": 50,
+            "transparent": True,
+        }
+
+    def test_partial_options(self) -> None:
+        """一部のオプションのみ指定された場合、指定されたもののみ抽出される"""
+        config: dict[str, Any] = {
+            "beautiful_mermaid_bg": "#000000",
+            "beautiful_mermaid_font": "Inter",
+            "beautiful_mermaid_transparent": False,
+        }
+        result = extract_beautiful_mermaid_options(config)
+        assert result == {
+            "bg": "#000000",
+            "font": "Inter",
+            "transparent": False,
+        }
+
+    def test_no_options_specified(self) -> None:
+        """オプション未指定の場合、空辞書が返る"""
+        config: dict[str, Any] = {
+            "theme": "default",
+            "renderer": "auto",
+        }
+        result = extract_beautiful_mermaid_options(config)
+        assert result == {}
+
+    def test_none_values_excluded(self) -> None:
+        """値がNoneのオプションは結果に含まれない"""
+        config: dict[str, Any] = {
+            "beautiful_mermaid_bg": "#FFFFFF",
+            "beautiful_mermaid_fg": None,
+            "beautiful_mermaid_padding": None,
+        }
+        result = extract_beautiful_mermaid_options(config)
+        assert result == {"bg": "#FFFFFF"}
+
+
+class TestBeautifulMermaidRendererOptions:
+    """BeautifulMermaidRendererのオプション伝搬テスト"""
+
+    def test_render_via_node_includes_global_options(self) -> None:
+        """_render_via_nodeのペイロードにグローバルオプションが含まれる"""
+        config: dict[str, Any] = {
+            "renderer": "auto",
+            "theme": "default",
+            "error_on_fail": True,
+            "mmdc_path": "mmdc",
+            "cli_timeout": 90,
+            "beautiful_mermaid_bg": "#1a1a2e",
+            "beautiful_mermaid_font": "Noto Sans JP",
+            "beautiful_mermaid_padding": 50,
+        }
+        import json
+
+        with (
+            patch(
+                "mkdocs_mermaid_to_svg.image_generator.is_command_available"
+            ) as mock_cmd,
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_cmd.return_value = True
+            mock_run.return_value = Mock(
+                returncode=0,
+                stdout="<svg></svg>",
+                stderr="",
+            )
+            from mkdocs_mermaid_to_svg.image_generator import BeautifulMermaidRenderer
+
+            generator = MermaidImageGenerator(config)
+            renderer = BeautifulMermaidRenderer(generator, generator.logger)
+            renderer._render_via_node("graph TD; A-->B", config)
+
+            # subprocess.runの呼び出しからペイロードを取得
+            call_args = mock_run.call_args
+            payload = json.loads(
+                call_args.kwargs.get("input", call_args[1].get("input", ""))
+            )
+            assert "options" in payload
+            assert payload["options"]["bg"] == "#1a1a2e"
+            assert payload["options"]["font"] == "Noto Sans JP"
+            assert payload["options"]["padding"] == 50
+
+    def test_batch_render_includes_options(self) -> None:
+        """batch_renderのペイロードに各アイテムのオプションが含まれる"""
+        from mkdocs_mermaid_to_svg.image_generator import (
+            BatchRenderItem,
+            BeautifulMermaidRenderer,
+        )
+
+        config: dict[str, Any] = {
+            "renderer": "auto",
+            "theme": "default",
+            "error_on_fail": True,
+            "mmdc_path": "mmdc",
+            "cli_timeout": 90,
+        }
+        import json
+
+        items = [
+            BatchRenderItem(
+                id="d1",
+                code="graph TD; A-->B",
+                theme="default",
+                output_path="/tmp/d1.svg",
+                page_file="index.md",
+                options={"bg": "#000000", "padding": 60},
+            ),
+            BatchRenderItem(
+                id="d2",
+                code="graph TD; C-->D",
+                theme="nord",
+                output_path="/tmp/d2.svg",
+                page_file="index.md",
+                options=None,
+            ),
+        ]
+
+        with (
+            patch(
+                "mkdocs_mermaid_to_svg.image_generator.is_command_available"
+            ) as mock_cmd,
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_cmd.return_value = True
+            mock_run.return_value = Mock(
+                returncode=0,
+                stdout=json.dumps(
+                    [
+                        {"id": "d1", "success": True, "svg": "<svg>1</svg>"},
+                        {"id": "d2", "success": True, "svg": "<svg>2</svg>"},
+                    ]
+                ),
+                stderr="",
+            )
+            generator = MermaidImageGenerator(config)
+            renderer = BeautifulMermaidRenderer(generator, generator.logger)
+            renderer.batch_render(items)
+
+            call_args = mock_run.call_args
+            payload = json.loads(
+                call_args.kwargs.get("input", call_args[1].get("input", ""))
+            )
+            assert payload[0]["options"] == {"bg": "#000000", "padding": 60}
+            assert payload[1]["options"] == {}
+
+    def test_theme_with_individual_options_override(self) -> None:
+        """名前付きテーマと個別色設定の同時指定時に両方がペイロードに含まれる"""
+        config: dict[str, Any] = {
+            "renderer": "auto",
+            "theme": "tokyo-night",
+            "error_on_fail": True,
+            "mmdc_path": "mmdc",
+            "cli_timeout": 90,
+            "beautiful_mermaid_bg": "#000000",
+        }
+        import json
+
+        with (
+            patch(
+                "mkdocs_mermaid_to_svg.image_generator.is_command_available"
+            ) as mock_cmd,
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_cmd.return_value = True
+            mock_run.return_value = Mock(
+                returncode=0,
+                stdout="<svg></svg>",
+                stderr="",
+            )
+            from mkdocs_mermaid_to_svg.image_generator import BeautifulMermaidRenderer
+
+            generator = MermaidImageGenerator(config)
+            renderer = BeautifulMermaidRenderer(generator, generator.logger)
+            renderer._render_via_node("graph TD; A-->B", config)
+
+            call_args = mock_run.call_args
+            payload = json.loads(
+                call_args.kwargs.get("input", call_args[1].get("input", ""))
+            )
+            # テーマ名とオプションが両方含まれる
+            assert payload["theme"] == "tokyo-night"
+            assert payload["options"]["bg"] == "#000000"
+
+    def test_unknown_theme_passed_through(self) -> None:
+        """存在しないテーマ名がそのままペイロードに渡される（フォールバックはランナー側）"""
+        config: dict[str, Any] = {
+            "renderer": "auto",
+            "theme": "nonexistent-theme",
+            "error_on_fail": True,
+            "mmdc_path": "mmdc",
+            "cli_timeout": 90,
+        }
+        import json
+
+        with (
+            patch(
+                "mkdocs_mermaid_to_svg.image_generator.is_command_available"
+            ) as mock_cmd,
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_cmd.return_value = True
+            mock_run.return_value = Mock(
+                returncode=0,
+                stdout="<svg></svg>",
+                stderr="",
+            )
+            from mkdocs_mermaid_to_svg.image_generator import BeautifulMermaidRenderer
+
+            generator = MermaidImageGenerator(config)
+            renderer = BeautifulMermaidRenderer(generator, generator.logger)
+            renderer._render_via_node("graph TD; A-->B", config)
+
+            call_args = mock_run.call_args
+            payload = json.loads(
+                call_args.kwargs.get("input", call_args[1].get("input", ""))
+            )
+            assert payload["theme"] == "nonexistent-theme"
+
+    def test_empty_options_when_no_beautiful_mermaid_config(self) -> None:
+        """beautiful-mermaidオプション未設定時にoptionsが空辞書である"""
+        config: dict[str, Any] = {
+            "renderer": "auto",
+            "theme": "default",
+            "error_on_fail": True,
+            "mmdc_path": "mmdc",
+            "cli_timeout": 90,
+        }
+        import json
+
+        with (
+            patch(
+                "mkdocs_mermaid_to_svg.image_generator.is_command_available"
+            ) as mock_cmd,
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_cmd.return_value = True
+            mock_run.return_value = Mock(
+                returncode=0,
+                stdout="<svg></svg>",
+                stderr="",
+            )
+            from mkdocs_mermaid_to_svg.image_generator import BeautifulMermaidRenderer
+
+            generator = MermaidImageGenerator(config)
+            renderer = BeautifulMermaidRenderer(generator, generator.logger)
+            renderer._render_via_node("graph TD; A-->B", config)
+
+            call_args = mock_run.call_args
+            payload = json.loads(
+                call_args.kwargs.get("input", call_args[1].get("input", ""))
+            )
+            assert payload["options"] == {}

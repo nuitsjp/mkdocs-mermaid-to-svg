@@ -686,3 +686,133 @@ class TestProcessorCollectMode:
         # 従来どおり即時処理される
         assert len(result_paths) == 1
         mock_block.generate_image.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 (US3): ブロックレベルオプションオーバーライドのテスト
+# ---------------------------------------------------------------------------
+
+
+class TestBlockLevelOptionOverride:
+    """ブロック属性によるbeautiful-mermaidオプション上書きのテスト（T026, T027）"""
+
+    @pytest.fixture
+    def auto_config_with_global_options(self):
+        """グローバルbeautiful-mermaidオプション付きのauto renderer設定"""
+        return {
+            "mmdc_path": "mmdc",
+            "renderer": "auto",
+            "output_dir": "assets/images",
+            "image_format": "png",
+            "theme": "default",
+            "background_color": "white",
+            "width": 800,
+            "height": 600,
+            "scale": 1.0,
+            "css_file": None,
+            "puppeteer_config": None,
+            "mermaid_config": None,
+            "cache_enabled": True,
+            "cache_dir": ".mermaid_cache",
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+            "beautiful_mermaid_bg": "#1a1b26",
+            "beautiful_mermaid_fg": "#c0caf5",
+            "beautiful_mermaid_font": None,
+        }
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_ブロック属性がグローバル設定を上書きする(
+        self, mock_command_available, auto_config_with_global_options, tmp_path
+    ):
+        """ブロック属性のbgがグローバル設定のbgを上書きすることを検証（T026）"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(auto_config_with_global_options)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.code = "graph TD\n  A-->B"
+        mock_block.get_filename.return_value = "test_0_abc123.svg"
+        # ブロック属性でbgを上書き
+        mock_block.attributes = {"bg": "#000000", "font": "Inter"}
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid](test.svg)"
+        )
+
+        with patch.object(
+            processor.image_generator.renderer.beautiful_renderer,
+            "is_available",
+            return_value=True,
+        ):
+            batch_items: list[BatchRenderItem] = []
+            processor.process_page(
+                "test.md",
+                "```mermaid\ngraph TD\n  A-->B\n```",
+                str(tmp_path / "output"),
+                batch_items=batch_items,
+            )
+
+        assert len(batch_items) == 1
+        options = batch_items[0].options
+        assert options is not None
+        # ブロック属性のbgがグローバル設定を上書き
+        assert options["bg"] == "#000000"
+        # グローバル設定のfgはそのまま残る
+        assert options["fg"] == "#c0caf5"
+        # ブロック属性のfontが追加される
+        assert options["font"] == "Inter"
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_各ブロックが個別のオプションを持てる(
+        self, mock_command_available, auto_config_with_global_options, tmp_path
+    ):
+        """バッチレンダリング時に各ブロックが個別のオプションを持てることを検証（T027）"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(auto_config_with_global_options)
+
+        # ブロック1: bgを上書き
+        mock_block1 = Mock(spec=MermaidBlock)
+        mock_block1.code = "graph TD\n  A-->B"
+        mock_block1.get_filename.return_value = "test_0_abc123.svg"
+        mock_block1.attributes = {"bg": "#ff0000"}
+
+        # ブロック2: 上書きなし（グローバル設定のまま）
+        mock_block2 = Mock(spec=MermaidBlock)
+        mock_block2.code = "graph LR\n  C-->D"
+        mock_block2.get_filename.return_value = "test_1_def456.svg"
+        mock_block2.attributes = {}
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block1, mock_block2]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid](test.svg)"
+        )
+
+        with patch.object(
+            processor.image_generator.renderer.beautiful_renderer,
+            "is_available",
+            return_value=True,
+        ):
+            batch_items: list[BatchRenderItem] = []
+            processor.process_page(
+                "test.md",
+                "```mermaid\ngraph TD\n  A-->B\n```\n"
+                "```mermaid\ngraph LR\n  C-->D\n```",
+                str(tmp_path / "output"),
+                batch_items=batch_items,
+            )
+
+        assert len(batch_items) == 2
+        # ブロック1: bgが上書きされている
+        assert batch_items[0].options is not None
+        assert batch_items[0].options["bg"] == "#ff0000"
+        assert batch_items[0].options["fg"] == "#c0caf5"  # グローバルから
+        # ブロック2: グローバル設定のまま
+        assert batch_items[1].options is not None
+        assert batch_items[1].options["bg"] == "#1a1b26"  # グローバルから
+        assert batch_items[1].options["fg"] == "#c0caf5"  # グローバルから

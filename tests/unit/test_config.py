@@ -198,3 +198,30 @@ class TestConfigManager:
         # Type設定でデフォルトがTrueであることを確認
         assert isinstance(error_on_fail_option, config_options.Type)
         assert error_on_fail_option.default is True
+
+
+class TestThemeConfigExtension:
+    """theme設定の拡張テスト"""
+
+    def test_beautiful_mermaid_theme_name_accepted(self) -> None:
+        """beautiful-mermaid名前付きテーマ名が設定バリデーションを通過する"""
+        from mkdocs.config import config_options
+
+        scheme = ConfigManager.get_config_scheme()
+        scheme_dict = dict(scheme)
+
+        theme_option = scheme_dict["theme"]
+        # Type(str)であること（Choice制約が解除されている）
+        assert isinstance(theme_option, config_options.Type)
+        assert theme_option.default == "default"
+
+    def test_theme_accepts_any_string(self) -> None:
+        """theme設定が任意の文字列を受け付ける"""
+        # バリデーションはランタイムで行うため、設定スキーマレベルでは自由文字列
+        config = {
+            "theme": "tokyo-night",
+            "css_file": None,
+            "puppeteer_config": None,
+        }
+        result = ConfigManager.validate_config(config)
+        assert result is True
