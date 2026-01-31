@@ -439,6 +439,42 @@ class TestCleanGeneratedImages:
             assert result is False
 
 
+class TestVerifyCommandExecutionEncoding:
+    """_verify_command_execution で encoding="utf-8" が指定されていることを検証"""
+
+    @pytest.mark.skipif(os.name == "nt", reason="Unix環境のテスト")
+    @patch("mkdocs_mermaid_to_svg.utils.subprocess.run")
+    def test_verify_command_unix_specifies_utf8_encoding(self, mock_run):
+        """Unix環境の _verify_command_execution で encoding="utf-8" が指定されている"""
+        from mkdocs_mermaid_to_svg.utils import _verify_command_execution
+
+        mock_run.return_value = Mock(returncode=0, stdout="v1.0.0", stderr="")
+
+        logger = Mock()
+        _verify_command_execution(["mmdc"], "mmdc", logger)
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("encoding") == "utf-8", (
+            "Unix環境の_verify_command_executionにencoding='utf-8'が必要"
+        )
+
+    @pytest.mark.skipif(os.name != "nt", reason="Windows環境のテスト")
+    @patch("mkdocs_mermaid_to_svg.utils.subprocess.run")
+    def test_verify_command_windows_specifies_utf8_encoding(self, mock_run):
+        """Windows環境で encoding="utf-8" が指定されている"""
+        from mkdocs_mermaid_to_svg.utils import _verify_command_execution
+
+        mock_run.return_value = Mock(returncode=0, stdout="v1.0.0", stderr="")
+
+        logger = Mock()
+        _verify_command_execution(["mmdc"], "mmdc", logger)
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("encoding") == "utf-8", (
+            "Windows環境の_verify_command_executionにencoding='utf-8'が必要"
+        )
+
+
 class TestGenerateImageFilenameWithOptions:
     """generate_image_filenameのオプション対応テスト"""
 

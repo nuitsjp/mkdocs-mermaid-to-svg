@@ -1666,6 +1666,118 @@ class TestMermaidImageGenerator:
             assert result is False
 
 
+class TestSubprocessEncodingUtf8:
+    """全subprocess.run呼び出しでencoding="utf-8"が指定されていることを検証するテスト"""
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.subprocess.run")
+    def test_mmdc_executor_run_windows_specifies_utf8_encoding(
+        self, mock_run, mock_command_available
+    ):
+        """MermaidCLIExecutor.run (Windows) で encoding="utf-8" が指定されている"""
+        from mkdocs_mermaid_to_svg.image_generator import MermaidCLIExecutor
+
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+
+        executor = MermaidCLIExecutor(Mock(), timeout=30)
+        with patch(
+            "mkdocs_mermaid_to_svg.image_generator.platform.system",
+            return_value="Windows",
+        ):
+            executor.run(["mmdc", "-i", "input.mmd", "-o", "output.svg"])
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("encoding") == "utf-8", (
+            "Windows環境のsubprocess.runにencoding='utf-8'が必要"
+        )
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    @patch("mkdocs_mermaid_to_svg.image_generator.subprocess.run")
+    def test_mmdc_executor_run_unix_specifies_utf8_encoding(
+        self, mock_run, mock_command_available
+    ):
+        """MermaidCLIExecutor.run (Unix) で encoding="utf-8" が指定されている"""
+        from mkdocs_mermaid_to_svg.image_generator import MermaidCLIExecutor
+
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+
+        executor = MermaidCLIExecutor(Mock(), timeout=30)
+        with patch(
+            "mkdocs_mermaid_to_svg.image_generator.platform.system",
+            return_value="Linux",
+        ):
+            executor.run(["mmdc", "-i", "input.mmd", "-o", "output.svg"])
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("encoding") == "utf-8", (
+            "Unix環境のsubprocess.runにencoding='utf-8'が必要"
+        )
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.subprocess.run")
+    def test_beautiful_mermaid_check_module_specifies_utf8_encoding(self, mock_run):
+        """_check_beautiful_module で encoding="utf-8" が指定されている"""
+        from mkdocs_mermaid_to_svg.image_generator import BeautifulMermaidRenderer
+
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+
+        renderer = BeautifulMermaidRenderer(Mock(), Mock())
+        renderer._check_beautiful_module()
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("encoding") == "utf-8", (
+            "_check_beautiful_moduleのsubprocess.runにencoding='utf-8'が必要"
+        )
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.subprocess.run")
+    def test_beautiful_mermaid_render_via_node_specifies_utf8_encoding(self, mock_run):
+        """_render_via_node の subprocess.run で encoding="utf-8" が指定されている"""
+        from mkdocs_mermaid_to_svg.image_generator import BeautifulMermaidRenderer
+
+        mock_run.return_value = Mock(returncode=0, stdout="<svg></svg>", stderr="")
+
+        renderer = BeautifulMermaidRenderer(Mock(), Mock())
+        config: dict[str, Any] = {"theme": "default"}
+        renderer._render_via_node("graph TD; A-->B", config)
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("encoding") == "utf-8", (
+            "_render_via_nodeのsubprocess.runにencoding='utf-8'が必要"
+        )
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.subprocess.run")
+    def test_batch_render_specifies_utf8_encoding(self, mock_run):
+        """batch_render で encoding="utf-8" が指定されている（回帰防止）"""
+        import json
+
+        from mkdocs_mermaid_to_svg.image_generator import (
+            BatchRenderItem,
+            BeautifulMermaidRenderer,
+        )
+
+        mock_run.return_value = Mock(
+            returncode=0,
+            stdout=json.dumps([{"id": "d1", "success": True, "svg": "<svg></svg>"}]),
+            stderr="",
+        )
+
+        renderer = BeautifulMermaidRenderer(Mock(), Mock())
+        items = [
+            BatchRenderItem(
+                id="d1",
+                code="graph TD; A-->B",
+                theme="default",
+                output_path="/tmp/d1.svg",
+                page_file="index.md",
+            )
+        ]
+        renderer.batch_render(items)
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("encoding") == "utf-8", (
+            "batch_renderのsubprocess.runにencoding='utf-8'が必要"
+        )
+
+
 class TestExtractBeautifulMermaidOptions:
     """extract_beautiful_mermaid_options関数のテスト"""
 

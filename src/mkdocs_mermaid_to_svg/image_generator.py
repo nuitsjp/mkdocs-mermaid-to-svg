@@ -233,6 +233,7 @@ class MermaidCLIExecutor:
                 timeout=self.timeout,
                 check=False,
                 shell=False,  # nosec B603
+                encoding="utf-8",
             )
 
         return subprocess.run(  # nosec B603
@@ -242,6 +243,7 @@ class MermaidCLIExecutor:
             timeout=self.timeout,
             check=False,
             shell=False,
+            encoding="utf-8",
         )
 
 
@@ -747,6 +749,7 @@ class BeautifulMermaidRenderer:
                 text=True,
                 check=False,
                 cwd=str(Path.cwd()),
+                encoding="utf-8",
             )
         except OSError:
             return False
@@ -767,6 +770,7 @@ class BeautifulMermaidRenderer:
                 text=True,
                 check=False,
                 cwd=str(Path.cwd()),
+                encoding="utf-8",
             )
         except OSError as exc:
             raise MermaidCLIError(f"Node.jsの実行に失敗: {exc!s}") from exc
@@ -803,6 +807,7 @@ class BeautifulMermaidRenderer:
                 text=True,
                 check=False,
                 cwd=str(Path.cwd()),
+                encoding="utf-8",
             )
         except OSError as exc:
             raise MermaidCLIError(f"Node.jsの実行に失敗: {exc!s}") from exc
