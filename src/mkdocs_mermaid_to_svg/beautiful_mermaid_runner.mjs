@@ -21,29 +21,58 @@ const exitWith = (message, code = 1) => {
   process.exit(code)
 }
 
+const themeMap = {
+  dark: 'zinc-dark',
+}
+
+/** テーマ名を解決してbeautiful-mermaidのテーマオブジェクトを返す */
+const resolveTheme = (themeName) => {
+  const name = themeName ?? 'default'
+  const resolvedName = themeMap[name] ?? name
+  return THEMES[resolvedName] ?? DEFAULTS
+}
+
 if (mode === '--check') {
   process.exit(0)
 }
 
-if (mode !== '--render') {
-  exitWith('使い方: beautiful_mermaid_runner.mjs --check|--render', 2)
-}
-
-try {
-  const payloadRaw = await readStdin()
-  const payload = JSON.parse(payloadRaw || '{}')
-  const code = payload.code ?? ''
-  if (!code.trim()) {
-    exitWith('Mermaidコードが空です', 2)
+if (mode === '--batch-render') {
+  try {
+    const payloadRaw = await readStdin()
+    const items = JSON.parse(payloadRaw || '[]')
+    const results = []
+    for (const item of items) {
+      try {
+        const code = item.code ?? ''
+        if (!code.trim()) {
+          results.push({ id: item.id, success: false, error: 'Mermaidコードが空です' })
+          continue
+        }
+        const theme = resolveTheme(item.theme)
+        const svg = await renderMermaid(code, theme)
+        results.push({ id: item.id, success: true, svg })
+      } catch (err) {
+        results.push({ id: item.id, success: false, error: err?.message ?? String(err) })
+      }
+    }
+    process.stdout.write(JSON.stringify(results))
+  } catch (err) {
+    exitWith(err?.message ?? String(err), 1)
   }
-  const themeMap = {
-    dark: 'zinc-dark',
+} else if (mode === '--render') {
+  try {
+    const payloadRaw = await readStdin()
+    const payload = JSON.parse(payloadRaw || '{}')
+    const code = payload.code ?? ''
+    if (!code.trim()) {
+      exitWith('Mermaidコードが空です', 2)
+    }
+    const theme = resolveTheme(payload.theme)
+    const svg = await renderMermaid(code, theme)
+    process.stdout.write(svg)
+  } catch (err) {
+    exitWith(err?.message ?? String(err), 1)
   }
-  const themeName = payload.theme ?? 'default'
-  const resolvedName = themeMap[themeName] ?? themeName
-  const theme = THEMES[resolvedName] ?? DEFAULTS
-  const svg = await renderMermaid(code, theme)
-  process.stdout.write(svg)
-} catch (err) {
-  exitWith(err?.message ?? String(err), 1)
+} else {
+  exitWith('使い方: beautiful_mermaid_runner.mjs --check|--render|--batch-render', 2)
 }

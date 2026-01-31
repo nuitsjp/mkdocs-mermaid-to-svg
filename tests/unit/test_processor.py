@@ -8,14 +8,20 @@ Python未経験者へのヒント：
 - assert文で「期待する結果」かどうかを検証します。
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
 
 from mkdocs_mermaid_to_svg.exceptions import MermaidCLIError
 from mkdocs_mermaid_to_svg.mermaid_block import MermaidBlock
+
+if TYPE_CHECKING:
+    from mkdocs_mermaid_to_svg.image_generator import BatchRenderItem
 from mkdocs_mermaid_to_svg.processor import MermaidProcessor
 
 
@@ -497,3 +503,186 @@ graph TD
 
         assert result_content == markdown
         assert len(result_paths) == 0
+
+
+# ---------------------------------------------------------------------------
+# T008: プロセッサの収集モードの単体テスト（batch_items指定時の動作）
+# ---------------------------------------------------------------------------
+
+
+class TestProcessorCollectMode:
+    """プロセッサの収集モード（batch_items指定時）のテスト（T008）"""
+
+    @pytest.fixture
+    def auto_config(self):
+        """auto rendererを使うテスト用設定"""
+        return {
+            "mmdc_path": "mmdc",
+            "renderer": "auto",
+            "output_dir": "assets/images",
+            "image_format": "png",
+            "theme": "default",
+            "background_color": "white",
+            "width": 800,
+            "height": 600,
+            "scale": 1.0,
+            "css_file": None,
+            "puppeteer_config": None,
+            "mermaid_config": None,
+            "cache_enabled": True,
+            "cache_dir": ".mermaid_cache",
+            "preserve_original": False,
+            "error_on_fail": False,
+            "log_level": "INFO",
+        }
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_beautiful対応ブロックがBatchRenderItemとして収集される(
+        self, mock_command_available, auto_config
+    ):
+        """beautiful-mermaid対応ブロック（flowchart）がbatch_itemsに追加される"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(auto_config)
+
+        # flowchartブロック（beautiful-mermaid対応）
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.code = "graph TD\n  A-->B"
+        mock_block.get_filename.return_value = "test_0_abc123.svg"
+        mock_block.attributes = {}
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid Diagram](assets/images/test_0_abc123.svg)"
+        )
+
+        # beautiful-mermaid対応を判定するためのモック
+        with patch.object(
+            processor.image_generator.renderer.beautiful_renderer,
+            "is_available",
+            return_value=True,
+        ):
+            batch_items: list[BatchRenderItem] = []
+            result_content, result_paths = processor.process_page(
+                "test.md",
+                "```mermaid\ngraph TD\n  A-->B\n```",
+                "/output",
+                batch_items=batch_items,
+            )
+
+        # batch_itemsに追加されていること
+        assert len(batch_items) == 1
+        assert batch_items[0].code == "graph TD\n  A-->B"
+        assert batch_items[0].page_file == "test.md"
+        assert batch_items[0].theme == "default"
+        # SVGファイルはこの段階では生成されないこと（generate_image未呼出）
+        mock_block.generate_image.assert_not_called()
+        # ただしMarkdown書き換え用のimage_pathsには追加される
+        assert len(result_paths) == 1
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_非対応ブロックは従来どおり即時処理される(
+        self, mock_command_available, auto_config
+    ):
+        """beautiful-mermaid非対応ブロック（pie等）は従来どおり即時処理される"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(auto_config)
+
+        # pieブロック（beautiful-mermaid非対応）
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.code = 'pie\n  title Pets\n  "Dogs" : 40'
+        mock_block.get_filename.return_value = "test_0_def456.svg"
+        mock_block.generate_image.return_value = True
+        mock_block.attributes = {}
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid Diagram](test_0_def456.svg)"
+        )
+
+        # beautiful-mermaid非対応
+        with patch.object(
+            processor.image_generator.renderer.beautiful_renderer,
+            "is_available",
+            return_value=False,
+        ):
+            batch_items: list[BatchRenderItem] = []
+            result_content, result_paths = processor.process_page(
+                "test.md",
+                "```mermaid\npie\n  title Pets\n```",
+                "/output",
+                batch_items=batch_items,
+            )
+
+        # batch_itemsには追加されないこと
+        assert len(batch_items) == 0
+        # 即時処理されること
+        assert len(result_paths) == 1
+        mock_block.generate_image.assert_called_once()
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_Markdownが画像参照に書き換えられる(
+        self, mock_command_available, auto_config
+    ):
+        """収集モードでもMarkdownが画像参照に書き換えられる"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(auto_config)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.code = "graph TD\n  A-->B"
+        mock_block.get_filename.return_value = "test_0_abc123.svg"
+        mock_block.attributes = {}
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        expected_markdown = "![Mermaid Diagram](assets/images/test_0_abc123.svg)"
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value=expected_markdown
+        )
+
+        with patch.object(
+            processor.image_generator.renderer.beautiful_renderer,
+            "is_available",
+            return_value=True,
+        ):
+            batch_items: list[BatchRenderItem] = []
+            result_content, result_paths = processor.process_page(
+                "test.md",
+                "```mermaid\ngraph TD\n  A-->B\n```",
+                "/output",
+                batch_items=batch_items,
+            )
+
+        assert result_content == expected_markdown
+
+    @patch("mkdocs_mermaid_to_svg.image_generator.is_command_available")
+    def test_batch_items未指定時は従来動作(self, mock_command_available, auto_config):
+        """batch_items=Noneの場合は従来どおりの動作"""
+        mock_command_available.return_value = True
+        processor = MermaidProcessor(auto_config)
+
+        mock_block = Mock(spec=MermaidBlock)
+        mock_block.code = "graph TD\n  A-->B"
+        mock_block.get_filename.return_value = "test_0_abc123.svg"
+        mock_block.generate_image.return_value = True
+        mock_block.attributes = {}
+
+        processor.markdown_processor.extract_mermaid_blocks = Mock(
+            return_value=[mock_block]
+        )
+        processor.markdown_processor.replace_blocks_with_images = Mock(
+            return_value="![Mermaid](test.svg)"
+        )
+
+        # batch_itemsを渡さない（従来動作）
+        result_content, result_paths = processor.process_page(
+            "test.md", "```mermaid\ngraph TD\n  A-->B\n```", "/output"
+        )
+
+        # 従来どおり即時処理される
+        assert len(result_paths) == 1
+        mock_block.generate_image.assert_called_once()

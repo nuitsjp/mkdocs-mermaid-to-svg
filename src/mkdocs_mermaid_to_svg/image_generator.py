@@ -35,8 +35,28 @@ class Renderer(Protocol):
         output_path: str,
         config: dict[str, Any],
         page_file: str | None = None,
-    ) -> bool:
-        ...
+    ) -> bool: ...
+
+
+@dataclass(frozen=True)
+class BatchRenderItem:
+    """一括処理の個別リクエスト項目"""
+
+    id: str
+    code: str
+    theme: str
+    output_path: str
+    page_file: str
+
+
+@dataclass(frozen=True)
+class BatchRenderResult:
+    """一括処理の個別結果"""
+
+    id: str
+    success: bool
+    svg: str | None = None
+    error: str | None = None
 
 
 def _detect_mermaid_type(mermaid_code: str) -> str:
@@ -60,8 +80,6 @@ def _detect_mermaid_type(mermaid_code: str) -> str:
     if header.startswith("graph") or header.startswith("flowchart"):
         return "flowchart"
     return "unknown"
-
-
 
 
 @dataclass
@@ -690,7 +708,7 @@ class BeautifulMermaidRenderer:
 
     def _check_beautiful_module(self) -> bool:
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603,B607
                 ["node", str(self._runner_path()), "--check"],
                 capture_output=True,
                 text=True,
@@ -707,7 +725,7 @@ class BeautifulMermaidRenderer:
             "theme": config.get("theme", "default"),
         }
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603,B607
                 ["node", str(self._runner_path()), "--render"],
                 input=json.dumps(payload),
                 capture_output=True,
@@ -727,6 +745,52 @@ class BeautifulMermaidRenderer:
             )
 
         return result.stdout
+
+    def batch_render(self, items: list[BatchRenderItem]) -> list[BatchRenderResult]:
+        """複数ダイアグラムを1回のNode.jsプロセスで一括レンダリングする"""
+        if not items:
+            return []
+
+        payload = [
+            {"code": item.code, "theme": item.theme, "id": item.id} for item in items
+        ]
+        try:
+            result = subprocess.run(  # nosec B603,B607
+                ["node", str(self._runner_path()), "--batch-render"],
+                input=json.dumps(payload),
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=str(Path.cwd()),
+            )
+        except OSError as exc:
+            raise MermaidCLIError(f"Node.jsの実行に失敗: {exc!s}") from exc
+
+        if result.returncode != 0:
+            raise MermaidCLIError(
+                f"beautiful-mermaid一括レンダリングに失敗: {result.stderr.strip()}",
+                command="node",
+                return_code=result.returncode,
+                stderr=result.stderr,
+            )
+
+        try:
+            raw_results: list[dict[str, Any]] = json.loads(result.stdout)
+        except json.JSONDecodeError as exc:
+            raise MermaidCLIError(
+                f"beautiful-mermaidの出力をパースできません: {exc!s}",
+                stderr=result.stdout[:200],
+            ) from exc
+
+        return [
+            BatchRenderResult(
+                id=r["id"],
+                success=r["success"],
+                svg=r.get("svg"),
+                error=r.get("error"),
+            )
+            for r in raw_results
+        ]
 
     def _runner_path(self) -> Path:
         return Path(__file__).with_name("beautiful_mermaid_runner.mjs")

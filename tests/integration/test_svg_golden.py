@@ -24,7 +24,9 @@ def _read_fixture(name: str) -> str:
 
 def _assert_svg_matches(expected_path: Path, actual_path: Path) -> None:
     if REGENERATE:
-        expected_path.write_text(actual_path.read_text(encoding="utf-8"), encoding="utf-8")
+        expected_path.write_text(
+            actual_path.read_text(encoding="utf-8"), encoding="utf-8"
+        )
 
     if not expected_path.exists():
         raise AssertionError(
@@ -44,7 +46,9 @@ def _assert_svg_matches(expected_path: Path, actual_path: Path) -> None:
         ("sample_sequence.mmd", "output_sequence.svg"),
     ],
 )
-def test_svg_golden_matches(tmp_path: Path, source_name: str, expected_name: str) -> None:
+def test_svg_golden_matches(
+    tmp_path: Path, source_name: str, expected_name: str
+) -> None:
     config = {
         "mmdc_path": "mmdc",
         "renderer": "mmdc",

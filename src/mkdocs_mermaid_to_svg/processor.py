@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Union
 
 from .exceptions import MermaidFileError, MermaidImageError, MermaidPreprocessorError
-from .image_generator import MermaidImageGenerator
+from .image_generator import AutoRenderer, BatchRenderItem, MermaidImageGenerator
 from .logging_config import get_logger
 from .markdown_processor import MarkdownProcessor
 
@@ -30,13 +30,14 @@ class MermaidProcessor:
         self.markdown_processor = MarkdownProcessor(config)
         self.image_generator = MermaidImageGenerator(config)
 
-    def process_page(
+    def process_page(  # noqa: PLR0913
         self,
         page_file: str,
         markdown_content: str,
         output_dir: Union[str, Path],
         page_url: str = "",
         docs_dir: Union[str, Path] | None = None,
+        batch_items: list[BatchRenderItem] | None = None,
     ) -> tuple[str, list[str]]:
         """1ページ分のMarkdownからMermaid図を検出し画像生成・差し替えする"""
         blocks = self.markdown_processor.extract_mermaid_blocks(markdown_content)
@@ -55,7 +56,11 @@ class MermaidProcessor:
 
         # 抽出した各ブロックを順に処理し、生成に成功したものだけを記録
         for i, block in enumerate(blocks):
-            self._process_single_block(block, i, context)
+            if batch_items is not None and self._is_beautiful_available(block):
+                # beautiful-mermaid対応 → BatchRenderItemに収集、SVG生成はスキップ
+                self._collect_for_batch(block, i, context, batch_items)
+            else:
+                self._process_single_block(block, i, context)
 
         if context.successful_blocks:
             docs_dir_str = str(Path(docs_dir)) if docs_dir is not None else None
@@ -71,6 +76,43 @@ class MermaidProcessor:
             return modified_content, context.image_paths
 
         return markdown_content, []
+
+    def _is_beautiful_available(self, block: Any) -> bool:
+        """ブロックがbeautiful-mermaidで処理可能かを判定する"""
+        renderer = self.image_generator.renderer
+        if isinstance(renderer, AutoRenderer):
+            return renderer.beautiful_renderer.is_available(block.code)
+        return False
+
+    def _collect_for_batch(
+        self,
+        block: Any,
+        index: int,
+        context: ProcessingContext,
+        batch_items: list[BatchRenderItem],
+    ) -> None:
+        """beautiful-mermaid対応ブロックをバッチ収集リストに追加する"""
+        image_filename = block.get_filename(context.page_file, index, "svg")
+        image_path = str(Path(context.output_dir) / image_filename)
+
+        # ブロック属性からテーマを取得（なければ設定のデフォルト）
+        theme = block.attributes.get("theme", self.config.get("theme", "default"))
+
+        item = BatchRenderItem(
+            id=image_filename.replace(".svg", ""),
+            code=block.code,
+            theme=theme,
+            output_path=image_path,
+            page_file=context.page_file,
+        )
+        batch_items.append(item)
+
+        # Markdown書き換え用にsuccessful_blocksへ登録（SVGは未生成）
+        context.image_paths.append(image_path)
+        if self.config.get("image_id_enabled", False):
+            image_id = self._generate_image_id(block, context.page_file, index)
+            block.set_render_context(image_id=image_id)
+        context.successful_blocks.append(block)
 
     def _process_single_block(
         self,
