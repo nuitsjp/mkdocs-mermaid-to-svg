@@ -26,10 +26,11 @@ def _read_fixture(name: str) -> str:
 
 
 def _assert_svg_matches(expected_path: Path, actual_path: Path) -> None:
+    actual_raw = actual_path.read_text(encoding="utf-8")
     if REGENERATE:
-        expected_path.write_text(
-            actual_path.read_text(encoding="utf-8"), encoding="utf-8"
-        )
+        # end-of-file-fixer対応: 末尾改行を付与して書き出す
+        content = actual_raw.rstrip() + "\n"
+        expected_path.write_text(content, encoding="utf-8")
 
     if not expected_path.exists():
         raise AssertionError(
@@ -37,8 +38,8 @@ def _assert_svg_matches(expected_path: Path, actual_path: Path) -> None:
             "REGENERATE_SVG_GOLDENS=1 で生成してください。"
         )
 
-    expected = expected_path.read_text(encoding="utf-8")
-    actual = actual_path.read_text(encoding="utf-8")
+    expected = expected_path.read_text(encoding="utf-8").rstrip()
+    actual = actual_raw.rstrip()
     assert actual == expected
 
 
