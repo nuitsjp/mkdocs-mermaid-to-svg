@@ -18,6 +18,7 @@ This plugin detects Mermaid code blocks and replaces them with SVG images. This 
 - **SVG output**: Generates high-quality SVG images from Mermaid diagrams
 - **Automatic conversion**: Automatically detects and converts all Mermaid code blocks
 - **Configurable**: Supports Mermaid themes and custom configurations
+- **beautiful-mermaid rendering**: Fine-grained control over colors, fonts, spacing via [beautiful-mermaid](https://github.com/nuitsjp/beautiful-mermaid) options
 - **Environment control**: Can be conditionally enabled via environment variables
 
 ## Requirements
@@ -123,6 +124,64 @@ plugins:
       image_id_prefix: "mermaid-diagram"  # Override id prefix (requires attr_list)
 ```
 
+### beautiful-mermaid Rendering Options
+
+When using `renderer: "auto"`, you can customize [beautiful-mermaid](https://github.com/nuitsjp/beautiful-mermaid) rendering options globally in `mkdocs.yml`:
+
+```yaml
+plugins:
+  - mermaid-to-svg:
+      renderer: "auto"
+      theme: "tokyo-night"                # Named theme (tokyo-night, nord, etc.)
+      beautiful_mermaid_bg: "#1a1b26"     # Background color
+      beautiful_mermaid_fg: "#c0caf5"     # Foreground (text) color
+      beautiful_mermaid_line: "#565f89"   # Line/edge color
+      beautiful_mermaid_accent: "#7aa2f7" # Accent color
+      beautiful_mermaid_font: "Inter"     # Font family
+      beautiful_mermaid_padding: 20       # Diagram padding (px)
+      beautiful_mermaid_node_spacing: 80  # Node spacing (px)
+      beautiful_mermaid_transparent: true # Transparent background
+```
+
+Available options:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `beautiful_mermaid_bg` | `str` | Background color |
+| `beautiful_mermaid_fg` | `str` | Foreground (text) color |
+| `beautiful_mermaid_line` | `str` | Line/edge color |
+| `beautiful_mermaid_accent` | `str` | Accent color |
+| `beautiful_mermaid_muted` | `str` | Muted color |
+| `beautiful_mermaid_surface` | `str` | Surface color |
+| `beautiful_mermaid_border` | `str` | Border color |
+| `beautiful_mermaid_font` | `str` | Font family |
+| `beautiful_mermaid_padding` | `int` | Diagram padding (px) |
+| `beautiful_mermaid_node_spacing` | `int` | Node spacing (px) |
+| `beautiful_mermaid_layer_spacing` | `int` | Layer spacing (px) |
+| `beautiful_mermaid_transparent` | `bool` | Transparent background |
+
+#### Per-block overrides
+
+You can override global options on individual code blocks using fence attributes:
+
+````markdown
+```mermaid {bg: "#000000", font: "Fira Code"}
+graph TD
+    A --> B
+```
+````
+
+Block attributes take precedence over global `mkdocs.yml` settings. The `theme` attribute can also be overridden per block:
+
+````markdown
+```mermaid {theme: "nord", accent: "#88c0d0"}
+sequenceDiagram
+    Alice->>Bob: Hello
+```
+````
+
+> **Note**: beautiful-mermaid options only apply when `renderer: "auto"` is set and the diagram type is supported (flowchart, sequence, class, ER, state). Unsupported types (pie, gantt, etc.) fall back to mmdc, where these options are ignored.
+
 > **Mermaid image IDs**
 > Set `image_id_enabled: true` to add deterministic IDs (e.g. `mermaid-diagram-guide-1`) to every generated image. This allows per-diagram CSS targeting and PDF sizing tweaks.
 >
@@ -147,7 +206,7 @@ plugins:
 |--------|---------|-------------|
 | `enabled_if_env` | `None` | Environment variable name to conditionally enable plugin |
 | `output_dir` | `"assets/images"` | Directory to store generated SVG files |
-| `theme` | `"default"` | Mermaid theme (default, dark, forest, neutral) |
+| `theme` | `"default"` | Mermaid theme — mmdc built-ins (default, dark, forest, neutral) or beautiful-mermaid named themes (tokyo-night, nord, etc.) |
 | `renderer` | `"mmdc"` | `auto`=beautiful-mermaid優先（未導入/未対応時はmmdcへ）, `mmdc`=従来CLI固定 |
 | `mmdc_path` | `"mmdc"` | Path to `mmdc` executable |
 | `cli_timeout` | `90` | Timeout (seconds) for Mermaid CLI; adjust if your diagrams are very small/very heavy |
@@ -159,6 +218,7 @@ plugins:
 | `cleanup_generated_images` | `true` | Clean up generated images after build |
 | `image_id_enabled` | `false` | Attach `{#id}` suffixes to generated image Markdown (requires `attr_list`) |
 | `image_id_prefix` | `"mermaid-diagram"` | Prefix used for generated IDs when `image_id_enabled` is true |
+| `beautiful_mermaid_*` | `None` | beautiful-mermaid rendering options (see [beautiful-mermaid Rendering Options](#beautiful-mermaid-rendering-options)) |
 
 > **Log level behaviour**
 > The plugin currently overrides `log_level` based on the MkDocs CLI flags: `mkdocs build --verbose` or `-v` forces `DEBUG`, and omitting them forces `WARNING`. Values specified in `mkdocs.yml` are ignored for now.

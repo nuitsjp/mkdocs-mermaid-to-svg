@@ -20,6 +20,18 @@ class TestMinimalConfig:
                     "css_file",
                     "puppeteer_config",
                     "enabled_if_env",
+                    "beautiful_mermaid_bg",
+                    "beautiful_mermaid_fg",
+                    "beautiful_mermaid_line",
+                    "beautiful_mermaid_accent",
+                    "beautiful_mermaid_muted",
+                    "beautiful_mermaid_surface",
+                    "beautiful_mermaid_border",
+                    "beautiful_mermaid_font",
+                    "beautiful_mermaid_padding",
+                    "beautiful_mermaid_node_spacing",
+                    "beautiful_mermaid_layer_spacing",
+                    "beautiful_mermaid_transparent",
                 ], f"{config_name} should have a default value"
 
     def test_必須設定項目以外は全てデフォルト値を持つ(self):

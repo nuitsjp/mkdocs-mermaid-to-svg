@@ -12,12 +12,29 @@ from .logging_config import get_logger
 
 
 def generate_image_filename(
-    page_file: str, block_index: int, mermaid_code: str, image_format: str
+    page_file: str,
+    block_index: int,
+    mermaid_code: str,
+    image_format: str,
+    options: dict[str, object] | None = None,
 ) -> str:
-    """ページ名とコードハッシュから衝突しにくい画像ファイル名を生成する"""
+    """ページ名とコードハッシュから衝突しにくい画像ファイル名を生成する。
+
+    ``options`` が指定された場合、ハッシュ入力に含めることで
+    同一コードでも異なるオプションなら別ファイル名を生成する。
+    """
     page_name = Path(page_file).stem
+
+    # オプションが空でない場合はキーソート済みJSONをハッシュに含める
+    options_str = ""
+    if options:
+        import json
+
+        options_str = json.dumps(options, sort_keys=True)
+
+    hash_input = mermaid_code + options_str
     code_hash = hashlib.md5(
-        mermaid_code.encode("utf-8"), usedforsecurity=False
+        hash_input.encode("utf-8"), usedforsecurity=False
     ).hexdigest()[:8]  # nosec B324
 
     return f"{page_name}_mermaid_{block_index}_{code_hash}.{image_format}"

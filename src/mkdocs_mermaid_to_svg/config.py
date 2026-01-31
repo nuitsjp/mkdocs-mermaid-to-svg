@@ -39,9 +39,7 @@ class ConfigManager:
             ),
             (
                 "theme",
-                config_options.Choice(
-                    ["default", "dark", "forest", "neutral"], default="default"
-                ),
+                config_options.Type(str, default="default"),
             ),
             (
                 "css_file",
@@ -72,6 +70,55 @@ class ConfigManager:
             (
                 "cli_timeout",
                 config_options.Type(int, default=90),
+            ),
+            # beautiful-mermaid レンダリングオプション（すべてオプション）
+            (
+                "beautiful_mermaid_bg",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_fg",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_line",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_accent",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_muted",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_surface",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_border",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_font",
+                config_options.Optional(config_options.Type(str)),
+            ),
+            (
+                "beautiful_mermaid_padding",
+                config_options.Optional(config_options.Type(int)),
+            ),
+            (
+                "beautiful_mermaid_node_spacing",
+                config_options.Optional(config_options.Type(int)),
+            ),
+            (
+                "beautiful_mermaid_layer_spacing",
+                config_options.Optional(config_options.Type(int)),
+            ),
+            (
+                "beautiful_mermaid_transparent",
+                config_options.Optional(config_options.Type(bool)),
             ),
         )
 

@@ -18,6 +18,7 @@ Mermaidコードブロックを検出し、SVG画像へ置き換えます。Java
 - **SVG出力**: Mermaidダイアグラムを高品質なSVGで生成
 - **自動変換**: Mermaidコードブロックを自動検出して変換
 - **柔軟な設定**: Mermaidのテーマや各種設定を指定可能
+- **beautiful-mermaidレンダリング**: [beautiful-mermaid](https://github.com/nuitsjp/beautiful-mermaid) オプションで色・フォント・余白を細かく制御
 - **環境変数による制御**: 環境変数で有効/無効を切り替え可能
 
 ## 必要要件
@@ -123,6 +124,64 @@ plugins:
       image_id_prefix: "mermaid-diagram"  # IDプレフィックス（attr_list必須）
 ```
 
+### beautiful-mermaid レンダリングオプション
+
+`renderer: "auto"` 使用時、[beautiful-mermaid](https://github.com/nuitsjp/beautiful-mermaid) のレンダリングオプションを `mkdocs.yml` でグローバルに設定できます。
+
+```yaml
+plugins:
+  - mermaid-to-svg:
+      renderer: "auto"
+      theme: "tokyo-night"                # 名前付きテーマ（tokyo-night, nord 等）
+      beautiful_mermaid_bg: "#1a1b26"     # 背景色
+      beautiful_mermaid_fg: "#c0caf5"     # 前景（テキスト）色
+      beautiful_mermaid_line: "#565f89"   # 線・エッジの色
+      beautiful_mermaid_accent: "#7aa2f7" # アクセント色
+      beautiful_mermaid_font: "Inter"     # フォントファミリー
+      beautiful_mermaid_padding: 20       # 図の余白（px）
+      beautiful_mermaid_node_spacing: 80  # ノード間隔（px）
+      beautiful_mermaid_transparent: true # 背景を透過にする
+```
+
+利用可能なオプション:
+
+| オプション | 型 | 説明 |
+|--------|------|-------------|
+| `beautiful_mermaid_bg` | `str` | 背景色 |
+| `beautiful_mermaid_fg` | `str` | 前景（テキスト）色 |
+| `beautiful_mermaid_line` | `str` | 線・エッジの色 |
+| `beautiful_mermaid_accent` | `str` | アクセント色 |
+| `beautiful_mermaid_muted` | `str` | ミュート色 |
+| `beautiful_mermaid_surface` | `str` | サーフェス色 |
+| `beautiful_mermaid_border` | `str` | ボーダー色 |
+| `beautiful_mermaid_font` | `str` | フォントファミリー |
+| `beautiful_mermaid_padding` | `int` | 図の余白（px） |
+| `beautiful_mermaid_node_spacing` | `int` | ノード間隔（px） |
+| `beautiful_mermaid_layer_spacing` | `int` | レイヤー間隔（px） |
+| `beautiful_mermaid_transparent` | `bool` | 背景を透過にする |
+
+#### ブロック単位の上書き
+
+コードフェンスの属性でグローバル設定をブロック単位で上書きできます。
+
+````markdown
+```mermaid {bg: "#000000", font: "Fira Code"}
+graph TD
+    A --> B
+```
+````
+
+ブロック属性は `mkdocs.yml` のグローバル設定より優先されます。`theme` もブロック単位で上書き可能です。
+
+````markdown
+```mermaid {theme: "nord", accent: "#88c0d0"}
+sequenceDiagram
+    Alice->>Bob: Hello
+```
+````
+
+> **注意**: beautiful-mermaidオプションは `renderer: "auto"` かつ対応する図種（flowchart, sequence, class, ER, state）でのみ適用されます。未対応の図種（pie, gantt等）はmmdcにフォールバックし、これらのオプションは無視されます。
+
 > **Mermaid image IDs**
 > `image_id_enabled: true` で、生成画像ごとに決定的なID（例: `mermaid-diagram-guide-1`）を付与できます。ダイアグラム単位でのCSS指定やPDF時のサイズ調整に便利です。
 >
@@ -147,7 +206,7 @@ plugins:
 |--------|---------|-------------|
 | `enabled_if_env` | `None` | 環境変数でプラグインを有効化する場合の変数名 |
 | `output_dir` | `"assets/images"` | 生成したSVGを配置するディレクトリ |
-| `theme` | `"default"` | Mermaidのテーマ（default, dark, forest, neutral） |
+| `theme` | `"default"` | Mermaidのテーマ — mmdc組み込み（default, dark, forest, neutral）またはbeautiful-mermaid名前付きテーマ（tokyo-night, nord等） |
 | `renderer` | `"mmdc"` | `auto`=beautiful-mermaid優先（未導入/未対応時はmmdcへ）, `mmdc`=従来CLI固定 |
 | `mmdc_path` | `"mmdc"` | `mmdc` 実行ファイルのパス |
 | `cli_timeout` | `90` | Mermaid CLIのタイムアウト（秒）。図が極端に小さい/重い場合に調整 |
@@ -159,6 +218,7 @@ plugins:
 | `cleanup_generated_images` | `true` | ビルド後に生成画像を削除するか |
 | `image_id_enabled` | `false` | 生成した画像Markdownに `{#id}` を付与（`attr_list` 必須） |
 | `image_id_prefix` | `"mermaid-diagram"` | `image_id_enabled` が true の場合に使うIDプレフィックス |
+| `beautiful_mermaid_*` | `None` | beautiful-mermaidレンダリングオプション（[beautiful-mermaid レンダリングオプション](#beautiful-mermaid-レンダリングオプション)を参照） |
 
 > **ログレベルの挙動**
 > `mkdocs build --verbose` または `-v` を付けると `DEBUG`、付けない場合は `WARNING` に強制されます。現状 `mkdocs.yml` に記載した値は無視されます。

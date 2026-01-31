@@ -437,3 +437,34 @@ class TestCleanGeneratedImages:
             mock_run.side_effect = exception
             result = is_command_available("mmdc")
             assert result is False
+
+
+class TestGenerateImageFilenameWithOptions:
+    """generate_image_filenameのオプション対応テスト"""
+
+    def test_same_code_different_options_produce_different_hashes(self) -> None:
+        """同一コードでも異なるオプションなら異なるファイル名が生成される"""
+        code = "graph TD; A-->B"
+        name_a = generate_image_filename(
+            "index.md", 0, code, "svg", options={"bg": "#000000"}
+        )
+        name_b = generate_image_filename(
+            "index.md", 0, code, "svg", options={"bg": "#FFFFFF"}
+        )
+        assert name_a != name_b
+
+    def test_empty_options_matches_no_options(self) -> None:
+        """オプション空辞書と未指定で同じハッシュが生成される（後方互換性）"""
+        code = "graph TD; A-->B"
+        name_none = generate_image_filename("index.md", 0, code, "svg", options=None)
+        name_empty = generate_image_filename("index.md", 0, code, "svg", options={})
+        name_default = generate_image_filename("index.md", 0, code, "svg")
+        assert name_none == name_empty == name_default
+
+    def test_same_options_produce_same_hash(self) -> None:
+        """同一オプションなら同じファイル名が生成される"""
+        code = "graph TD; A-->B"
+        opts = {"bg": "#1a1a2e", "padding": 50}
+        name_a = generate_image_filename("index.md", 0, code, "svg", options=opts)
+        name_b = generate_image_filename("index.md", 0, code, "svg", options=opts)
+        assert name_a == name_b

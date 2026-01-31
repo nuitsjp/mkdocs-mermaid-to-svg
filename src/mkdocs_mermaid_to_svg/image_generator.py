@@ -17,6 +17,23 @@ from .utils import (
     split_command,
 )
 
+# beautiful-mermaidオプションのsnake_case→camelCaseマッピング
+# snake_caseとcamelCaseが同一のキーはマッピング不要だが明示的に列挙する
+BEAUTIFUL_MERMAID_OPTION_KEYS: dict[str, str] = {
+    "bg": "bg",
+    "fg": "fg",
+    "line": "line",
+    "accent": "accent",
+    "muted": "muted",
+    "surface": "surface",
+    "border": "border",
+    "font": "font",
+    "padding": "padding",
+    "node_spacing": "nodeSpacing",
+    "layer_spacing": "layerSpacing",
+    "transparent": "transparent",
+}
+
 SUPPORTED_BEAUTIFUL_TYPES = {
     "flowchart",
     "sequence",
@@ -24,6 +41,23 @@ SUPPORTED_BEAUTIFUL_TYPES = {
     "er",
     "state",
 }
+
+# beautiful-mermaidオプション設定キーのプレフィックス
+_BM_PREFIX = "beautiful_mermaid_"
+
+
+def extract_beautiful_mermaid_options(config: dict[str, Any]) -> dict[str, Any]:
+    """グローバル設定からbeautiful-mermaid用オプションを抽出しcamelCase辞書で返す。
+
+    ``beautiful_mermaid_`` プレフィックス付きキーのうち値が ``None`` でないものを
+    収集し、``BEAUTIFUL_MERMAID_OPTION_KEYS`` に基づいて camelCase 名に変換する。
+    """
+    options: dict[str, Any] = {}
+    for snake_key, camel_key in BEAUTIFUL_MERMAID_OPTION_KEYS.items():
+        value = config.get(f"{_BM_PREFIX}{snake_key}")
+        if value is not None:
+            options[camel_key] = value
+    return options
 
 
 class Renderer(Protocol):
@@ -47,6 +81,7 @@ class BatchRenderItem:
     theme: str
     output_path: str
     page_file: str
+    options: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -718,9 +753,11 @@ class BeautifulMermaidRenderer:
         return result.returncode == 0
 
     def _render_via_node(self, mermaid_code: str, config: dict[str, Any]) -> str:
+        options = extract_beautiful_mermaid_options(config)
         payload = {
             "code": mermaid_code,
             "theme": config.get("theme", "default"),
+            "options": options,
         }
         try:
             result = subprocess.run(  # nosec B603 B607
@@ -750,7 +787,13 @@ class BeautifulMermaidRenderer:
             return []
 
         payload = [
-            {"code": item.code, "theme": item.theme, "id": item.id} for item in items
+            {
+                "code": item.code,
+                "theme": item.theme,
+                "id": item.id,
+                "options": item.options if item.options else {},
+            }
+            for item in items
         ]
         try:
             result = subprocess.run(  # nosec B603 B607
