@@ -58,6 +58,7 @@ coverage.xml
 # Project specific
 .secrets.baseline
 src/mkdocs_mermaid_to_svg/__pycache__/
+beautiful-mermaid/
 
 # template package
 template/

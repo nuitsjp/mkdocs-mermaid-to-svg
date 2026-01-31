@@ -14,6 +14,7 @@ class TestMermaidCliV11Compatibility:
         """Test that mmdc command uses -e instead of -f for format specification."""
         config = {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "theme": "default",
             "error_on_fail": False,
             "log_level": "INFO",
@@ -51,6 +52,7 @@ class TestMermaidCliV11Compatibility:
         """Test command line arguments formatting for mermaid-cli 11.6.0+."""
         config = {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "theme": "default",
             "error_on_fail": False,
             "log_level": "INFO",

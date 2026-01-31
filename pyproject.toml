@@ -39,6 +39,10 @@ mermaid-to-svg = "mkdocs_mermaid_to_svg.plugin:MermaidSvgConverterPlugin"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mkdocs_mermaid_to_svg"]
+include = ["src/mkdocs_mermaid_to_svg/beautiful_mermaid_runner.mjs"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/mkdocs_mermaid_to_svg/beautiful_mermaid_runner.mjs"]
 
 [tool.hatch.version]
 source = "vcs"
@@ -120,7 +124,6 @@ addopts = [
     "--cov=src/mkdocs_mermaid_to_svg",
     "--cov-report=term-missing",
     "--cov-report=html",
-    "--basetemp=.tmp",
     "--cache-clear",
     "-p no:cacheprovider",
 ]

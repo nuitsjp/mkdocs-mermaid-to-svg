@@ -112,6 +112,7 @@ ENABLE_PDF_EXPORT=1 mkdocs build
 ```yaml
 plugins:
   - mermaid-to-svg:
+      renderer: "auto"                 # auto: beautiful-mermaid優先, mmdc: 従来CLI固定
       mmdc_path: "mmdc"                   # Mermaid CLI へのパス
       css_file: "custom-mermaid.css"      # カスタムCSS
       puppeteer_config: "puppeteer.json"  # Puppeteer設定ファイル
@@ -147,6 +148,7 @@ plugins:
 | `enabled_if_env` | `None` | 環境変数でプラグインを有効化する場合の変数名 |
 | `output_dir` | `"assets/images"` | 生成したSVGを配置するディレクトリ |
 | `theme` | `"default"` | Mermaidのテーマ（default, dark, forest, neutral） |
+| `renderer` | `"mmdc"` | `auto`=beautiful-mermaid優先（未導入/未対応時はmmdcへ）, `mmdc`=従来CLI固定 |
 | `mmdc_path` | `"mmdc"` | `mmdc` 実行ファイルのパス |
 | `cli_timeout` | `90` | Mermaid CLIのタイムアウト（秒）。図が極端に小さい/重い場合に調整 |
 | `mermaid_config` | `None` | Mermaid設定の辞書 |
@@ -167,6 +169,22 @@ plugins:
 - `enabled_if_env` は「存在してかつ空文字列でない」環境変数が必要です。未設定または空の場合は無効のままです。
 - 指定した `mmdc_path` が使えない場合、`npx mmdc` へフォールバックします。
 - `puppeteer_config` が省略または存在しない場合、ヘッドレス実行向けの一時設定を自動生成し、使用後にクリーンアップします。
+- `renderer: auto` を使う場合は `node` と `beautiful-mermaid`（例: `npm install beautiful-mermaid`）が必要です。
+- `renderer: auto` は未対応図種（pie/ganttなど）やレンダラー失敗時にmmdcへフォールバックします。
+
+### SVGゴールデンテスト
+
+SVGの完全一致テストはデフォルトで実行され、次の環境変数で制御できます。
+
+```bash
+SKIP_SVG_GOLDEN=1 uv run pytest tests/integration/test_svg_golden.py
+```
+
+期待値を更新する場合:
+
+```bash
+REGENERATE_SVG_GOLDENS=1 uv run pytest tests/integration/test_svg_golden.py
+```
 
 ## PDF生成
 

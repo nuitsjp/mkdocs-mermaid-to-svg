@@ -51,6 +51,7 @@ class TestMermaidImageGenerator:
 
         return {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "theme": "default",
             "css_file": None,
             "puppeteer_config": puppeteer_config,
@@ -950,9 +951,15 @@ class TestMermaidImageGenerator:
                 assert output_path.exists()
 
             # SVG比較ロジックのテスト
-            similarity_ok, similarity_msg = self._compare_svg_similarity(
-                str(expected_path), str(output_path)
-            )
+            with patch(
+                "pathlib.Path.exists",
+                side_effect=lambda path=expected_path: True
+                if Path(path) == expected_path
+                else Path(path).exists(),
+            ):
+                similarity_ok, similarity_msg = self._compare_svg_similarity(
+                    str(expected_path), str(output_path)
+                )
             assert similarity_ok, f"SVG comparison failed: {similarity_msg}"
 
     def test_svg_comparison_edge_cases(self):
@@ -1037,9 +1044,15 @@ class TestMermaidImageGenerator:
                 assert output_path.exists()
 
                 # 生成されたSVGが有効であることを確認
-                ok, msg = self._compare_svg_similarity(
-                    str(basic_svg_path), str(output_path)
-                )
+                with patch(
+                    "pathlib.Path.exists",
+                    side_effect=lambda path=basic_svg_path: True
+                    if Path(path) == basic_svg_path
+                    else Path(path).exists(),
+                ):
+                    ok, msg = self._compare_svg_similarity(
+                        str(basic_svg_path), str(output_path)
+                    )
                 assert ok, f"Theme {theme} SVG validation failed: {msg}"
 
     def test_svg_structure_comparison_detailed(self):
@@ -1272,6 +1285,7 @@ class TestMermaidImageGenerator:
 
             basic_config = {
                 "mmdc_path": "mmdc",
+                "renderer": "mmdc",
                 "theme": "default",
                 "background_color": "white",
                 "width": 800,
@@ -1316,6 +1330,7 @@ class TestMermaidImageGenerator:
 
             basic_config = {
                 "mmdc_path": "mmdc",
+                "renderer": "mmdc",
                 "theme": "default",
                 "background_color": "white",
                 "width": 800,
@@ -1350,6 +1365,7 @@ class TestMermaidImageGenerator:
 
             basic_config1 = {
                 "mmdc_path": "mmdc",
+                "renderer": "mmdc",
                 "theme": "default",
                 "background_color": "white",
                 "width": 800,
@@ -1364,6 +1380,7 @@ class TestMermaidImageGenerator:
 
             basic_config2 = {
                 "mmdc_path": "npx mmdc",  # 異なるコマンドパス
+                "renderer": "mmdc",
                 "theme": "default",
                 "background_color": "white",
                 "width": 800,

@@ -18,6 +18,7 @@ class TestThemeFunctionality:
         """テスト用の基本設定"""
         return {
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "output_dir": "assets/images",
             "theme": "default",
             "image_format": "svg",
@@ -39,6 +40,7 @@ class TestThemeFunctionality:
 
         config = basic_config.copy()
         config["theme"] = "default"
+        config["renderer"] = "mmdc"
 
         generator = MermaidImageGenerator(config)
 
@@ -81,6 +83,7 @@ class TestThemeFunctionality:
 
         config = basic_config.copy()
         config["theme"] = "dark"
+        config["renderer"] = "mmdc"
 
         generator = MermaidImageGenerator(config)
 
@@ -131,6 +134,7 @@ class TestThemeFunctionality:
 
         config = basic_config.copy()
         config["theme"] = theme
+        config["renderer"] = "mmdc"
 
         generator = MermaidImageGenerator(config)
 
@@ -187,6 +191,7 @@ class TestThemeFunctionality:
         # 全体設定ではdefault、個別設定ではdark
         config = basic_config.copy()
         config["theme"] = "default"
+        config["renderer"] = "mmdc"
 
         individual_config = {"theme": "dark"}
 

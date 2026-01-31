@@ -58,6 +58,7 @@ class TestConfigManager:
         # 期待される設定項目のリスト（PNG関連設定を削除）
         expected_configs = [
             "enabled_if_env",  # 環境変数による有効化
+            "renderer",  # 生成レンダラー設定
             "output_dir",  # 画像出力ディレクトリ
             "theme",  # テーマ設定
             "error_on_fail",  # エラー時の動作

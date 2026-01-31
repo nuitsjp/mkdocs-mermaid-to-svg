@@ -42,6 +42,7 @@ def basic_config():
         "output_dir": "assets/mermaid",
         "image_format": "png",
         "mmdc_path": "mmdc",
+        "renderer": "mmdc",
         "theme": "default",
         "css_file": None,
         "puppeteer_config": None,

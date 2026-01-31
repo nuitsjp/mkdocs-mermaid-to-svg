@@ -24,6 +24,7 @@ class TestPluginDefaults:
 
         # 必須でないオプション（デフォルト値が必要）のリスト
         expected_defaults = {
+            "renderer": "mmdc",
             "output_dir": "assets/images",
             "image_format": "svg",
             "mmdc_path": "mmdc",

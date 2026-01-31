@@ -24,6 +24,7 @@ def test_processor_functionality():
     """Mermaidプロセッサの機能テスト"""
     config = {
         "mmdc_path": "mmdc",
+        "renderer": "mmdc",
         "output_dir": "assets/images",
         "image_format": "png",
         "theme": "default",
@@ -106,6 +107,7 @@ def test_serve_mode_integration():
             "output_dir": "assets/images",
             "image_format": "png",
             "mmdc_path": "mmdc",
+            "renderer": "mmdc",
             "theme": "default",
             "background_color": "white",
             "width": 800,
@@ -340,6 +342,7 @@ def test_pdf_generation_with_cached_command():
                 # PDF生成用の設定
                 pdf_config = {
                     "mmdc_path": "mmdc",
+                    "renderer": "mmdc",
                     "theme": "default",
                     "background_color": "white",
                     "width": 800,
