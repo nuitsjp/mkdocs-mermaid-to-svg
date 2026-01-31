@@ -22,9 +22,9 @@ class TestSvgOnlyConfig:
         config_names = [item[0] for item in scheme]
 
         # image_formatが設定スキーマに含まれていないことを確認
-        assert (
-            "image_format" not in config_names
-        ), "image_format should be removed from config scheme"
+        assert "image_format" not in config_names, (
+            "image_format should be removed from config scheme"
+        )
 
     def test_svg_only_generation(self):
         """
@@ -55,6 +55,6 @@ class TestSvgOnlyConfig:
 
         # コマンドにSVGフォーマットが含まれていることを確認
         command_str = " ".join(command)
-        assert (
-            "-e svg" in command_str or "--outputFormat svg" in command_str
-        ), f"Generated command should use SVG format, but got: {command}"
+        assert "-e svg" in command_str or "--outputFormat svg" in command_str, (
+            f"Generated command should use SVG format, but got: {command}"
+        )

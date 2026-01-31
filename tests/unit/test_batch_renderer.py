@@ -400,9 +400,9 @@ class TestBatchVsSingleOutputIdentity:
         # 一括処理
         batch_payload = [{"id": f"test_{label}", "code": code, "theme": "default"}]
         batch_result = _run_batch_render(batch_payload)
-        assert (
-            batch_result.returncode == 0
-        ), f"--batch-render失敗: {batch_result.stderr}"
+        assert batch_result.returncode == 0, (
+            f"--batch-render失敗: {batch_result.stderr}"
+        )
         batch_results = json.loads(batch_result.stdout)
         assert len(batch_results) == 1
         assert batch_results[0]["success"] is True
