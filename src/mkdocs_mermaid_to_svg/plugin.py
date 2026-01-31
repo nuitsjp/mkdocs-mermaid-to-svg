@@ -1,16 +1,22 @@
+from __future__ import annotations
+
+import logging
 import os
 import sys
 from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from mkdocs.plugins import BasePlugin
 
 if TYPE_CHECKING:
     from mkdocs.structure.files import Files
 
+    from .image_generator import AutoRenderer, BatchRenderItem
+
 from .config import ConfigManager
 from .exceptions import (
+    MermaidCLIError,
     MermaidConfigError,
     MermaidFileError,
     MermaidPreprocessorError,
@@ -30,9 +36,9 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         """Markdown処理の前段で必要となる状態とロガーを初期化する"""
         super().__init__()
         # プロセッサや生成物を初期化して、Markdown処理中の状態管理に備える
-        self.processor: Optional[MermaidProcessor] = None
+        self.processor: MermaidProcessor | None = None
         self.generated_images: list[str] = []
-        self.files: Optional[Files] = None
+        self.files: Files | None = None
         self.logger = get_logger(__name__)
 
         # CLI引数からserveモードや詳細ログ出力モードかどうかを判定
@@ -105,6 +111,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         # Filesオブジェクトを保存
         self.files = files
         self.generated_images = []
+        self.batch_items: list[BatchRenderItem] = []
 
         return files
 
@@ -166,7 +173,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
 
     def _process_mermaid_diagrams(
         self, markdown: str, page: Any, config: Any
-    ) -> Optional[str]:
+    ) -> str | None:
         """Mermaid図の処理を実行"""
         if not self.processor:
             return markdown
@@ -175,12 +182,16 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
             docs_dir = Path(config["docs_dir"])
             output_dir = docs_dir / self.config["output_dir"]
 
+            # batch_itemsが存在すれば収集モードで処理
+            batch_items = getattr(self, "batch_items", None)
+
             modified_content, image_paths = self.processor.process_page(
                 page.file.src_path,
                 markdown,
                 output_dir,
                 page_url=page.url,
                 docs_dir=docs_dir,
+                batch_items=batch_items,
             )
 
             self.generated_images.extend(image_paths)
@@ -321,7 +332,7 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
 
     def on_page_markdown(
         self, markdown: str, *, page: Any, config: Any, files: Any
-    ) -> Optional[str]:
+    ) -> str | None:
         """ビルド対象MarkdownからMermaidブロックを検出し変換する"""
         if not self._should_be_enabled(self.config):
             return markdown
@@ -336,6 +347,9 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         if not self._should_be_enabled(self.config):
             return
 
+        # beautiful-mermaid対応ダイアグラムの一括レンダリング
+        self._execute_batch_render(config)
+
         # 生成した画像の総数をINFOレベルで出力
         if self.generated_images:
             self.logger.info(
@@ -345,6 +359,153 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         # 生成画像のクリーンアップ
         if self.config.get("cleanup_generated_images", False) and self.generated_images:
             clean_generated_images(self.generated_images, self.logger)
+
+    def _execute_batch_render(self, config: Any) -> None:
+        """収集済みbatch_itemsを一括レンダリングし、docs/とsite/に書き出す"""
+        batch_items: list[BatchRenderItem] = getattr(self, "batch_items", [])
+        if not batch_items or not self.processor:
+            return
+
+        from .image_generator import AutoRenderer
+
+        renderer = self.processor.image_generator.renderer
+        if not isinstance(renderer, AutoRenderer):
+            return
+
+        beautiful_renderer = renderer.beautiful_renderer
+
+        try:
+            results = beautiful_renderer.batch_render(batch_items)
+        except MermaidCLIError as exc:
+            # プロセスクラッシュ時はページ情報を付与してビルド中断
+            page_files = {item.page_file for item in batch_items}
+            pages_info = ", ".join(sorted(page_files))
+            raise MermaidCLIError(
+                f"beautiful-mermaid一括レンダリングに失敗 "
+                f"(対象ページ: {pages_info}): {exc!s}",
+                command="node",
+            ) from exc
+
+        # IDからBatchRenderItemへのマッピングを作成
+        item_map = {item.id: item for item in batch_items}
+
+        # docs_dirとsite_dirを取得（site/への書き出しに使用）
+        docs_dir = self._resolve_docs_dir(config)
+        site_dir = Path(config["site_dir"]) if config.get("site_dir") else None
+
+        # 成功結果をdocs/とsite/に書き出す
+        failed_items: list[BatchRenderItem] = []
+        for result in results:
+            item = item_map.get(result.id)
+            if item is None:
+                continue
+
+            if not result.success or result.svg is None:
+                failed_items.append(item)
+                continue
+
+            self._write_svg_to_docs_and_site(
+                item.output_path, result.svg, docs_dir, site_dir
+            )
+            self.generated_images.append(item.output_path)
+            self._log_batch_svg_generation(item.output_path, item.page_file)
+
+        # 失敗分をmmdcでフォールバック
+        if failed_items:
+            self._fallback_to_mmdc(failed_items, renderer, docs_dir, site_dir)
+
+    @staticmethod
+    def _log_batch_svg_generation(output_path: str, page_file: str) -> None:
+        """バッチ生成したSVGのログを既存mmdc形式に合わせて出力する"""
+        mkdocs_logger = logging.getLogger("mkdocs")
+        filename = Path(output_path).name
+        mkdocs_logger.info(
+            "Converting Mermaid diagram to SVG: %s from %s",
+            filename,
+            page_file,
+        )
+
+    def _resolve_docs_dir(self, config: Any) -> Path | None:
+        """MkDocs設定からdocs_dirを取得する"""
+        docs_dir_value = config.get("docs_dir")
+        if docs_dir_value is not None:
+            return Path(docs_dir_value)
+        return None
+
+    def _write_svg_to_docs_and_site(
+        self,
+        docs_path: str,
+        svg_content: str,
+        docs_dir: Path | None,
+        site_dir: Path | None,
+    ) -> None:
+        """SVGをdocs/配下に書き出し、site/配下にもコピーする"""
+        # docs/配下に書き出す
+        output_path = Path(docs_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(svg_content, encoding="utf-8")
+
+        # site/配下にもコピー（on_post_build時点ではMkDocsコピー済みのため）
+        if docs_dir is not None and site_dir is not None:
+            try:
+                rel_path = output_path.relative_to(docs_dir)
+                site_path = site_dir / rel_path
+                site_path.parent.mkdir(parents=True, exist_ok=True)
+                site_path.write_text(svg_content, encoding="utf-8")
+            except ValueError:
+                # docs_dirからの相対パス解決に失敗した場合はスキップ
+                pass
+
+    def _fallback_to_mmdc(
+        self,
+        failed_items: list[BatchRenderItem],
+        renderer: AutoRenderer,
+        docs_dir: Path | None,
+        site_dir: Path | None,
+    ) -> None:
+        """batch_renderで失敗したダイアグラムをmmdcで個別に再処理する"""
+        mmdc_renderer = renderer.mmdc_renderer
+        for item in failed_items:
+            try:
+                config_for_mmdc = dict(self.config)
+                config_for_mmdc["theme"] = item.theme
+                success = mmdc_renderer.render_svg(
+                    item.code,
+                    item.output_path,
+                    config_for_mmdc,
+                    page_file=item.page_file,
+                )
+                if success:
+                    self.generated_images.append(item.output_path)
+                    self._copy_to_site_dir(item.output_path, docs_dir, site_dir)
+                    self.logger.info(f"mmdcフォールバックで生成: {item.output_path}")
+                else:
+                    self.logger.warning(
+                        f"mmdcフォールバックも失敗: {item.output_path} "
+                        f"(page: {item.page_file})"
+                    )
+            except Exception as exc:
+                self.logger.warning(
+                    f"mmdcフォールバック中にエラー: {exc!s} (page: {item.page_file})"
+                )
+
+    def _copy_to_site_dir(
+        self,
+        docs_path: str,
+        docs_dir: Path | None,
+        site_dir: Path | None,
+    ) -> None:
+        """docs/配下のファイルをsite/配下にコピーする"""
+        if docs_dir is None or site_dir is None:
+            return
+        try:
+            source = Path(docs_path)
+            rel_path = source.relative_to(docs_dir)
+            dest = site_dir / rel_path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(source.read_bytes())
+        except (ValueError, OSError):
+            pass
 
     def on_serve(self, server: Any, *, config: Any, builder: Any) -> Any:
         """開発サーバー起動時のフックで追加処理が不要であることを示す"""

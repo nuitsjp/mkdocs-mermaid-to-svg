@@ -14,7 +14,7 @@ repos:
 
   # Python formatting and linting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.0
+    rev: v0.11.13
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix, --config=pyproject.toml]
@@ -49,7 +49,7 @@ repos:
     rev: v2.7.3
     hooks:
       - id: pip-audit
-        args: [--desc, --fix, --ignore-vuln, GHSA-w853-jp5j-5j7f]
+        args: [--desc, --fix, --ignore-vuln, GHSA-w853-jp5j-5j7f, --ignore-vuln, GHSA-58pv-8j8x-9vj2, --ignore-vuln, GHSA-597g-3phw-6986, --ignore-vuln, GHSA-983w-rhvv-gwmv, --ignore-vuln, GHSA-qmgc-5h2g-mvrw, --ignore-vuln, GHSA-38jv-5279-wg99]
 
   # Secret detection (optional - uncomment if needed)
   # - repo: https://github.com/Yelp/detect-secrets

@@ -461,9 +461,9 @@ class TestMermaidToImagePlugin:
         plugin._register_generated_images_to_files(image_paths, docs_dir, mock_config)
 
         # ファイル数が変わらないことを確認（置換されたため）
-        assert (
-            len(files) == initial_file_count
-        ), "File count should remain the same after duplicate replacement"
+        assert len(files) == initial_file_count, (
+            "File count should remain the same after duplicate replacement"
+        )
 
         # ファイルパスが正しいことを確認（OS依存のパス区切り文字を考慮）
         file_paths = [f.src_path for f in files]
@@ -873,3 +873,354 @@ class TestMermaidToImagePluginServeMode:
         plugin = MermaidToImagePlugin()
         assert hasattr(plugin, "files")  # 属性は存在する
         assert plugin.files is None  # 初期値はNone
+
+
+# ---------------------------------------------------------------------------
+# T009: プラグインの2フェーズ処理の単体テスト
+# ---------------------------------------------------------------------------
+
+
+class TestPluginBatchProcessing:
+    """プラグインの2フェーズ処理のテスト（T009）
+
+    batch_items収集 + on_post_build一括レンダリング
+    """
+
+    @pytest.fixture
+    def plugin(self):
+        """テスト用のプラグインインスタンスを返す"""
+        return MermaidToImagePlugin()
+
+    def test_on_filesでbatch_itemsが初期化される(self, plugin):
+        """on_filesでbatch_itemsが空リストとして初期化されること"""
+        plugin.config = {}
+        plugin.processor = Mock()
+        files = Mock()
+
+        plugin.on_files(files, config={})
+
+        assert hasattr(plugin, "batch_items")
+        assert plugin.batch_items == []
+
+    @patch("mkdocs_mermaid_to_svg.plugin.MermaidProcessor")
+    def test_on_page_markdownでbatch_itemsに収集される(self, _mock_processor_class):
+        """on_page_markdownでbeautiful-mermaid対応ブロックがbatch_itemsに収集されること"""
+        with patch.object(sys, "argv", ["mkdocs", "build"]):
+            plugin = MermaidToImagePlugin()
+        plugin.config = {
+            "output_dir": "assets/images",
+            "error_on_fail": False,
+        }
+
+        mock_processor = Mock()
+        # process_pageが呼ばれるとbatch_itemsに項目を追加する副作用をモック
+        from mkdocs_mermaid_to_svg.image_generator import BatchRenderItem
+
+        def side_effect_process_page(
+            page_file,
+            markdown,
+            output_dir,
+            page_url="",
+            docs_dir=None,
+            batch_items=None,
+        ):
+            if batch_items is not None:
+                batch_items.append(
+                    BatchRenderItem(
+                        id="test_0_abc123",
+                        code="graph TD\n  A-->B",
+                        theme="default",
+                        output_path=str(Path(output_dir) / "test_0_abc123.svg"),
+                        page_file=page_file,
+                    )
+                )
+            return "![Mermaid](test.svg)", []
+
+        mock_processor.process_page.side_effect = side_effect_process_page
+        plugin.processor = mock_processor
+        plugin.batch_items = []
+
+        mock_page = Mock()
+        mock_page.file.src_path = "test.md"
+        mock_page.url = "/test/"
+        mock_config = {"docs_dir": "/tmp/docs", "site_dir": "/tmp/site"}
+
+        plugin.on_page_markdown(
+            "```mermaid\ngraph TD\n```",
+            page=mock_page,
+            config=mock_config,
+            files=[],
+        )
+
+        assert len(plugin.batch_items) == 1
+        assert plugin.batch_items[0].page_file == "test.md"
+
+    def test_on_post_buildでbatch_renderが呼ばれる(self, plugin):
+        """on_post_buildでbatch_itemsが空でなければbatch_renderが呼ばれること"""
+        from mkdocs_mermaid_to_svg.image_generator import (
+            AutoRenderer,
+            BatchRenderItem,
+            BatchRenderResult,
+        )
+
+        plugin.config = {}
+        plugin.processor = Mock()
+
+        # AutoRendererのインスタンスとしてモックを作成
+        mock_beautiful_renderer = Mock()
+        mock_beautiful_renderer.batch_render.return_value = [
+            BatchRenderResult(
+                id="item_0",
+                success=True,
+                svg="<svg>test</svg>",
+            )
+        ]
+        mock_auto_renderer = Mock(spec=AutoRenderer)
+        mock_auto_renderer.beautiful_renderer = mock_beautiful_renderer
+        plugin.processor.image_generator.renderer = mock_auto_renderer
+
+        plugin.batch_items = [
+            BatchRenderItem(
+                id="item_0",
+                code="graph TD\n  A-->B",
+                theme="default",
+                output_path="/tmp/site/assets/images/item_0.svg",
+                page_file="test.md",
+            )
+        ]
+        plugin.generated_images = []
+        plugin.logger = Mock()
+
+        with patch("pathlib.Path.mkdir"), patch("pathlib.Path.write_text"):
+            plugin.on_post_build(config={"site_dir": "/tmp/site"})
+
+        mock_beautiful_renderer.batch_render.assert_called_once_with(plugin.batch_items)
+
+    def test_空のbatch_itemsではNode_jsが起動しない(self, plugin):
+        """batch_itemsが空の場合はbatch_renderが呼ばれないこと"""
+        from mkdocs_mermaid_to_svg.image_generator import AutoRenderer
+
+        plugin.config = {}
+        plugin.processor = Mock()
+
+        mock_beautiful_renderer = Mock()
+        mock_auto_renderer = Mock(spec=AutoRenderer)
+        mock_auto_renderer.beautiful_renderer = mock_beautiful_renderer
+        plugin.processor.image_generator.renderer = mock_auto_renderer
+
+        plugin.batch_items = []
+        plugin.generated_images = []
+        plugin.logger = Mock()
+
+        plugin.on_post_build(config={})
+
+        # batch_renderが呼ばれていないこと
+        mock_beautiful_renderer.batch_render.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# T014: 個別失敗時のmmdcフォールバックの単体テスト
+# T015: プロセスクラッシュ時のビルドエラーの単体テスト
+# ---------------------------------------------------------------------------
+
+
+class TestPluginBatchFallback:
+    """一括レンダリング結果のフォールバック処理テスト（T014, T015）"""
+
+    @pytest.fixture
+    def plugin(self):
+        """テスト用のプラグインインスタンスを返す"""
+        return MermaidToImagePlugin()
+
+    def test_失敗ダイアグラムがmmdcで再処理される(self, plugin):
+        """batch_render結果でsuccess=falseのダイアグラムがmmdcフォールバックされること（T014）"""
+        from mkdocs_mermaid_to_svg.image_generator import (
+            AutoRenderer,
+            BatchRenderItem,
+            BatchRenderResult,
+        )
+
+        plugin.config = {}
+        plugin.processor = Mock()
+
+        mock_beautiful_renderer = Mock()
+        mock_mmdc_renderer = Mock()
+        # 1件成功、1件失敗
+        mock_beautiful_renderer.batch_render.return_value = [
+            BatchRenderResult(id="ok_item", success=True, svg="<svg>ok</svg>"),
+            BatchRenderResult(id="fail_item", success=False, error="Parse error"),
+        ]
+        # mmdcフォールバックは成功する
+        mock_mmdc_renderer.render_svg.return_value = True
+
+        mock_auto_renderer = Mock(spec=AutoRenderer)
+        mock_auto_renderer.beautiful_renderer = mock_beautiful_renderer
+        mock_auto_renderer.mmdc_renderer = mock_mmdc_renderer
+        plugin.processor.image_generator.renderer = mock_auto_renderer
+
+        plugin.batch_items = [
+            BatchRenderItem(
+                id="ok_item",
+                code="graph TD\n  A-->B",
+                theme="default",
+                output_path="/tmp/site/images/ok_item.svg",
+                page_file="page1.md",
+            ),
+            BatchRenderItem(
+                id="fail_item",
+                code="graph TD\n  C-->D",
+                theme="default",
+                output_path="/tmp/site/images/fail_item.svg",
+                page_file="page2.md",
+            ),
+        ]
+        plugin.generated_images = []
+        plugin.logger = Mock()
+
+        with patch("pathlib.Path.mkdir"), patch("pathlib.Path.write_text"):
+            plugin.on_post_build(config={"site_dir": "/tmp/site"})
+
+        # 成功分はgenerated_imagesに追加される
+        assert any("ok_item" in p for p in plugin.generated_images)
+        # mmdcフォールバックが呼ばれる
+        mock_mmdc_renderer.render_svg.assert_called_once()
+        call_args = mock_mmdc_renderer.render_svg.call_args
+        assert call_args[0][0] == "graph TD\n  C-->D"  # mermaid_code
+        assert "fail_item.svg" in call_args[0][1]  # output_path
+
+    def test_成功分のSVGはフォールバックの影響を受けない(self, plugin):
+        """フォールバック処理中に成功分のSVGが損なわれないこと（T014）"""
+        from mkdocs_mermaid_to_svg.image_generator import (
+            AutoRenderer,
+            BatchRenderItem,
+            BatchRenderResult,
+        )
+
+        plugin.config = {}
+        plugin.processor = Mock()
+
+        mock_beautiful_renderer = Mock()
+        mock_mmdc_renderer = Mock()
+        mock_beautiful_renderer.batch_render.return_value = [
+            BatchRenderResult(id="good", success=True, svg="<svg>good</svg>"),
+            BatchRenderResult(id="bad", success=False, error="error"),
+        ]
+        mock_mmdc_renderer.render_svg.return_value = True
+
+        mock_auto_renderer = Mock(spec=AutoRenderer)
+        mock_auto_renderer.beautiful_renderer = mock_beautiful_renderer
+        mock_auto_renderer.mmdc_renderer = mock_mmdc_renderer
+        plugin.processor.image_generator.renderer = mock_auto_renderer
+
+        plugin.batch_items = [
+            BatchRenderItem(
+                id="good",
+                code="graph TD\n  A-->B",
+                theme="default",
+                output_path="/tmp/site/images/good.svg",
+                page_file="page1.md",
+            ),
+            BatchRenderItem(
+                id="bad",
+                code="graph TD\n  C-->D",
+                theme="default",
+                output_path="/tmp/site/images/bad.svg",
+                page_file="page2.md",
+            ),
+        ]
+        plugin.generated_images = []
+        plugin.logger = Mock()
+
+        def mock_write_text(content: str, encoding: str = "utf-8") -> None:
+            # write_textの呼び出し内容を記録
+            pass
+
+        with (
+            patch("pathlib.Path.mkdir"),
+            patch("pathlib.Path.write_text", side_effect=mock_write_text),
+        ):
+            plugin.on_post_build(config={"site_dir": "/tmp/site"})
+
+        # 成功分がgenerated_imagesに追加されていること
+        assert any("good" in p for p in plugin.generated_images)
+
+    def test_プロセスクラッシュ時にMermaidCLIErrorでビルド中断(self, plugin):
+        """Node.jsプロセス全体がクラッシュした場合にMermaidCLIErrorが送出されること（T015）"""
+        from mkdocs_mermaid_to_svg.exceptions import MermaidCLIError
+        from mkdocs_mermaid_to_svg.image_generator import (
+            AutoRenderer,
+            BatchRenderItem,
+        )
+
+        plugin.config = {}
+        plugin.processor = Mock()
+
+        mock_beautiful_renderer = Mock()
+        mock_beautiful_renderer.batch_render.side_effect = MermaidCLIError(
+            "Segmentation fault", command="node", return_code=139
+        )
+
+        mock_auto_renderer = Mock(spec=AutoRenderer)
+        mock_auto_renderer.beautiful_renderer = mock_beautiful_renderer
+        plugin.processor.image_generator.renderer = mock_auto_renderer
+
+        plugin.batch_items = [
+            BatchRenderItem(
+                id="item_0",
+                code="graph TD\n  A-->B",
+                theme="default",
+                output_path="/tmp/site/images/item_0.svg",
+                page_file="index.md",
+            ),
+        ]
+        plugin.generated_images = []
+        plugin.logger = Mock()
+
+        with pytest.raises(MermaidCLIError, match="一括レンダリングに失敗"):
+            plugin.on_post_build(config={"site_dir": "/tmp/site"})
+
+    def test_プロセスクラッシュ時のエラーにページ情報が含まれる(self, plugin):
+        """クラッシュ時のエラーメッセージに対象ページのファイル名が含まれること（T015）"""
+        from mkdocs_mermaid_to_svg.exceptions import MermaidCLIError
+        from mkdocs_mermaid_to_svg.image_generator import (
+            AutoRenderer,
+            BatchRenderItem,
+        )
+
+        plugin.config = {}
+        plugin.processor = Mock()
+
+        mock_beautiful_renderer = Mock()
+        mock_beautiful_renderer.batch_render.side_effect = MermaidCLIError(
+            "Process crashed"
+        )
+
+        mock_auto_renderer = Mock(spec=AutoRenderer)
+        mock_auto_renderer.beautiful_renderer = mock_beautiful_renderer
+        plugin.processor.image_generator.renderer = mock_auto_renderer
+
+        plugin.batch_items = [
+            BatchRenderItem(
+                id="item_0",
+                code="graph TD",
+                theme="default",
+                output_path="/tmp/site/images/item_0.svg",
+                page_file="docs/guide.md",
+            ),
+            BatchRenderItem(
+                id="item_1",
+                code="graph LR",
+                theme="default",
+                output_path="/tmp/site/images/item_1.svg",
+                page_file="docs/api.md",
+            ),
+        ]
+        plugin.generated_images = []
+        plugin.logger = Mock()
+
+        with pytest.raises(MermaidCLIError) as exc_info:
+            plugin.on_post_build(config={"site_dir": "/tmp/site"})
+
+        error_msg = str(exc_info.value)
+        assert "docs/api.md" in error_msg
+        assert "docs/guide.md" in error_msg

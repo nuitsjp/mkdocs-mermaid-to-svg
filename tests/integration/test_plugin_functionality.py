@@ -367,12 +367,12 @@ def test_pdf_generation_with_cached_command():
 
                 # キャッシュが効いているかチェック
                 # 同じコマンドパスなので、is_command_availableは1回だけ呼ばれるはず
-                assert (
-                    mock_cmd.call_count == 1
-                ), f"キャッシュ有効時は1回だけチェック。実際{mock_cmd.call_count}回"
-                assert (
-                    MermaidImageGenerator.get_cache_size() == 1
-                ), "キャッシュには1つのエントリがあるはず"
+                assert mock_cmd.call_count == 1, (
+                    f"キャッシュ有効時は1回だけチェック。実際{mock_cmd.call_count}回"
+                )
+                assert MermaidImageGenerator.get_cache_size() == 1, (
+                    "キャッシュには1つのエントリがあるはず"
+                )
 
                 # 画像生成テスト（モック環境）
                 with (
@@ -420,6 +420,6 @@ def test_pdf_generation_with_cached_command():
                     assert result4 is True, "2回目のSVG生成が成功するはず"
 
                     # is_command_availableが追加で呼ばれていないか確認
-                    assert (
-                        mock_cmd.call_count == 1
-                    ), "キャッシュヒット時は追加チェック不要"
+                    assert mock_cmd.call_count == 1, (
+                        "キャッシュヒット時は追加チェック不要"
+                    )
