@@ -10,6 +10,8 @@
 import puppeteer from 'puppeteer'
 import { createRequire } from 'node:module'
 import { resolve as importMetaResolve } from 'import-meta-resolve'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 
 const log = (msg) => process.stderr.write(`[persistent-renderer] ${msg}\n`)
 
@@ -19,14 +21,11 @@ const log = (msg) => process.stderr.write(`[persistent-renderer] ${msg}\n`)
 const resolveMermaidPath = () => {
   try {
     const mermaidUrl = importMetaResolve('mermaid', import.meta.url)
-    const mermaidEntryPath = new URL(mermaidUrl).pathname
-    // Windows環境では /C:/... のようなパスになるため先頭スラッシュを除去
-    const normalizedPath = process.platform === 'win32'
-      ? mermaidEntryPath.replace(/^\//, '')
-      : mermaidEntryPath
+    // fileURLToPathでURLエンコード(%20等)を正しくデコードし、OS固有パスに変換
+    const mermaidEntryPath = fileURLToPath(mermaidUrl)
     // mermaid/dist/mermaid.core.mjs → mermaid/dist/mermaid.min.js
-    const dir = normalizedPath.substring(0, normalizedPath.lastIndexOf('/'))
-    return `${dir}/mermaid.min.js`
+    const dir = dirname(mermaidEntryPath)
+    return join(dir, 'mermaid.min.js')
   } catch {
     // フォールバック: requireで解決
     const require = createRequire(import.meta.url)

@@ -283,7 +283,7 @@ class PersistentRenderer:
                     line = proc.stdout.readline()
                     if line:
                         result[0] = line.rstrip("\n").rstrip("\r")
-            except Exception:
+            except Exception:  # nosec B110 - readline失敗時は結果なしとして扱う
                 pass
 
         thread = threading.Thread(target=_read, daemon=True)
@@ -304,7 +304,7 @@ class PersistentRenderer:
             # stderrの残りを読むためにプロセスが終了している場合のみ
             if proc.poll() is not None:
                 return proc.stderr.read() or ""
-        except Exception:
+        except Exception:  # nosec B110 - stderr読み取り失敗時は空文字として扱う
             pass
         return ""
 
@@ -316,5 +316,5 @@ class PersistentRenderer:
             try:
                 proc.kill()
                 proc.wait(timeout=5.0)
-            except Exception:
+            except Exception:  # nosec B110 - 強制終了の最終段階では例外を無視する
                 pass
