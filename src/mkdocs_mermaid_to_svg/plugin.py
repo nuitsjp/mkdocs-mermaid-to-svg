@@ -350,6 +350,12 @@ class MermaidSvgConverterPlugin(BasePlugin):  # type: ignore[type-arg,no-untyped
         # beautiful-mermaid対応ダイアグラムの一括レンダリング
         self._execute_batch_render(config)
 
+        # 永続レンダラーのシャットダウン
+        if self.processor:
+            renderer = self.processor.image_generator.renderer
+            if hasattr(renderer, "close"):
+                renderer.close()
+
         # 生成した画像の総数をINFOレベルで出力
         if self.generated_images:
             self.logger.info(

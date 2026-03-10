@@ -440,6 +440,12 @@ class MermaidImageGenerator:
 
     def _create_renderer(self) -> Renderer:
         renderer_setting = str(self.config.get("renderer", "mmdc")).lower()
+        if renderer_setting == "persistent":
+            from .persistent_renderer import PersistentRenderer
+
+            return PersistentRenderer(
+                self.config, self.logger, cli_timeout=self.cli_timeout
+            )
         if renderer_setting == "auto":
             return AutoRenderer(
                 BeautifulMermaidRenderer(self, self.logger),
@@ -449,7 +455,8 @@ class MermaidImageGenerator:
         return MmdcRenderer(self, self.logger)
 
     def _should_use_mmdc_only(self) -> bool:
-        return str(self.config.get("renderer", "mmdc")).lower() != "auto"
+        setting = str(self.config.get("renderer", "mmdc")).lower()
+        return setting not in ("auto", "persistent")
 
     def _set_resolved_command(self, command: list[str]) -> None:
         self._resolved_mmdc_command = command

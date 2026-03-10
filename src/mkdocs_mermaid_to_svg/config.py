@@ -19,7 +19,7 @@ class ConfigManager:
             ),
             (
                 "renderer",
-                config_options.Choice(["auto", "mmdc"], default="mmdc"),
+                config_options.Choice(["auto", "mmdc", "persistent"], default="mmdc"),
             ),
             (
                 "output_dir",
@@ -126,12 +126,12 @@ class ConfigManager:
     def validate_config(config: dict[str, Any]) -> bool:
         """設定ファイルで指定されたパス類を検証し存在しない場合は例外を投げる"""
         renderer = config.get("renderer")
-        if renderer is not None and renderer not in {"auto", "mmdc"}:
+        if renderer is not None and renderer not in {"auto", "mmdc", "persistent"}:
             raise MermaidConfigError(
-                "rendererは'auto'または'mmdc'のみ指定できます",
+                "rendererは'auto'、'mmdc'、または'persistent'のみ指定できます",
                 config_key="renderer",
                 config_value=renderer,
-                suggestion="rendererを'auto'か'mmdc'に設定してください",
+                suggestion="rendererを'auto'、'mmdc'、'persistent'のいずれかに設定してください",
             )
 
         # オプションパラメータのチェック（存在する場合のみ）
