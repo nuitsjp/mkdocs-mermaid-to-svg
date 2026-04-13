@@ -170,7 +170,7 @@ jobs:
       # GitHub Release作成（本番リリース時のみ）
       - name: Create GitHub Release
         if: ${{ needs.determine-release-type.outputs.is-production == 'true' }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.version.outputs.version }}
